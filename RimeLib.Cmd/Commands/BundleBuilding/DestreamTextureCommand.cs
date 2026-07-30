@@ -14,7 +14,7 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
         [CommandArgument(Description = "The exact resource/asset name, e.g. vehicles/m1a2/m1a2_d.")]
         public string? Name { get; set; }
 
-        [CommandArgument(Description = "Optional mode: 'chunkonly' (CAS pack: full-range chunk + remove resource) or 'headeronly' (NONCAS annex: patched header resource only). Default: both in this bundle.", Optional = true)]
+        [CommandArgument(Description = "Optional mode: 'chunkonly' (CAS pack: full-range chunk + remove resource), 'headeronly' (NONCAS annex: patched header resource only), 'keepmips', or 'ondemand' (NONCAS annex, header patched to Streaming|OnDemandLoaded + mipBase 0 = TexturePool 2 = stays OUT of the turbo chunk path; pair with a FULL-CHAIN toc chunk). Default: both in this bundle.", Optional = true)]
         public string? Mode { get; set; }
 
         public override bool Execute(ref ExecutionContext p_Context, TextWriter p_Writer)
@@ -26,9 +26,9 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                 return false;
             }
             var s_Mode = (Mode ?? "").ToLowerInvariant();
-            if (s_Mode != "" && s_Mode != "chunkonly" && s_Mode != "headeronly" && s_Mode != "keepmips")
+            if (s_Mode != "" && s_Mode != "chunkonly" && s_Mode != "headeronly" && s_Mode != "keepmips" && s_Mode != "ondemand")
             {
-                p_Writer.WriteLine($"destream_texture: unknown mode '{Mode}' (use chunkonly|headeronly|keepmips|<empty>).");
+                p_Writer.WriteLine($"destream_texture: unknown mode '{Mode}' (use chunkonly|headeronly|keepmips|ondemand|<empty>).");
                 return false;
             }
 
@@ -64,12 +64,39 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
             // texture never registers with the streaming system (no worker requests). Needed for
             // TEXTURE ARRAYS (dust_d): the full-resident frankenstein (mipBase 1->0 + full chunk)
             // crashes the streaming worker when aircraft canopies sample it, a shape retail never ships.
+            // 'ondemand' keeps Streaming(0x1) AND sets OnDemandLoaded(0x8). That pair is what puts the
+            // texture in TexturePool 2, and pool 2 is the ONLY value that keeps fb::ResourceManager::
+            // beginChunkRead out of the turbo branch: the streaming manager derives entry[50] from these
+            // very bits (0x004C42D0), and 0/1 both request the chunk through fb::turboLoaderRequestChunk,
+            // whose index table is NULL outside a compartment's turbo-load window -> AV with no null check.
+            // Pool 2 routes to the FileSuperBundleManager instead, i.e. through m_tocs/casChunks -> the
+            // catalog lookup, which is the only path a cas-ref chunk can be served from.
+            // Retail shape for this pair (censused over 13016 DxTexture headers): mipBase 0 on 3637/3637,
+            // one mip on 3635/3637, chunk = the COMPLETE chain, always declared at superbundle-TOC level.
+            // So pair 'ondemand' with a full-chain chunk (add_cas_toc_chunk), never with a ranged slice.
+            //
+            // ⚠ PROVEN IN-GAME NOT TO DELIVER PIXELS FOR MATERIAL TEXTURES — do not reach for this to fix
+            // a black vehicle. The very bit that selects pool 2 is also the first thing sub_6C5760 tests,
+            // and it returns a mip mask of 0 for it, so the texture is registered but never queued for
+            // loading at all. Result: the turbo AV disappears and the client runs, but the textures bind
+            // and draw black. Every retail user of this pair is UI (dogtags, minimaps, loading screens),
+            // acquired explicitly by the UI code — nothing requests it for a mesh material. Keep it for
+            // UI-shaped content or as a diagnostic; the vehicle-texture case needs an engine-side change.
             var s_Flags = System.BitConverter.ToUInt32(s_Header, 12);
-            var s_NewFlags = s_Flags & ~0x1u;
+            var s_NewFlags = s_Mode == "ondemand" ? (s_Flags | 0x9u) : (s_Flags & ~0x1u);
             System.BitConverter.GetBytes(s_NewFlags).CopyTo(s_Header, 12);
             var s_MipBase = s_Header[27];
             if (s_Mode != "keepmips")
                 s_Header[27] = 0;
+
+            if (s_Mode == "ondemand")
+            {
+                // Same delivery as 'headeronly' (generated resource => NONCAS annex), different flags.
+                try { s_Ctx.RemoveResource(Name!); } catch { }
+                s_Ctx.AddGeneratedResource(Name!, s_Header, ResourceType.DxTexture, new byte[16]);
+                p_Writer.WriteLine($"destream-ondemand {Name}: flags 0x{s_Flags:X}->0x{s_NewFlags:X} (Streaming|OnDemandLoaded), mipBase {s_MipBase}->0 (128B noncas resource; pair with a FULL-CHAIN toc chunk).");
+                return true;
+            }
 
             if (s_Mode == "headeronly")
             {
