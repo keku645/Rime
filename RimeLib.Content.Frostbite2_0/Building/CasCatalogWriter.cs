@@ -1,3 +1,5 @@
+using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using RimeLib.Content.Frostbite2_0.Frostbite.Cas;
@@ -17,11 +19,21 @@ namespace RimeLib.Content.Frostbite2_0.Building
     /// The caller decides whether a blob is stored compressed (Frostbite zlib-block) or raw;
     /// this just stores the exact bytes and hashes them. The catalogue is written with the
     /// FileObfuscation header (magic 0x01CED100, XOR disabled) that BF3's loader expects.
+    ///
+    /// Retail parity: inside a cas_NN.cas every blob is preceded by a 32-byte header
+    /// [magic FA CE 0F F0][sha1 (20 bytes)][size (u64 LE)] and the catalogue entry's offset points
+    /// PAST that header. Verified against BF3 retail: on both the base and the patch catalogue every
+    /// consecutive entry pair satisfies next.offset == prev.offset + prev.size + 32
+    /// (109182/109182 and 31038/31038), with the header's sha1 and size matching the entry.
     /// </summary>
     public class CasCatalogWriter
     {
         // Frostbite caps a single cas file at 1 GiB.
         private const long c_MaxCasSize = 1073741824;
+
+        // Per-blob header written before each stored blob (see the retail-parity note above).
+        private const int c_BlobHeaderSize = 32;
+        private static readonly byte[] c_BlobMagic = { 0xFA, 0xCE, 0x0F, 0xF0 };
 
         private readonly uint m_StartIndex;
         private readonly List<MemoryStream> m_CasStreams = new();
@@ -48,7 +60,14 @@ namespace RimeLib.Content.Frostbite2_0.Building
             if (m_Entries.ContainsKey(s_Hash))
                 return s_Hash;
 
-            var s_Stream = FindStreamWithSpace(p_Data.Length, out var s_Index);
+            var s_Stream = FindStreamWithSpace(c_BlobHeaderSize + p_Data.Length, out var s_Index);
+
+            // Header first; the catalogue offset then points at the payload, exactly like retail.
+            var s_Header = new byte[c_BlobHeaderSize];
+            Buffer.BlockCopy(c_BlobMagic, 0, s_Header, 0, c_BlobMagic.Length);
+            Buffer.BlockCopy(s_Hash.Hash, 0, s_Header, 4, 20);
+            BinaryPrimitives.WriteUInt64LittleEndian(s_Header.AsSpan(24, 8), (ulong)p_Data.Length);
+            s_Stream.Write(s_Header, 0, s_Header.Length);
 
             m_Entries[s_Hash] = new CatalogEntry(m_Catalog)
             {
