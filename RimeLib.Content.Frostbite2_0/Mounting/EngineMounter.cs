@@ -602,11 +602,21 @@ namespace RimeLib.Content.Frostbite2_0.Mounting
             Sha1 s_Hash;
             try { s_Hash = new Sha1(p_Sha1Hex); }
             catch { return false; }
-            var s_Contained = (m_Catalog.AuthoritativeCatalog != null && m_Catalog.AuthoritativeCatalog.ContainsEntry(s_Hash))
-                              || m_Catalog.ContainsEntry(s_Hash);
-            if (!s_Contained)
+            // Membership via CatalogContainsEntry (2026-07-29) so an EXTERNALLY mounted catalog
+            // (mount_external_cat — the player-side DLC catalog) counts too. The hand-rolled base/patch
+            // check made add_cas_chunk unable to reference DLC payloads that only exist in the generated
+            // catalog, which is exactly the cas-ref DLC delivery case. Build time only emits the sha1;
+            // the bytes are fetched at runtime from whichever catalog holds them.
+            if (!CatalogContainsEntry(s_Hash))
                 return false;
-            var s_Entry = new CasChunkEntry(p_Id, s_Hash, m_Catalog);
+            // Bind the entry to the catalog that ACTUALLY holds the hash: the serializer asks it for
+            // PayloadSize, and querying the game catalog for an external-catalog sha1 throws
+            // ("nonexistent hash") and kills the build after the bundle is already assembled.
+            var s_OwningCatalog = m_Catalog.ContainsEntry(s_Hash)
+                                  || (m_Catalog.AuthoritativeCatalog != null && m_Catalog.AuthoritativeCatalog.ContainsEntry(s_Hash))
+                ? m_Catalog
+                : (m_ExternalProbeCatalog ?? m_Catalog);
+            var s_Entry = new CasChunkEntry(p_Id, s_Hash, s_OwningCatalog);
             DbObject? s_Meta = null;
             if (p_H32.HasValue)
             {

@@ -261,7 +261,15 @@ namespace RimeLib.Content.Frostbite2_0.Building
                 {
                     s_CompressedSize = GetCompressedSize(s_Readable);
                     s_ResourceHash = GetCompressedHash(s_Readable);
-                    s_ResourceInline = GetInlineData(s_Readable);
+                    // Catalog-backed idata (2026-07-29): an INLINE variant whose stored frame is already
+                    // in the player's cas.cat ships as a pure sha1 ref instead of embedded bytes — the
+                    // same rule the noncas branch above applies. Retail texture HEADERS are idata in
+                    // every cas bundle, so a cas-ref-only delivery would otherwise be forced to embed
+                    // them. Only ever taken on a catalog HIT, so the header-without-payload failure the
+                    // inline-variant preference guards against (CreateTexture2D E_INVALIDARG) cannot occur.
+                    s_ResourceInline = m_CatalogProbe != null && m_CatalogProbe(s_ResourceHash)
+                        ? null
+                        : GetInlineData(s_Readable);
                 }
 
                 m_Header.ResourceEntries[s_ResourceIndex] = new CasBundle.Resource
