@@ -5,7 +5,10 @@ using System.Linq;
 using System.Security.Cryptography;
 using RimeLib.Content.Frostbite2_0.Frostbite.Bundles;
 using RimeLib.Content.Frostbite2_0.Frostbite.Chunks;
+using RimeLib.Content.Frostbite2_0.IO;
 using RimeLib.Frostbite.Core;
+using RimeLib.IO;
+using RimeLib.IO.Conversion;
 
 namespace RimeLib.Content.Frostbite2_0.Building
 {
@@ -93,6 +96,7 @@ namespace RimeLib.Content.Frostbite2_0.Building
         private readonly List<PendingEntry> m_PendingEntries = new();
         private readonly Dictionary<string, int> m_RejectionCountsByReason = new();
         private readonly Dictionary<string, int> m_IndexableCountsByKind = new();
+        private readonly Dictionary<BundleManifest, RimeMultiplexedReader?> m_DeltaReaderCache = new();
 
         private uint m_NextFileNumber;
 
@@ -126,7 +130,7 @@ namespace RimeLib.Content.Frostbite2_0.Building
         /// indexed in place — emitting an entry for it would silently point the engine at the wrong
         /// bytes rather than fail.
         /// </summary>
-        public static bool TryResolvePhysicalLocation(object p_Readable, out PhysicalLocation p_Location,
+        public bool TryResolvePhysicalLocation(object p_Readable, out PhysicalLocation p_Location,
             out string p_RejectionReason)
         {
             p_Location = default;
@@ -181,24 +185,12 @@ namespace RimeLib.Content.Frostbite2_0.Building
             }
         }
 
-        private static bool TryResolveBundleEntry(Frostbite.Sb.SuperbundleEntry p_Superbundle,
+        private bool TryResolveBundleEntry(Frostbite.Sb.SuperbundleEntry p_Superbundle,
             BundleManifest p_Bundle, long p_SeekOffsetWithinBundle, long p_StoredByteLength,
             out PhysicalLocation p_Location, out string p_RejectionReason)
         {
             p_Location = default;
             p_RejectionReason = "";
-
-            // See the class remark: a base bundle that a patch bundle overlays is read through a
-            // multiplexer, so its bytes are not contiguous in either file.
-            if (p_Bundle.PatchBundle != null && !p_Bundle.InUpdate)
-            {
-                p_RejectionReason = "patched bundle (bytes multiplexed across base+patch, not contiguous)";
-                return false;
-            }
-
-            var s_SuperbundleFilePath = p_Superbundle.Path + ".sb";
-            if (p_Bundle.InUpdate && p_Superbundle.PatchPath != null)
-                s_SuperbundleFilePath = p_Superbundle.PatchPath + ".sb";
 
             if (p_StoredByteLength <= 0)
             {
@@ -206,9 +198,97 @@ namespace RimeLib.Content.Frostbite2_0.Building
                 return false;
             }
 
+            // DELTA BUNDLE: a patch overlays this base bundle, so Rime serves it through a multiplexer
+            // and the bundle as a whole is not a window of one file. Individual ENTRIES usually still
+            // are: the multiplexer is a list of runs, each copying a stretch from one file or the
+            // other, and an entry that lies inside a single run is plainly addressable. Measured over
+            // this game's 179 delta bundles (22,126 runs): 409,053 entries, of which 363,376 sit in one
+            // base run and 45,677 in one patch run, and NONE straddle. Rejecting the whole bundle
+            // discarded ~46% of the unique non-cas content.
+            //
+            // NOTE the offset space: for a delta bundle the manifest was parsed off the multiplexed
+            // stream, so SeekOffsetWithinBundle is a VIRTUAL offset. Adding ContainedBundle.Offset to
+            // it -- correct for every other case -- is meaningless here.
+            if (p_Bundle.PatchBundle != null && !p_Bundle.InUpdate)
+            {
+                var s_Multiplexed = GetDeltaReader(p_Superbundle, p_Bundle);
+                if (s_Multiplexed == null)
+                {
+                    p_RejectionReason = "patched bundle whose delta runs could not be read";
+                    return false;
+                }
+
+                if (!s_Multiplexed.TryResolveContiguousRange(p_SeekOffsetWithinBundle, p_StoredByteLength,
+                        out var s_FromPatch, out var s_PhysicalOffset))
+                {
+                    p_RejectionReason = "patched bundle, entry straddles a delta run boundary";
+                    return false;
+                }
+
+                var s_DeltaPath = s_FromPatch ? p_Superbundle.PatchPath + ".sb" : p_Superbundle.Path + ".sb";
+                if (s_FromPatch && p_Superbundle.PatchPath == null)
+                {
+                    p_RejectionReason = "delta run points at the patch file but the superbundle has no patch path";
+                    return false;
+                }
+
+                p_Location = new PhysicalLocation(s_DeltaPath, s_PhysicalOffset, p_StoredByteLength);
+                return true;
+            }
+
+            var s_SuperbundleFilePath = p_Superbundle.Path + ".sb";
+            if (p_Bundle.InUpdate && p_Superbundle.PatchPath != null)
+                s_SuperbundleFilePath = p_Superbundle.PatchPath + ".sb";
+
             p_Location = new PhysicalLocation(s_SuperbundleFilePath,
                 p_Bundle.ContainedBundle.Offset + p_SeekOffsetWithinBundle, p_StoredByteLength);
             return true;
+        }
+
+        /// <summary>
+        /// One multiplexed reader per delta bundle, kept for the queueing pass. Building it parses the
+        /// bundle's run table, which is the only thing we need from it, but doing that per entry would
+        /// re-open two files tens of thousands of times.
+        /// </summary>
+        private RimeMultiplexedReader? GetDeltaReader(Frostbite.Sb.SuperbundleEntry p_Superbundle,
+            BundleManifest p_Bundle)
+        {
+            if (m_DeltaReaderCache.TryGetValue(p_Bundle, out var s_Cached))
+                return s_Cached;
+
+            RimeMultiplexedReader? s_Reader = null;
+            try
+            {
+                var s_Endianness = (p_Superbundle.Toc.Layout.Cas.HasValue && p_Superbundle.Toc.Layout.Cas.Value)
+                    ? Endianness.LittleEndian : Endianness.BigEndian;
+
+                var s_BaseReader = new RimeReader(File.Open(p_Superbundle.Path + ".sb", FileMode.Open,
+                    FileAccess.Read, FileShare.Read), s_Endianness);
+                s_BaseReader.Seek(p_Bundle.ContainedBundle.Offset, SeekOrigin.Begin);
+
+                var s_PatchReader = new RimeReader(File.Open(p_Superbundle.PatchPath + ".sb", FileMode.Open,
+                    FileAccess.Read, FileShare.Read), s_Endianness);
+                s_PatchReader.Seek(p_Bundle.PatchBundle!.Offset, SeekOrigin.Begin);
+
+                s_Reader = new RimeMultiplexedReader(s_PatchReader, s_BaseReader, Endianness.BigEndian);
+            }
+            catch
+            {
+                s_Reader = null;
+            }
+
+            m_DeltaReaderCache[p_Bundle] = s_Reader;
+            return s_Reader;
+        }
+
+        /// <summary>Closes the per-delta-bundle readers held during queueing.</summary>
+        public void ReleaseDeltaReaders()
+        {
+            foreach (var s_Reader in m_DeltaReaderCache.Values)
+            {
+                try { s_Reader?.Dispose(); } catch { }
+            }
+            m_DeltaReaderCache.Clear();
         }
 
         /// <summary>
@@ -291,6 +371,9 @@ namespace RimeLib.Content.Frostbite2_0.Building
             int p_CrossCheckSamplesPerFile, Func<Sha1, bool>? p_AlreadyInGameCatalog, TextWriter? p_Log)
         {
             Directory.CreateDirectory(p_OutputDirectory);
+
+            // Queueing is done; the delta run tables have served their purpose.
+            ReleaseDeltaReaders();
 
             var s_Writer = new CasCatalogWriter(m_FirstFileNumber);
             var s_Stopwatch = System.Diagnostics.Stopwatch.StartNew();

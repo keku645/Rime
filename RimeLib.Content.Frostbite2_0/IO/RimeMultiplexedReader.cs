@@ -89,6 +89,67 @@ namespace RimeLib.Content.Frostbite2_0.IO
             m_BasePatchedOffset = m_PatchReader.Position;
         }
 
+        /// <summary>
+        /// Resolves a window of this virtual stream to a contiguous window of ONE of the two
+        /// underlying files, when that is possible.
+        ///
+        /// A delta bundle is a list of runs, each copying a stretch of bytes from either the base or
+        /// the patch file. A window that lies entirely inside one run therefore IS a plain
+        /// (file, offset, length) even though the bundle as a whole is not — which is what lets a
+        /// content-addressed catalogue point at data inside a patched bundle instead of giving up on
+        /// it. Only a window straddling a run boundary is genuinely non-contiguous.
+        ///
+        /// The arithmetic deliberately mirrors <see cref="ReadInternal"/>; keep them in step.
+        /// </summary>
+        /// <returns>false if the window crosses a run boundary or falls outside the stream.</returns>
+        public bool TryResolveContiguousRange(long p_VirtualOffset, long p_Length,
+            out bool p_FromPatchFile, out long p_PhysicalOffset)
+        {
+            p_FromPatchFile = false;
+            p_PhysicalOffset = 0;
+
+            if (p_Length <= 0 || p_VirtualOffset < 0 || p_VirtualOffset + p_Length > m_Length)
+                return false;
+
+            var s_RunIndex = 0;
+            var s_Run = m_Runs[0];
+            var s_CumulativeBytes = s_Run.CopyBytes;
+
+            // Running total of patch-run bytes up to and including the current run.
+            var s_PatchRunOffset = s_Run.FileId == 0 ? s_Run.CopyBytes : 0;
+
+            while (p_VirtualOffset >= s_CumulativeBytes)
+            {
+                if (++s_RunIndex >= m_Runs.Count)
+                    return false;
+
+                s_Run = m_Runs[s_RunIndex];
+                s_CumulativeBytes += s_Run.CopyBytes;
+
+                if (s_Run.FileId == 0)
+                    s_PatchRunOffset += s_Run.CopyBytes;
+            }
+
+            var s_RelativeOffset = p_VirtualOffset - (s_CumulativeBytes - s_Run.CopyBytes);
+
+            // Straddles into the next run: not one contiguous window of one file.
+            if (s_RelativeOffset + p_Length > s_Run.CopyBytes)
+                return false;
+
+            if (s_Run.FileId == 0)
+            {
+                p_FromPatchFile = true;
+                p_PhysicalOffset = m_BasePatchedOffset + (s_PatchRunOffset - s_Run.CopyBytes) + s_RelativeOffset;
+            }
+            else
+            {
+                p_FromPatchFile = false;
+                p_PhysicalOffset = (long)s_Run.Offset + s_RelativeOffset;
+            }
+
+            return true;
+        }
+
         public override long Seek(long p_Offset, SeekOrigin p_Origin)
         {
             CheckDisposed();
