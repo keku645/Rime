@@ -16,6 +16,9 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
         [CommandArgument(Description = "Id returned by mount_game.")]
         public int Id { get; set; }
 
+        [CommandArgument(Description = "Optional, comma-separated: only resolve textures for shaders whose name contains one of these (case-insensitive), e.g. 'levels/xp2_skybar/shaders/'. Omit or '-' for the whole database, which for a level database is that level's ENTIRE texture set -- hundreds of names, far more residency than a few foreign shaders need.")]
+        public string? ShaderNames { get; set; }
+
         public override bool Execute(ref ExecutionContext p_Context, TextWriter p_Writer)
         {
             if (string.IsNullOrWhiteSpace(Name))
@@ -73,7 +76,17 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
             {
                 var s_Resolver = EngineInterfaceRegistry.Create<IShaderResolver>(s_EngineType);
                 s_Resolver.Initialize(s_ResourceVariant, s_EngineMounter);
-                var s_TextureNames = s_Resolver.GetTextureNames();
+                var s_Filters = (string.IsNullOrWhiteSpace(ShaderNames) || ShaderNames == "-")
+                    ? System.Array.Empty<string>()
+                    : ShaderNames.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries);
+
+                var s_TextureNames = s_Filters.Length == 0
+                    ? s_Resolver.GetTextureNames()
+                    : s_Resolver.GetTextureNamesForShaders(s_Filters);
+
+                p_Writer.WriteLine(s_Filters.Length == 0
+                    ? $"resolve_shader_textures: whole database, {s_TextureNames.Count} texture name(s)."
+                    : $"resolve_shader_textures: shaders matching [{string.Join(", ", s_Filters)}], {s_TextureNames.Count} texture name(s).");
 
                 foreach (var s_TextureName in s_TextureNames)
                 {
