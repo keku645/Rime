@@ -887,6 +887,98 @@ namespace RimeLib.Content.Frostbite2_0.Mounting
         }
 
         /// <summary>
+        /// Indexes every mounted NON-CAS blob where it already lives: walks all mounted partitions,
+        /// resources and chunks, works out which .sb file holds each one and at what offset, and emits
+        /// a cas.cat whose entries point straight into those files, plus the file-number -> path map
+        /// the runtime needs to populate the matching cas-file handle slots.
+        ///
+        /// No payload is copied. The whole point is that content the game already ships as non-cas
+        /// becomes content-addressable at the cost of ~32 bytes of catalogue per blob, so a mod can
+        /// reference it by sha1 without redistributing anything.
+        ///
+        /// Blobs that are already cas-backed are skipped (they have a content address already), and so
+        /// is anything that cannot be expressed as one contiguous window of one file — most importantly
+        /// bundles that a patch overlays, whose bytes Rime assembles from two files.
+        /// </summary>
+        /// <summary>
+        /// Highest cas file number any mounted catalogue already uses. Our synthetic numbers must
+        /// start past it or they would alias slots the game itself populates with real cas files.
+        /// </summary>
+        public uint GetHighestCatalogFileNumberInUse()
+        {
+            uint s_Highest = 0;
+            void Scan(Catalog? p_Cat)
+            {
+                if (p_Cat == null) return;
+                foreach (var s_Entry in p_Cat.Entries.Values)
+                    if (s_Entry.FileNumber > s_Highest) s_Highest = s_Entry.FileNumber;
+            }
+            Scan(m_Catalog);
+            Scan(m_Catalog?.AuthoritativeCatalog);
+            return s_Highest;
+        }
+
+        public string BuildNoncasIndex(string p_OutDir, uint p_FirstFileNumber = 0,
+            int p_CrossCheckSamplesPerFile = 32, string? p_SbPrefix = null,
+            bool p_SkipAlreadyInGameCatalog = true, TextWriter? p_Log = null)
+        {
+            // 0 = derive it. Asserting a safe starting number is exactly the kind of precondition that
+            // is silently wrong on someone else's install; the data to compute it is already in memory.
+            var s_DerivedNote = "";
+            if (p_FirstFileNumber == 0)
+            {
+                var s_Highest = GetHighestCatalogFileNumberInUse();
+                p_FirstFileNumber = s_Highest + 1;
+                s_DerivedNote = $"firstFileNumber={p_FirstFileNumber} (derived: highest in use by the " +
+                                $"mounted catalogues is {s_Highest})\n";
+            }
+
+            var s_Builder = new RimeLib.Content.Frostbite2_0.Building.NoncasIndexBuilder(p_FirstFileNumber);
+            long s_SkippedCasBacked = 0, s_Considered = 0;
+
+            void Consider(string p_Kind, string p_Name, IObjectVariant p_Variant)
+            {
+                if (p_SbPrefix != null &&
+                    !p_Variant.GetContainedSuperbundle().StartsWith(p_SbPrefix, StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                s_Considered++;
+
+                object s_Readable = p_Variant is ObjectVariant s_OV ? s_OV.GetReadable() : p_Variant;
+
+                // Already content-addressed: it has a cas entry, so there is nothing to index.
+                if (s_Readable is CatalogReadable || s_Readable is CasChunkEntry)
+                {
+                    s_SkippedCasBacked++;
+                    return;
+                }
+
+                s_Builder.TryAdd(p_Kind, p_Name, s_Readable);
+            }
+
+            foreach (var s_Kv in m_MountedPartitions)
+                foreach (var s_V in s_Kv.Value.Variants)
+                    Consider("ebx", s_Kv.Key, s_V);
+
+            foreach (var s_Kv in m_MountedResources)
+                foreach (var s_V in s_Kv.Value.Variants)
+                    Consider("res", s_Kv.Key, s_V);
+
+            foreach (var s_Kv in m_MountedChunks)
+                foreach (var s_V in s_Kv.Value.Variants)
+                    Consider("chunk", s_Kv.Key.ToString(), s_V);
+
+            var s_Report = s_Builder.Build(
+                p_OutDir,
+                GetReadableStoredBytes,
+                p_CrossCheckSamplesPerFile,
+                p_SkipAlreadyInGameCatalog ? CatalogContainsEntry : null,
+                p_Log);
+
+            return s_DerivedNote + $"considered={s_Considered} alreadyCasBacked={s_SkippedCasBacked}\n" + s_Report;
+        }
+
+        /// <summary>
         /// Loads a generated cas.cat and reports how many of the named objects' stored-frame
         /// sha1s it now contains (the offline resolution oracle for build_cas_catalog). With
         /// p_SetAuthoritative it chains the catalog onto the mounted base as AuthoritativeCatalog

@@ -78,6 +78,7 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<VerifyCatalogHashesCommand>();
             RegisterCommand<ClassifyTexturesCommand>();
             RegisterCommand<BuildCasCatalogCommand>();
+            RegisterCommand<BuildNoncasIndexCommand>();
             RegisterCommand<ProbeCatalogCommand>();
             RegisterCommand<MountExternalCatCommand>();
 

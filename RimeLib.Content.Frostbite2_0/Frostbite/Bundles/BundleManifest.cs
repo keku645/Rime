@@ -27,6 +27,10 @@ namespace RimeLib.Content.Frostbite2_0.Frostbite.Bundles
 
         private long m_Size;
         public long PayloadSize => m_Size;
+
+        /// <summary>Offset of this entry's stored bytes relative to the start of its bundle.</summary>
+        public long SeekOffsetWithinBundle => m_SeekOffset;
+
         private long m_OriginalSize;
 
         internal EbxEntry(string p_Name, Sha1 p_Hash, BundleManifest.EntryRecord p_Record, long p_SeekOffset,
@@ -114,6 +118,10 @@ namespace RimeLib.Content.Frostbite2_0.Frostbite.Bundles
 
         private long m_Size;
         public long PayloadSize => m_Size;
+
+        /// <summary>Offset of this entry's stored bytes relative to the start of its bundle.</summary>
+        public long SeekOffsetWithinBundle => m_SeekOffset;
+
         private long m_OriginalSize;
 
         internal ResourceEntry(string p_Name, Sha1 p_Hash, uint p_Type, byte[] p_Meta, BundleManifest.EntryRecord p_Record,
@@ -204,6 +212,9 @@ namespace RimeLib.Content.Frostbite2_0.Frostbite.Bundles
         private long m_SeekOffset;
         private long m_Size;
         public long PayloadSize => m_Size;
+
+        /// <summary>Offset of this entry's stored bytes relative to the start of its bundle.</summary>
+        public long SeekOffsetWithinBundle => m_SeekOffset;
 
         internal BundleChunkEntry(Sha1 p_Hash, BundleManifest.ChunkEntry p_Entry, long p_SeekOffset, SuperbundleEntry p_Superbundle, BundleManifest p_Bundle, ChunkMetaEntry? p_Meta) :
             base(p_Entry.Id)

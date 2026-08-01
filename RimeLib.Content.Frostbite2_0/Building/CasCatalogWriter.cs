@@ -83,7 +83,57 @@ namespace RimeLib.Content.Frostbite2_0.Building
         }
 
         /// <summary>
+        /// Records an entry whose bytes are NOT stored by this writer: they already exist, verbatim,
+        /// somewhere the engine can reach. The caller supplies the file number, and is responsible for
+        /// having populated that slot in fb::FileSuperBundleManager's cas-file handle array with a
+        /// buffer for the corresponding file on disk.
+        ///
+        /// This is what makes an "index in place" catalogue possible: a superbundle (.sb) that already
+        /// ships with the game holds the blob at a known offset, so the catalogue can address it there
+        /// instead of duplicating it into a cas_NN.cas.
+        ///
+        /// IMPORTANT — no blob header. Blobs written by <see cref="Add"/> are preceded by the retail
+        /// 32-byte [magic|sha1|size] header and the entry's offset points PAST it. A blob living inside
+        /// a .sb has no such header, so <paramref name="p_FileOffset"/> must be the offset of the
+        /// payload's FIRST byte. The read path never reads that header (verified in-game: entries
+        /// pointing straight at raw .sb offsets load correctly), it exists only for cas files.
+        ///
+        /// Returns false if a different location was already recorded for the same hash (first wins,
+        /// matching the engine's own duplicate handling), true if this call recorded the entry.
+        /// </summary>
+        public bool AddExternalReference(Sha1 p_Hash, uint p_FileNumber, long p_FileOffset, long p_ByteLength)
+        {
+            if (m_Entries.ContainsKey(p_Hash))
+                return false;
+
+            // The catalogue entry's offset and size fields are both u32: the engine reads the offset
+            // into a 32-bit field whose high 24 bits are hard-zeroed on this path, so nothing beyond
+            // 4 GiB-1 inside the target file is addressable.
+            if (p_FileOffset < 0 || p_FileOffset > uint.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(p_FileOffset),
+                    $"offset {p_FileOffset} exceeds the 4 GiB ceiling of a catalogue entry");
+            if (p_ByteLength < 0 || p_ByteLength > uint.MaxValue)
+                throw new ArgumentOutOfRangeException(nameof(p_ByteLength),
+                    $"length {p_ByteLength} exceeds the 4 GiB ceiling of a catalogue entry");
+            if (p_FileNumber == 0 || p_FileNumber > 255)
+                throw new ArgumentOutOfRangeException(nameof(p_FileNumber),
+                    $"file number {p_FileNumber} is outside 1..255 (the engine reads it as a 1-based byte)");
+
+            m_Entries[p_Hash] = new CatalogEntry(m_Catalog)
+            {
+                Hash = p_Hash,
+                FileNumber = p_FileNumber,
+                FileOffset = (uint)p_FileOffset,
+                FileSize = (uint)p_ByteLength,
+            };
+
+            return true;
+        }
+
+        /// <summary>
         /// Writes cas_NN.cas files and the obfuscated cas.cat into <paramref name="p_Directory"/>.
+        /// Entries recorded through <see cref="AddExternalReference"/> contribute no cas file: if every
+        /// entry is external, only cas.cat is written.
         /// </summary>
         public void Write(string p_Directory, string p_CatalogName = "cas.cat")
         {
