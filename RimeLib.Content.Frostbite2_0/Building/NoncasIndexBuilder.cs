@@ -368,8 +368,10 @@ namespace RimeLib.Content.Frostbite2_0.Building
         ///     validate Rime's model itself.
         /// </summary>
         public string Build(string p_OutputDirectory, Func<object, byte[]>? p_MountedStoredBytesAccessor,
-            int p_CrossCheckSamplesPerFile, Func<Sha1, bool>? p_AlreadyInGameCatalog, TextWriter? p_Log)
+            int p_CrossCheckSamplesPerFile, Func<Sha1, bool>? p_AlreadyInGameCatalog, TextWriter? p_Log,
+            string? p_GameInstallRoot = null)
         {
+            m_GameInstallRoot = p_GameInstallRoot;
             Directory.CreateDirectory(p_OutputDirectory);
 
             // Queueing is done; the delta run tables have served their purpose.
@@ -542,6 +544,35 @@ namespace RimeLib.Content.Frostbite2_0.Building
             return s_Text;
         }
 
+        /// <summary>Where the game is installed, so the emitted map can be machine-independent.</summary>
+        private string? m_GameInstallRoot;
+
+        /// <summary>
+        /// A path relative to the game install, or the absolute path when it lies outside it.
+        ///
+        /// The catalogue is portable by construction -- it holds sha1, offset and length, and every
+        /// player's copy of a given .sb is byte-identical -- but the FILE MAP would not be if it named
+        /// absolute paths: the install lives on a different drive and folder on every machine, and an
+        /// absolute path from the machine that built the index simply does not exist on the one that
+        /// runs it. So the map stores what is actually invariant, the path WITHIN the install, and the
+        /// runtime joins it to whatever root it finds locally.
+        /// </summary>
+        private string ToPortablePath(string p_AbsolutePath)
+        {
+            if (string.IsNullOrEmpty(m_GameInstallRoot))
+                return p_AbsolutePath;
+
+            var s_Root = Path.GetFullPath(m_GameInstallRoot)
+                             .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+            var s_Full = Path.GetFullPath(p_AbsolutePath);
+
+            if (!s_Full.StartsWith(s_Root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) &&
+                !s_Full.StartsWith(s_Root + Path.AltDirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return p_AbsolutePath;
+
+            return s_Full.Substring(s_Root.Length + 1);
+        }
+
         private void WriteFileNumberMap(string p_OutputDirectory)
         {
             var s_MapPath = Path.Combine(p_OutputDirectory, "casfilemap.txt");
@@ -550,8 +581,14 @@ namespace RimeLib.Content.Frostbite2_0.Building
             s_MapWriter.WriteLine("# The engine indexes its cas-file handle vector at [fileNumber - 1]:");
             s_MapWriter.WriteLine("# 1-BASED, read as a single byte, so 1..255 are the addressable slots.");
             s_MapWriter.WriteLine("# Open each file read-only and place its buffer in the matching slot.");
+            s_MapWriter.WriteLine("#");
+            s_MapWriter.WriteLine("# Paths are RELATIVE TO THE GAME INSTALL ROOT on purpose: the install sits on a");
+            s_MapWriter.WriteLine("# different drive and folder on every machine, so an absolute path baked in here");
+            s_MapWriter.WriteLine("# would only ever work on the one that generated it. The runtime joins each of");
+            s_MapWriter.WriteLine("# these to the root it detects locally. A path that is already absolute lies");
+            s_MapWriter.WriteLine("# outside the install and is left alone.");
             foreach (var s_Path in m_SuperbundlePathByOrder)
-                s_MapWriter.WriteLine($"{m_FileNumberBySuperbundlePath[s_Path]}\t{s_Path}");
+                s_MapWriter.WriteLine($"{m_FileNumberBySuperbundlePath[s_Path]}\t{ToPortablePath(s_Path)}");
         }
 
         private static byte[] ReadWindow(FileStream p_Stream, long p_Offset, int p_Length)

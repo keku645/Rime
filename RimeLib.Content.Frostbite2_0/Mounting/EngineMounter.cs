@@ -936,11 +936,22 @@ namespace RimeLib.Content.Frostbite2_0.Mounting
             var s_Builder = new RimeLib.Content.Frostbite2_0.Building.NoncasIndexBuilder(p_FirstFileNumber);
             long s_SkippedCasBacked = 0, s_Considered = 0;
 
+            // Comma-separated, because one prefix is rarely the right scope: a level's own superbundle
+            // holds its ebx and resources, but its streaming chunks live in a SEPARATE <Xpack>Chunks
+            // superbundle. Indexing only the level therefore produces a catalogue that can address a
+            // texture's header and not its pixels, which is a draw-time crash rather than a build error.
+            var s_SbPrefixes = string.IsNullOrWhiteSpace(p_SbPrefix)
+                ? null
+                : p_SbPrefix.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
             void Consider(string p_Kind, string p_Name, IObjectVariant p_Variant)
             {
-                if (p_SbPrefix != null &&
-                    !p_Variant.GetContainedSuperbundle().StartsWith(p_SbPrefix, StringComparison.OrdinalIgnoreCase))
-                    return;
+                if (s_SbPrefixes != null)
+                {
+                    var s_Superbundle = p_Variant.GetContainedSuperbundle();
+                    if (!s_SbPrefixes.Any(p_P => s_Superbundle.StartsWith(p_P, StringComparison.OrdinalIgnoreCase)))
+                        return;
+                }
 
                 s_Considered++;
 
@@ -973,7 +984,8 @@ namespace RimeLib.Content.Frostbite2_0.Mounting
                 GetReadableStoredBytes,
                 p_CrossCheckSamplesPerFile,
                 p_SkipAlreadyInGameCatalog ? CatalogContainsEntry : null,
-                p_Log);
+                p_Log,
+                m_GamePath);
 
             return s_DerivedNote + $"considered={s_Considered} alreadyCasBacked={s_SkippedCasBacked}\n" + s_Report;
         }
@@ -1111,6 +1123,8 @@ namespace RimeLib.Content.Frostbite2_0.Mounting
             if (!File.Exists(s_MainCatalogPath))
                 return;
 
+            // So a catalogue whose file map holds install-relative paths can resolve them.
+            Catalog.GameInstallRoot = m_GamePath;
             m_Catalog = new Catalog(s_MainCatalogPath);
 
             // If we have an authoritative package then parse that too.

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using RimeLib.Frostbite.Core;
 using RimeLib.Frostbite.Fs;
@@ -27,6 +28,33 @@ namespace RimeLib.Content.Frostbite2_0.Frostbite.Cas
         /// </summary>
         public string Path { get; set; }
 
+        /// <summary>
+        /// Optional fileNumber -> path override, for catalogues whose entries do NOT point at
+        /// cas_NN.cas files.
+        ///
+        /// An "index in place" catalogue addresses content where it already lives -- a superbundle
+        /// the game already ships -- so nothing named cas_NN.cas exists for it. The engine does not
+        /// care, because the runtime is told which file to put in each slot, but this reader resolved
+        /// the file number by naming convention and therefore could not read such an entry back.
+        /// That made add_cas_chunk (which sizes a chunk by reading it) and probe_catalog's read-back
+        /// fail with "Could not find file cas_NN.cas".
+        ///
+        /// Populated from a "casfilemap.txt" sitting next to the .cat, if present:
+        ///     &lt;fileNumber&gt;\t&lt;path&gt;      (# comments allowed)
+        /// which is exactly what build_noncas_index emits.
+        /// </summary>
+        public Dictionary<uint, string> FileNumberToPath { get; } = new Dictionary<uint, string>();
+
+        /// <summary>
+        /// Where the game is installed, used to resolve RELATIVE entries in casfilemap.txt.
+        ///
+        /// The map stores paths relative to the install on purpose -- an absolute path baked in by the
+        /// machine that generated the index names a drive and folder that do not exist on the machine
+        /// that runs it. The engine-side loader is told the root explicitly; this reader is the same
+        /// tool that mounted the game, so it just remembers where that was.
+        /// </summary>
+        public static string? GameInstallRoot { get; set; }
+
         public const ulong c_Nyan = 0x6E61794E6E61794E;
 
         /// <summary>
@@ -41,6 +69,48 @@ namespace RimeLib.Content.Frostbite2_0.Frostbite.Cas
             // "cas.cat is being used by another process" and every later command cascades.
             using var s_Reader = new RimeReader(File.Open(Path, FileMode.Open, FileAccess.Read, FileShare.Read));
             ParseHeader(s_Reader);
+            LoadFileNumberMap();
+        }
+
+        /// <summary>
+        /// Reads the optional casfilemap.txt next to the catalogue. Absent is the normal case.
+        /// </summary>
+        private void LoadFileNumberMap()
+        {
+            var s_Directory = System.IO.Path.GetDirectoryName(Path);
+            if (string.IsNullOrEmpty(s_Directory))
+                return;
+
+            var s_MapPath = System.IO.Path.Join(s_Directory, "casfilemap.txt");
+            if (!File.Exists(s_MapPath))
+                return;
+
+            foreach (var s_Line in File.ReadAllLines(s_MapPath))
+            {
+                var s_Trimmed = s_Line.Trim();
+                if (s_Trimmed.Length == 0 || s_Trimmed.StartsWith("#"))
+                    continue;
+
+                var s_Tab = s_Trimmed.IndexOf('\t');
+                if (s_Tab <= 0)
+                    continue;
+
+                if (!uint.TryParse(s_Trimmed.Substring(0, s_Tab).Trim(), out var s_FileNumber))
+                    continue;
+
+                var s_Entry = s_Trimmed.Substring(s_Tab + 1).Trim();
+
+                // Relative entries hang off the install; an already-absolute one lies outside it and
+                // is taken as written. Falling back to the .cat's own directory keeps a hand-made map
+                // working when no game is mounted.
+                if (!System.IO.Path.IsPathRooted(s_Entry))
+                {
+                    var s_Base = !string.IsNullOrEmpty(GameInstallRoot) ? GameInstallRoot : s_Directory;
+                    s_Entry = System.IO.Path.GetFullPath(System.IO.Path.Join(s_Base, s_Entry));
+                }
+
+                FileNumberToPath[s_FileNumber] = s_Entry;
+            }
         }
 
         /// <summary>
@@ -130,8 +200,10 @@ namespace RimeLib.Content.Frostbite2_0.Frostbite.Cas
             // Get the entry.
             var s_Entry = this[p_Hash];
 
-            // Construct the path to the cas file.
-            var s_Path = System.IO.Path.Join(System.IO.Path.GetDirectoryName(Path), $"cas_{s_Entry.FileNumber:D2}.cas");
+            // Where the bytes actually live. An in-place catalogue overrides the file number with a
+            // real path (see FileNumberToPath); otherwise it is the usual cas_NN.cas beside the .cat.
+            if (!FileNumberToPath.TryGetValue(s_Entry.FileNumber, out var s_Path))
+                s_Path = System.IO.Path.Join(System.IO.Path.GetDirectoryName(Path), $"cas_{s_Entry.FileNumber:D2}.cas");
 
             // Open a reader.
             var s_Reader = new RimeReader(File.Open(s_Path, FileMode.Open, FileAccess.Read, FileShare.Read));
