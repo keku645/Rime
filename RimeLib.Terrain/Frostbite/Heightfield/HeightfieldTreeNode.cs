@@ -11,6 +11,19 @@ public class HeightfieldTreeNode : RasterTreeNode
     public float SamplesPerMeter { get; set; }
     public byte[] EmbeddedData { get; set; } = Array.Empty<byte>();
 
+    /// <summary>
+    /// Offset of <see cref="EmbeddedData"/> relative to the start of the heightfield tree payload,
+    /// or -1 when the node carries no embedded data. The tree is only parsed partially, so editing
+    /// the height samples is done by patching them in place inside the raw payload, which requires
+    /// knowing where they live.
+    /// </summary>
+    public long EmbeddedDataOffset { get; set; } = -1;
+
+    /// <summary>
+    /// Offset of the node bounding box relative to the start of the heightfield tree payload.
+    /// </summary>
+    public long BoundingBoxOffset { get; set; } = -1;
+
     // Warsaw addition
     public bool PartialNonPhysics { get; set; }
 

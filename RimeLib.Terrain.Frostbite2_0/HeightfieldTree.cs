@@ -9,14 +9,23 @@ namespace RimeLib.Terrain.Frostbite2_0
 {
     public class HeightfieldTree : HeightfieldTreeBase
     {
+        /// <summary>
+        /// Stream position the payload of this tree starts at. Node offsets are recorded relative
+        /// to it so that the height samples can be patched inside the raw payload.
+        /// </summary>
+        private long m_PayloadStartPosition;
+
         private HeightfieldTreeNode LoadNodes(RimeReader p_Reader, ref uint p_FirstFreeNodeIndex, QuadtreeNodeId p_NodeId)
         {
             // TODO: Fix below
             //throw new NotImplementedException();
-            
+
+            var s_BoundingBoxOffset = p_Reader.Position - m_PayloadStartPosition;
+
             var s_Node = new HeightfieldTreeNode(p_Reader)
             {
-                ID = p_NodeId
+                ID = p_NodeId,
+                BoundingBoxOffset = s_BoundingBoxOffset
             };
 
             s_Node.SamplesPerMeter = DensityMapNodeSamplesPerSidePot / (s_Node.BoundingBox.max.x - s_Node.BoundingBox.min.x);
@@ -47,6 +56,8 @@ namespace RimeLib.Terrain.Frostbite2_0
 
                 // TODO: Properly read data because this is just nonsense.
 
+                // One R16 sample per grid point: height_in_meters = sample * WorldSizeY / 65535.
+                s_Node.EmbeddedDataOffset = p_Reader.Position - m_PayloadStartPosition;
                 s_Node.EmbeddedData = p_Reader.ReadBytes((int)(NodeSamplesPerSide * NodeSamplesPerSide * 2));
 
                 if (MinMaxStackSize > 0)
@@ -89,8 +100,21 @@ namespace RimeLib.Terrain.Frostbite2_0
         {
             if (!FindNodeInternal(p_ID, HeightfieldRootNode!, out var s_Node))
                 throw new Exception($"Could not find node with id {p_ID}.");
-            
+
             return s_Node;
+        }
+
+        /// <summary>
+        /// Same as <see cref="FindNode"/> but returns null instead of throwing.
+        /// The heightfield tree is only parsed partially, so callers that merely want to link a
+        /// node cannot rely on every id being present.
+        /// </summary>
+        public HeightfieldTreeNode? TryFindNode(QuadtreeNodeId p_ID)
+        {
+            if (HeightfieldRootNode == null)
+                return null;
+
+            return FindNodeInternal(p_ID, HeightfieldRootNode, out var s_Node) ? s_Node : null;
         }
 
         private bool FindNodeInternal(QuadtreeNodeId p_ID, HeightfieldTreeNode p_Current, [NotNullWhen(true)] out HeightfieldTreeNode? p_Result)
@@ -128,6 +152,8 @@ namespace RimeLib.Terrain.Frostbite2_0
 
         public override void Deserialize(RimeReader p_Reader)
         {
+            m_PayloadStartPosition = p_Reader.Position;
+
             NodeSamplesPerSide = p_Reader.ReadUInt32();
             ResourceAtlasSampleCountX = p_Reader.ReadUInt32();
             ResourceAtlasSampleCountY = p_Reader.ReadUInt32();

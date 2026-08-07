@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Linq;
 using RimeLib.Terrain.Frostbite.Destruction;
 using RimeLib.Terrain.Frostbite.Heightfield;
 using RimeLib.Terrain.Frostbite.TerrainMaterial;
@@ -18,11 +19,16 @@ public abstract class TerrainStreamingTreeBase
     public List<RasterTree> RasterTrees { get; set; } = new List<RasterTree>();
 
 
-    public HeightfieldTreeBase? HeightfieldTree => RasterTrees[(int)RasterTree.RasterTreeTypes.HeightfieldTreeType] as HeightfieldTreeBase;
-    public RasterTree? TerrainMaskTree => RasterTrees[(int)RasterTree.RasterTreeTypes.HeightfieldTreeType] as RasterTree;
-    public RasterTree? TerrainColorTree => RasterTrees[(int)RasterTree.RasterTreeTypes.HeightfieldTreeType] as RasterTree;
-    public TerrainMaterialTree? TerrainMaterialTree => RasterTrees[(int)RasterTree.RasterTreeTypes.HeightfieldTreeType] as TerrainMaterialTree;
-    public DestructionDepthTree? DestructionTree => RasterTrees[(int)RasterTree.RasterTreeTypes.HeightfieldTreeType] as DestructionDepthTree;
+    // The raster trees are stored in the order they appear in the resource, which does not
+    // necessarily match their RasterTreeTypes value: a tree can be missing entirely (MP_Subway
+    // ships no color tree at all). They are therefore looked up by their concrete type rather
+    // than indexed by the enum value.
+    public HeightfieldTreeBase? HeightfieldTree => RasterTrees.OfType<HeightfieldTreeBase>().FirstOrDefault();
+    public TerrainMaterialTree? TerrainMaterialTree => RasterTrees.OfType<TerrainMaterialTree>().FirstOrDefault();
+    public DestructionDepthTree? DestructionTree => RasterTrees.OfType<DestructionDepthTree>().FirstOrDefault();
 
-
+    // The mask and color trees have no parser yet, so they are skipped while deserializing and
+    // never end up in the list. Their raw payload is still preserved for round-tripping.
+    public RasterTree? TerrainMaskTree => null;
+    public RasterTree? TerrainColorTree => null;
 }
