@@ -37,4 +37,35 @@ public class ShaderDatabaseContainer
 
         p_Reader.Endianness = s_PrevEndianness;
     }
+
+    // Mirror of the reader: little-endian, u32 database count, then per database u32 render-path + u32 size +
+    // the ShaderDatabase payload. The size is written as a placeholder and back-patched once the payload length
+    // is known. Database order follows the dictionary's enumeration order (insertion order = on-disk order).
+    public bool Serialize(RimeWriter p_Writer)
+    {
+        var s_PrevEndianness = p_Writer.Endianness;
+        p_Writer.Endianness = Endianness.LittleEndian;
+
+        p_Writer.Write((uint) Databases.Count);
+
+        foreach (var s_Pair in Databases)
+        {
+            p_Writer.Write((uint) s_Pair.Key);
+
+            // Reserve the size field, remember where it is, and back-patch it after writing the payload.
+            var s_SizePosition = p_Writer.Position;
+            p_Writer.Write((uint) 0);
+
+            var s_StartPosition = p_Writer.Position;
+            s_Pair.Value.Serialize(p_Writer);
+            var s_EndPosition = p_Writer.Position;
+
+            p_Writer.Seek(s_SizePosition, SeekOrigin.Begin);
+            p_Writer.Write((uint) (s_EndPosition - s_StartPosition));
+            p_Writer.Seek(s_EndPosition, SeekOrigin.Begin);
+        }
+
+        p_Writer.Endianness = s_PrevEndianness;
+        return true;
+    }
 }

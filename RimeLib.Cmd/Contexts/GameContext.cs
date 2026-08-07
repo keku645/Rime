@@ -8,9 +8,12 @@ using RimeLib.Cmd.Scaleform;
 using RimeLib.Terrain.Resources;
 using RimeLib.Content.Frostbite;
 using RimeLib.Content.Mounting;
+using RimeLib.Frostbite;
 using RimeLib.Frostbite.Core;
 using RimeLib.IO;
+using RimeLib.IO.Conversion;
 using RimeLib.Mesh;
+using RimeLib.Mesh.Frostbite;
 using RimeLib.Serialization;
 using RimeLib.Texture;
 using RimeLib.Toolkit;
@@ -56,6 +59,10 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<ListResourcesCommand>();
             RegisterCommand<ListResourcesOfTypeCommand>();
             RegisterCommand<DumpShaderDbCommand>();
+            RegisterCommand<ShaderDbRoundtripCommand>();
+            RegisterCommand<ShaderDbFunctionsCommand>();
+            RegisterCommand<DumpShaderBindingsCommand>();
+            RegisterCommand<ReplaceShaderBytecodeCommand>();
             RegisterCommand<DumpShaderSolutionsCommand>();
             RegisterCommand<DumpMvdbVariationsCommand>();
             RegisterCommand<ListPartitionsCommand>();
@@ -104,6 +111,7 @@ namespace RimeLib.Cmd.Contexts
             if (EngineInterfaceRegistry.IsSupported<IMeshConverter>(s_EngineType))
             {
                 RegisterCommand<DumpMeshCommand>();
+                RegisterCommand<MeshRoundtripCommand>();
 
                 if (EngineInterfaceRegistry.IsSupported<IToolKit>(s_EngineType) && EngineInterfaceRegistry.IsSupported<IPartitionConverter>(s_EngineType))
                 {
@@ -235,6 +243,191 @@ namespace RimeLib.Cmd.Contexts
             using var s_FileStream = File.Create(p_Destination.FullName);
 
             s_Reader.CopyTo(s_FileStream);
+        }
+
+        /// <summary>
+        /// Round-trip harness for a MeshSet resource: read it, parse the MeshSetLayout header,
+        /// re-serialize that header (LittleEndian, same as the reader) and report whether the
+        /// re-serialized bytes are byte-identical to the original header. Validates the mesh
+        /// WRITER (Serialize) before it is used to author a new mesh from an imported FBX.
+        /// </summary>
+        internal void MeshRoundtrip(string p_Name, TextWriter p_Writer)
+        {
+            if (!m_Mounter.TryGetResource(p_Name, out var s_Resource))
+                throw new Exception($"Could not find resource with name '{p_Name}'.");
+
+            if (s_Resource.FirstVariant.GetResourceType() != ResourceType.MeshSet)
+                throw new Exception($"Resource '{p_Name}' is not a MeshSet (it is {s_Resource.FirstVariant.GetResourceType()}).");
+
+            // Original resource bytes.
+            byte[] s_Original;
+            using (var s_Reader0 = s_Resource.FirstVariant.GetReader())
+                s_Original = s_Reader0.ReadBytes((int)s_Reader0.Length);
+
+            // Parse the header (LittleEndian — same as MeshConverter).
+            var s_Layout = new MeshSetLayout(new RimeReader(new MemoryStream(s_Original)));
+            p_Writer.WriteLine($"[mesh_roundtrip] {p_Name}: {s_Original.Length} bytes | Type={s_Layout.MeshType} Flags={s_Layout.Flags} LODs={s_Layout.LodCount} subsets={s_Layout.TotalSubsetCount}");
+            p_Writer.WriteLine($"  Name='{s_Layout.Name.Object}' ShortName='{s_Layout.ShortName.Object}' NameHash=0x{s_Layout.NameHash:X8} Padding=0x{s_Layout.Padding:X8}");
+            for (var i = 0; i < 5; ++i)
+                p_Writer.WriteLine($"  LOD[{i}] BaseAddress=0x{s_Layout.Lods[i].BaseAddress:X} present={s_Layout.Lods[i].Object != null}");
+
+            // Re-serialize just the header and compare to original[0..headerLen].
+            byte[] s_Rewritten;
+            using (var s_Ms = new MemoryStream())
+            {
+                using (var s_HeaderWriter = new RimeWriter(s_Ms, Endianness.LittleEndian, false))
+                    s_Layout.Serialize(s_HeaderWriter);
+                s_Rewritten = s_Ms.ToArray();
+            }
+
+            var s_HeaderLen = s_Rewritten.Length;
+            var s_FirstDiff = -1;
+            for (var i = 0; i < s_HeaderLen; ++i)
+            {
+                if (i >= s_Original.Length || s_Original[i] != s_Rewritten[i]) { s_FirstDiff = i; break; }
+            }
+
+            if (s_FirstDiff < 0)
+                p_Writer.WriteLine($"  HEADER round-trip: BYTE-IDENTICAL over {s_HeaderLen} bytes [OK]");
+            else
+                p_Writer.WriteLine($"  HEADER round-trip: DIFF at byte {s_FirstDiff} (orig=0x{(s_FirstDiff < s_Original.Length ? s_Original[s_FirstDiff] : 0):X2} new=0x{s_Rewritten[s_FirstDiff]:X2}) of {s_HeaderLen}");
+
+            // Validate each LOD struct: re-serialize the MeshLayout and compare at its BaseAddress.
+            for (var s_I = 0; s_I < 5; ++s_I)
+            {
+                var s_Lod = s_Layout.Lods[s_I].Object;
+                if (s_Lod == null)
+                    continue;
+
+                var s_Off = (int)s_Layout.Lods[s_I].BaseAddress;
+                byte[] s_LodBytes;
+                using (var s_LodMs = new MemoryStream())
+                {
+                    using (var s_LodW = new RimeWriter(s_LodMs, Endianness.LittleEndian, false))
+                        s_Lod.Serialize(s_LodW);
+                    s_LodBytes = s_LodMs.ToArray();
+                }
+
+                var s_LodDiff = -1;
+                for (var s_J = 0; s_J < s_LodBytes.Length; ++s_J)
+                {
+                    if (s_Off + s_J >= s_Original.Length || s_Original[s_Off + s_J] != s_LodBytes[s_J]) { s_LodDiff = s_J; break; }
+                }
+
+                if (s_LodDiff < 0)
+                    p_Writer.WriteLine($"  LOD[{s_I}] struct ({s_LodBytes.Length}B @0x{s_Off:X}): BYTE-IDENTICAL [OK]");
+                else
+                    p_Writer.WriteLine($"  LOD[{s_I}] struct ({s_LodBytes.Length}B @0x{s_Off:X}): DIFF at +{s_LodDiff} (orig=0x{(s_Off + s_LodDiff < s_Original.Length ? s_Original[s_Off + s_LodDiff] : 0):X2} new=0x{s_LodBytes[s_LodDiff]:X2})");
+            }
+
+            // Validate the subsets of LOD[0] (MeshSubset contains the GeometryDeclarationDesc = vertex declaration).
+            var s_FirstLod = s_Layout.Lods[0].Object;
+            if (s_FirstLod != null && s_FirstLod.Subsets.BaseAddress != 0)
+            {
+                var s_SubBase = (int)s_FirstLod.Subsets.BaseAddress;
+                var s_Subs = s_FirstLod.Subsets.Get;
+                var s_Cursor = 0;
+                for (var s_K = 0; s_K < s_Subs.Length; ++s_K)
+                {
+                    byte[] s_SubBytes;
+                    using (var s_SubMs = new MemoryStream())
+                    {
+                        using (var s_SubW = new RimeWriter(s_SubMs, Endianness.LittleEndian, false))
+                            s_Subs[s_K].Serialize(s_SubW);
+                        s_SubBytes = s_SubMs.ToArray();
+                    }
+
+                    var s_SubOff = s_SubBase + s_Cursor;
+                    var s_SubDiff = -1;
+                    for (var s_J = 0; s_J < s_SubBytes.Length; ++s_J)
+                    {
+                        if (s_SubOff + s_J >= s_Original.Length || s_Original[s_SubOff + s_J] != s_SubBytes[s_J]) { s_SubDiff = s_J; break; }
+                    }
+
+                    if (s_SubDiff < 0)
+                        p_Writer.WriteLine($"  LOD0 subset[{s_K}] ({s_SubBytes.Length}B @0x{s_SubOff:X}): BYTE-IDENTICAL [OK]");
+                    else
+                        p_Writer.WriteLine($"  LOD0 subset[{s_K}] ({s_SubBytes.Length}B @0x{s_SubOff:X}): DIFF at +{s_SubDiff} (orig=0x{(s_SubOff + s_SubDiff < s_Original.Length ? s_Original[s_SubOff + s_SubDiff] : 0):X2} new=0x{s_SubBytes[s_SubDiff]:X2})");
+
+                    s_Cursor += s_SubBytes.Length;
+                }
+            }
+
+            // --- FULL RECONSTRUCTION with gap tracking ---
+            // Write every parsed piece into a fresh buffer at its original offset, mark written bytes,
+            // then report: (a) written bytes that MISMATCH the original, (b) GAPS (bytes never written =
+            // sub-blobs we don't parse yet + the reloc table). When gaps -> 0 and 0 mismatches, the
+            // MeshSet resource writer is complete.
+            var s_Buf = new byte[s_Original.Length];
+            var s_Mask = new bool[s_Original.Length];
+
+            void WriteAt(long p_Off, byte[] p_Bytes)
+            {
+                for (var s_I = 0; s_I < p_Bytes.Length; ++s_I)
+                {
+                    var s_A = p_Off + s_I;
+                    if (s_A >= 0 && s_A < s_Buf.Length) { s_Buf[s_A] = p_Bytes[s_I]; s_Mask[s_A] = true; }
+                }
+            }
+
+            byte[] Ser(IFbSerializable p_Obj)
+            {
+                using var s_M = new MemoryStream();
+                using (var s_W = new RimeWriter(s_M, Endianness.LittleEndian, false))
+                    p_Obj.Serialize(s_W);
+                return s_M.ToArray();
+            }
+
+            void WriteStr(RelocPtr<string> p_Ptr)
+            {
+                if (p_Ptr.BaseAddress == 0 || p_Ptr.Object == null) return;
+                var s_Str = System.Text.Encoding.UTF8.GetBytes(p_Ptr.Object);
+                var s_Full = new byte[s_Str.Length + 1];
+                Array.Copy(s_Str, s_Full, s_Str.Length);
+                WriteAt((long)p_Ptr.BaseAddress, s_Full);
+            }
+
+            WriteAt(0, s_Rewritten);                    // header
+            WriteStr(s_Layout.Name);
+            WriteStr(s_Layout.ShortName);
+            for (var s_I = 0; s_I < 5; ++s_I)
+            {
+                var s_Lod = s_Layout.Lods[s_I].Object;
+                if (s_Lod == null) continue;
+                WriteAt((long)s_Layout.Lods[s_I].BaseAddress, Ser(s_Lod));
+                if (s_Lod.Subsets.BaseAddress != 0)
+                {
+                    var s_C = (long)s_Lod.Subsets.BaseAddress;
+                    foreach (var s_Sub in s_Lod.Subsets.Get) { var s_B = Ser(s_Sub); WriteAt(s_C, s_B); s_C += s_B.Length; }
+                }
+                foreach (var s_Cat in s_Lod.CategorySubsetIndices)
+                    if (s_Cat.BaseAddress != 0) WriteAt((long)s_Cat.BaseAddress, s_Cat.Get);
+                WriteStr(s_Lod.Name);
+                WriteStr(s_Lod.ShortName);
+                WriteStr(s_Lod.ShaderDebugName);
+            }
+
+            // Report: mismatches among written bytes + gap ranges (unwritten).
+            var s_Mismatches = 0;
+            var s_Written = 0;
+            for (var s_I = 0; s_I < s_Original.Length; ++s_I)
+                if (s_Mask[s_I]) { s_Written++; if (s_Buf[s_I] != s_Original[s_I]) s_Mismatches++; }
+
+            p_Writer.WriteLine($"  RECONSTRUCT: wrote {s_Written}/{s_Original.Length} bytes, mismatches={s_Mismatches}");
+            var s_GapStart = -1;
+            var s_GapCount = 0;
+            for (var s_I = 0; s_I <= s_Original.Length; ++s_I)
+            {
+                var s_IsGap = s_I < s_Original.Length && !s_Mask[s_I];
+                if (s_IsGap && s_GapStart < 0) s_GapStart = s_I;
+                else if (!s_IsGap && s_GapStart >= 0)
+                {
+                    if (s_GapCount < 12) p_Writer.WriteLine($"    GAP 0x{s_GapStart:X}..0x{s_I:X} ({s_I - s_GapStart}B)");
+                    s_GapCount++;
+                    s_GapStart = -1;
+                }
+            }
+            p_Writer.WriteLine($"  RECONSTRUCT: {s_GapCount} gap range(s) (unparsed sub-blobs + reloc table)");
         }
 
         /// <summary>

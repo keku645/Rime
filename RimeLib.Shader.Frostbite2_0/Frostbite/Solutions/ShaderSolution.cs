@@ -1,4 +1,5 @@
-﻿using RimeLib.IO;
+﻿using System;
+using RimeLib.IO;
 using fb;
 using RimeLib.Shader.Frostbite2_0.Frostbite.Shaders;
 using SharpDX.Direct3D11;
@@ -21,6 +22,10 @@ public class ShaderSolution
     public ShaderConstant? VertexConstants { get; set; }
     public ShaderConstant? PixelConstants { get; set; }
 
+    // The 13 bytes between (Flags, SurfaceType, BlendMode) and the permutation indices. The reader seeks
+    // over them; retained verbatim so the writer can re-emit the solution byte-identically.
+    public byte[] ExtraData { get; set; } = new byte[0xD];
+
     public ShaderSolution()
     {
     }
@@ -40,7 +45,7 @@ public class ShaderSolution
         SurfaceType = (SurfaceShaderType)p_Reader.ReadUByte();
         BlendMode = (ShaderBlendMode)p_Reader.ReadUByte();
 
-        p_Reader.Seek(0xD, System.IO.SeekOrigin.Current);
+        ExtraData = p_Reader.ReadBytes(0xD);
 
         var s_VertexPermutationIndex = p_Reader.ReadInt64();
         
@@ -66,6 +71,34 @@ public class ShaderSolution
 
         if (s_PixelConstantsIndex != -1)
             PixelConstants = p_Constants[s_PixelConstantsIndex];
+    }
+
+    // Mirror of the reader: u64 StateHash | u8 Flags | u8 SurfaceType | u8 BlendMode | 13 retained bytes |
+    // i64 * (VertexPerm, PixelPerm, GeometryPerm, VertexConstants, PixelConstants) indices (-1 = null).
+    // Indices resolve against the database's retained arrays. (State is written separately, in the states section.)
+    public bool Serialize(
+        RimeWriter p_Writer,
+        VertexShaderPermutation[] p_VertexShaderPermutations,
+        PixelShaderPermutation[] p_PixelShaderPermutations,
+        GeometryShaderPermutation[] p_GeometryShaderPermutations,
+        ShaderConstant[] p_Constants
+    )
+    {
+        p_Writer.Write(StateHash);
+
+        p_Writer.Write(Flags);
+        p_Writer.Write((byte) SurfaceType);
+        p_Writer.Write((byte) BlendMode);
+
+        p_Writer.Write(ExtraData);
+
+        p_Writer.Write((long) (VertexPermutation != null ? Array.IndexOf(p_VertexShaderPermutations, VertexPermutation) : -1));
+        p_Writer.Write((long) (PixelPermutation != null ? Array.IndexOf(p_PixelShaderPermutations, PixelPermutation) : -1));
+        p_Writer.Write((long) (GeometryPermutation != null ? Array.IndexOf(p_GeometryShaderPermutations, GeometryPermutation) : -1));
+        p_Writer.Write((long) (VertexConstants != null ? Array.IndexOf(p_Constants, VertexConstants) : -1));
+        p_Writer.Write((long) (PixelConstants != null ? Array.IndexOf(p_Constants, PixelConstants) : -1));
+
+        return true;
     }
 
     public void GenerateD3DResources(Device p_Device)

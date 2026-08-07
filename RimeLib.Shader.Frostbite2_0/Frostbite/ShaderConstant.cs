@@ -22,6 +22,13 @@ public class ShaderConstant : IFbSerializable
 
     public SamplerState[] Samplers { get; set; } = Array.Empty<SamplerState>();
 
+    // Raw payload of this constant record (everything AFTER the 4-byte size prefix), retained verbatim from the reader.
+    // A ShaderConstant is offset-driven (see Deserialize): the reader records the parsed blocks but discards the exact
+    // header pad, offset ordering and inter-block padding, so re-emitting a byte-identical record from the parsed fields
+    // requires a full offset-planning writer (TODO, needed only when AUTHORING a brand-new constant). For round-trip and
+    // for constants we don't modify we re-emit these raw bytes, which is byte-identical by construction.
+    public byte[]? RawBytes { get; set; }
+
     public ShaderConstant()
     {
     }
@@ -31,9 +38,71 @@ public class ShaderConstant : IFbSerializable
         Deserialize(p_Reader);
     }
 
+    // Writes the constant PAYLOAD (without the 4-byte size prefix, which the container writes). For retained records
+    // this is byte-identical. Authoring a new constant from the parsed fields (offset planning) is not implemented yet.
     public bool Serialize(RimeWriter p_Writer)
     {
-        throw new System.NotImplementedException();
+        // Retained (unmodified) constant: re-emit verbatim (byte-identical round-trip).
+        if (RawBytes != null)
+        {
+            p_Writer.Write(RawBytes);
+            return true;
+        }
+
+        // Authored constant: offset-driven layout (mirror of Deserialize). All five block offsets are relative to the
+        // SIZE-FIELD position (= payload start - 4, since the container wrote the u32 size just before calling us).
+        // Header: pad(4) + 5*u64 block offsets + u16 ConstantCount + u16 ValueConstantsStart + 5*u8 block counts.
+        var s_StartPosition = p_Writer.Position - 4;
+
+        p_Writer.WriteNullBytes(4); // pad
+
+        var s_OffsetsPos = p_Writer.Position;
+        for (var i = 0; i < 5; i++)
+            p_Writer.Write((ulong) 0); // offset placeholders, back-patched below
+
+        p_Writer.Write(ConstantCount);
+        p_Writer.Write(ValueConstantsStart);
+        p_Writer.Write((byte) ValueConstants.Length);
+        p_Writer.Write((byte) Textures.Length);
+        p_Writer.Write((byte) ExternalValues.Length);
+        p_Writer.Write((byte) ExternalTextures.Length);
+        p_Writer.Write((byte) Samplers.Length);
+
+        var s_Offsets = new ulong[5];
+
+        s_Offsets[0] = (ulong) (p_Writer.Position - s_StartPosition);
+        foreach (var s_Value in ValueConstants)
+        {
+            p_Writer.Write(s_Value.x);
+            p_Writer.Write(s_Value.y);
+            p_Writer.Write(s_Value.z);
+            p_Writer.Write(s_Value.w);
+        }
+
+        s_Offsets[1] = (ulong) (p_Writer.Position - s_StartPosition);
+        foreach (var s_Texture in Textures)
+            s_Texture.Serialize(p_Writer);
+
+        s_Offsets[2] = (ulong) (p_Writer.Position - s_StartPosition);
+        foreach (var s_External in ExternalValues)
+            s_External.Serialize(p_Writer);
+
+        s_Offsets[3] = (ulong) (p_Writer.Position - s_StartPosition);
+        foreach (var s_External in ExternalTextures)
+            s_External.Serialize(p_Writer);
+
+        s_Offsets[4] = (ulong) (p_Writer.Position - s_StartPosition);
+        foreach (var s_Sampler in Samplers)
+            s_Sampler.Serialize(p_Writer);
+
+        var s_End = p_Writer.Position;
+
+        p_Writer.Seek(s_OffsetsPos, SeekOrigin.Begin);
+        for (var i = 0; i < 5; i++)
+            p_Writer.Write(s_Offsets[i]);
+        p_Writer.Seek(s_End, SeekOrigin.Begin);
+
+        return true;
     }
 
     public void Deserialize(RimeReader p_Reader)

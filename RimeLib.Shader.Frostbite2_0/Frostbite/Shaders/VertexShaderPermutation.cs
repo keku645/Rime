@@ -29,6 +29,49 @@ public class VertexShaderPermutation
     {
     }
 
+    // Mirror of the reader: sequential, indices resolved against the database's retained arrays.
+    // Guid | u32 bytecodeSize + bytecode | u32 idx Constant/ConstantFunction/TextureFunction |
+    // i32 inputSigSize + inputSig | u32 elementCount * (6 * i32) | u32 elementNameCount * null-string | u32 InstructionCount.
+    public bool Serialize(
+        RimeWriter p_Writer,
+        ShaderConstant[] p_Constants,
+        ShaderConstantFunctionData[] p_ConstantFunctionData,
+        ShaderTextureFunctionData[] p_TextureFunctionData
+    )
+    {
+        Guid.Serialize(p_Writer);
+
+        p_Writer.Write((uint) ShaderBytecode.Length);
+        p_Writer.Write(ShaderBytecode);
+
+        p_Writer.Write((uint) Array.IndexOf(p_Constants, Constant));
+        p_Writer.Write((uint) Array.IndexOf(p_ConstantFunctionData, ConstantFunction));
+        p_Writer.Write((uint) Array.IndexOf(p_TextureFunctionData, TextureFunction));
+
+        p_Writer.Write((int) InputSignatureBytecode.Length);
+        p_Writer.Write(InputSignatureBytecode);
+
+        p_Writer.Write((uint) Elements.Length);
+        foreach (var s_Element in Elements)
+        {
+            p_Writer.Write(s_Element.SemanticIndex);
+            p_Writer.Write((int) s_Element.Format);
+            p_Writer.Write(s_Element.Slot);
+            p_Writer.Write(s_Element.AlignedByteOffset);
+            p_Writer.Write((int) s_Element.Classification);
+            p_Writer.Write(s_Element.InstanceDataStepRate);
+        }
+
+        // The reader requires element-names count == element count.
+        p_Writer.Write((uint) Elements.Length);
+        foreach (var s_Element in Elements)
+            p_Writer.WriteNullTerminatedString(s_Element.SemanticName);
+
+        p_Writer.Write(InstructionCount);
+
+        return true;
+    }
+
     public VertexShaderPermutation(
         RimeReader p_Reader,
         ShaderConstant[] p_Constants,

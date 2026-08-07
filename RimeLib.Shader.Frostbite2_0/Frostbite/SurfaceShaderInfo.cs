@@ -116,5 +116,46 @@ public class SurfaceShaderInfo
             NameHash = (uint) p_NameHash;
     }
 
+    // Mirror of the reader: u32 SurfaceShaderType | 4 * u8 (Flags, BoolParamCount, DefaultMask, RequiredMask) |
+    // 8 * u32 BoolParameterIds | u32 count * StreamableTexture | u32 count * StreamableExternalTexture |
+    // u32 count * u16 (index into the database's full solution array).
+    public bool Serialize(RimeWriter p_Writer, ShaderSolution[] p_AllSolutions)
+    {
+        p_Writer.Write((uint) SurfaceShaderType);
+
+        p_Writer.Write(Flags);
+        p_Writer.Write(BoolParameterCount);
+        p_Writer.Write(BoolParameterDefaultMask);
+        p_Writer.Write(BoolParameterRequiredMask);
+
+        for (var i = 0; i < 8; i++)
+            p_Writer.Write(BoolParameterIds[i]);
+
+        p_Writer.Write((uint) StreamableTextures.Length);
+        foreach (var s_Texture in StreamableTextures)
+        {
+            p_Writer.WriteNullTerminatedString(s_Texture.Name);
+            p_Writer.Write((uint) s_Texture.CoordType);
+            p_Writer.Write((uint) s_Texture.VertexUsage);
+            p_Writer.Write(s_Texture.Factor);
+        }
+
+        p_Writer.Write((uint) StreamableExternalTextures.Length);
+        foreach (var s_Texture in StreamableExternalTextures)
+        {
+            p_Writer.WriteNullTerminatedString(s_Texture.ParameterName);
+            p_Writer.Write(s_Texture.ParameterId);
+            p_Writer.Write((uint) s_Texture.CoordType);
+            p_Writer.Write((uint) s_Texture.VertexUsage);
+            p_Writer.Write(s_Texture.Factor);
+        }
+
+        p_Writer.Write((uint) Solutions.Length);
+        foreach (var s_Solution in Solutions)
+            p_Writer.Write((ushort) Array.IndexOf(p_AllSolutions, s_Solution));
+
+        return true;
+    }
+
 
 }

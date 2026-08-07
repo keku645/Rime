@@ -20,6 +20,29 @@ public class PixelShaderPermutation
     {
     }
 
+    // Mirror of the reader: sequential, indices resolved against the database's retained arrays.
+    // Guid | u32 bytecodeSize + bytecode | u32 idx Constant | u32 idx ConstantFunction | u32 idx TextureFunction | u32 InstructionCount.
+    public bool Serialize(
+        RimeWriter p_Writer,
+        ShaderConstant[] p_Constants,
+        ShaderConstantFunctionData[] p_ConstantFunctionData,
+        ShaderTextureFunctionData[] p_TextureFunctionData
+    )
+    {
+        Guid.Serialize(p_Writer);
+
+        p_Writer.Write((uint) ShaderBytecode.Length);
+        p_Writer.Write(ShaderBytecode);
+
+        p_Writer.Write((uint) Array.IndexOf(p_Constants, Constant));
+        p_Writer.Write((uint) Array.IndexOf(p_ConstantFunctionData, ConstantFunction));
+        p_Writer.Write((uint) Array.IndexOf(p_TextureFunctionData, TextureFunction));
+
+        p_Writer.Write(InstructionCount);
+
+        return true;
+    }
+
     public PixelShaderPermutation(
         RimeReader p_Reader,
         ShaderConstant[] p_Constants,

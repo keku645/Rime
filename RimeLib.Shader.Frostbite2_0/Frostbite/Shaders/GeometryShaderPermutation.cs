@@ -14,6 +14,19 @@ public class GeometryShaderPermutation
     {
     }
 
+    // Mirror of the reader: Guid | u32 bytecodeSize + bytecode | u32 InstructionCount.
+    public bool Serialize(RimeWriter p_Writer)
+    {
+        Guid.Serialize(p_Writer);
+
+        p_Writer.Write((uint) ShaderBytecode.Length);
+        p_Writer.Write(ShaderBytecode);
+
+        p_Writer.Write(InstructionCount);
+
+        return true;
+    }
+
     public GeometryShaderPermutation(RimeReader p_Reader)
     {
         Guid = new GUID(p_Reader);
