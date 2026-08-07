@@ -216,6 +216,28 @@ namespace RimeLib.Cmd.Contexts
                     if (s_MounterEntry.Value is RimeLib.Content.Frostbite2_0.Mounting.EngineMounter s_Fb2Mounter)
                     {
                         m_Builder.WithCatalogProbe(s_Fb2Mounter.CatalogContainsEntry);
+
+                        // De-inline INLINE-SWAPPABLE items: the mounter prefers idata variants over the
+                        // catalog, so an item's picked variant is often not a catalog key even though
+                        // another mounted variant of the SAME item is catalog-backed. Hand the serializer
+                        // that catalog-backed variant so the item ships as a pure sha1 ref (0 bytes)
+                        // instead of embedding the picked variant's payload.
+                        IReadableObjectWithHash? PickCatalogVariant(IEnumerable<IObjectVariant> p_Variants)
+                        {
+                            foreach (var s_Variant in p_Variants)
+                            {
+                                Sha1? s_Hash = null;
+                                try { s_Hash = s_Variant.GetSha1(); } catch { }
+                                if (s_Variant.Cas || (s_Hash != null && s_Fb2Mounter.CatalogContainsEntry(s_Hash)))
+                                    return s_Variant;
+                            }
+                            return null;
+                        }
+
+                        m_Builder.WithCatalogVariantResolvers(
+                            p_Name => s_Fb2Mounter.TryGetResource(p_Name, out var s_Obj) ? PickCatalogVariant(s_Obj.Variants) : null,
+                            p_Id => s_Fb2Mounter.TryGetChunk(p_Id, out var s_Obj) ? PickCatalogVariant(s_Obj.Variants) : null,
+                            p_Name => s_Fb2Mounter.TryGetPartition(p_Name, out var s_Obj) ? PickCatalogVariant(s_Obj.Variants) : null);
                         break;
                     }
                 }

@@ -15,6 +15,15 @@ namespace RimeLib.Content.Building
         // payload is catalog-backed (everything not already a catalog ref ships as idata).
         public Func<Sha1, bool>? CatalogProbe { get; set; }
 
+        // CAS builds only: per-item resolvers used by the serializer to de-inline INLINE-SWAPPABLE
+        // items. The mounter prefers idata variants over the catalog, so an item's PICKED variant is
+        // often NOT a catalog key even though ANOTHER mounted variant of the same item IS catalog-
+        // backed. These return that catalog-backed variant (or null) so the item ships as a pure
+        // sha1 ref instead of embedded bytes. Keyed by resource name / chunk guid / partition name.
+        public Func<string, IReadableObjectWithHash?>? CatalogResourceVariant { get; set; }
+        public Func<GUID, IReadableObjectWithHash?>? CatalogChunkVariant { get; set; }
+        public Func<string, IReadableObjectWithHash?>? CatalogPartitionVariant { get; set; }
+
         public Dictionary<GUID, IChunkObject> Chunks { get; }
 
         // CAS toc chunks: emitted in the toc chunk list as { id, sha1 } refs (NO payload in the sb).

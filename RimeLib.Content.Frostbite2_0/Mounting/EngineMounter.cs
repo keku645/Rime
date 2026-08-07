@@ -586,6 +586,48 @@ namespace RimeLib.Content.Frostbite2_0.Mounting
         }
 
         /// <summary>
+        /// The CAS catalog KEY (sha1) of a mounted chunk's catalog-backed variant — the value
+        /// add_cas_toc_chunk / WithCasTocChunk needs to declare the chunk as a 0-byte TOC cas-ref.
+        /// CatalogReadable.GetSha1() returns null for a COMPRESSED entry (most texture chunks), so fall
+        /// back to the stored catalog hash (GetCompressedHash). Used by destream_texture 'ondemand' to
+        /// promote a UI texture's streaming chunk from bundle-manifest to superbundle-TOC level, so the
+        /// pool-2 file path (FileSuperBundleManager/m_tocs) can serve it.
+        /// </summary>
+        public bool TryGetChunkCatalogSha1(RimeLib.Frostbite.Core.GUID p_Id, [NotNullWhen(true)] out RimeLib.Frostbite.Core.Sha1? p_Sha1)
+        {
+            p_Sha1 = null;
+            if (!TryGetChunk(p_Id, out var s_Obj))
+                return false;
+            foreach (var s_V in s_Obj.Variants)
+            {
+                if (s_V is not ChunkVariant s_CV)
+                    continue;
+                var s_R = s_CV.GetReadable();
+                if (s_R is CatalogReadable s_Cat)
+                {
+                    p_Sha1 = s_Cat.GetCompressedHash() ?? s_Cat.GetSha1();
+                    if (p_Sha1 != null)
+                        return true;
+                }
+                else if (s_R is InlineReadable s_Inl)
+                {
+                    // The chunk data is embedded INLINE in the bundle, but BF3's cas.cat is content-
+                    // addressed and dedups shared blocks (UI icons repeat across many levels' uiplaying
+                    // bundles), so the same stored frame is usually ALSO a cas.cat key. If it is, we can
+                    // still ship it as a pure 0-byte cas-ref — which a CAS superbundle's toc REQUIRES (a
+                    // payload toc chunk with no sha1 null-derefs fb::FileSuperBundleManager::mount).
+                    var s_H = s_Inl.GetCompressedHash();
+                    if (s_H != null && CatalogContainsEntry(s_H))
+                    {
+                        p_Sha1 = s_H;
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
         /// Builds a catalog-backed chunk variant DIRECTLY from an {id, sha1} pair copied from another
         /// bundle's MANIFEST — no mounted-chunk index lookup. The mounter's chunk index only covers
         /// TOC-LISTED chunks, so bundle-manifest chunks (level sound/ambient/gamemode stream payloads)

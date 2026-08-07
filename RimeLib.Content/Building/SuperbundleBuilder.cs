@@ -43,6 +43,17 @@ namespace RimeLib.Content.Building
             return this;
         }
 
+        public SuperbundleBuilder WithCatalogVariantResolvers(
+            Func<string, IReadableObjectWithHash?> p_ResourceVariant,
+            Func<GUID, IReadableObjectWithHash?> p_ChunkVariant,
+            Func<string, IReadableObjectWithHash?> p_PartitionVariant)
+        {
+            m_Descriptor.CatalogResourceVariant = p_ResourceVariant;
+            m_Descriptor.CatalogChunkVariant = p_ChunkVariant;
+            m_Descriptor.CatalogPartitionVariant = p_PartitionVariant;
+            return this;
+        }
+
         public SuperbundleBuilder WithBundle(BundleDescriptor p_Bundle)
         {
             m_Descriptor.Bundles[p_Bundle.BundleName.ToLowerInvariant()] = p_Bundle;

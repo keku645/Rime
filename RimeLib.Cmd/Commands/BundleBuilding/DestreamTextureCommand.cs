@@ -91,10 +91,38 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
 
             if (s_Mode == "ondemand")
             {
-                // Same delivery as 'headeronly' (generated resource => NONCAS annex), different flags.
+                // Pool-2 UI delivery (dogtags/minimaps/loading screens in retail; every retail user of this
+                // flag pair is UI). EVERY UI texture (flags 0x20/0x0 = pool 0) fetches its mip chunk via the
+                // turbo path (fb::ResourceManager::beginChunkRead a7==2), which AVs on a null index outside a
+                // load window (vu+0xc1c76) — INLINE mip chunks fetch through turbo too, they are NOT resident
+                // (measured: leaving them pool-0 still crashed). So patch the header to pool 2 (file path)
+                // AND put the mip chunk at superbundle-TOC level. Pool 2 routes through the FILE path
+                // (sub_4CF340 = FileSuperBundleManager/m_tocs, always valid), which ONLY sees TOC chunks; the
+                // bundle-manifest copy clone_bundle left is invisible there. Catalog-backed chunks ship as
+                // 0-byte cas-refs; inline chunks (small UI icons, no cas.cat entry) ship their own payload at
+                // TOC (tiny). The generated header ships as cas-idata, which by-name UI tolerates (the MVDB
+                // material bind would reject it — BLACK-body law).
+                var s_OdConverter = EngineInterfaceRegistry.Create<ITextureConverter>(s_SbCtx.EngineType);
+                var s_OdProbe = new BundleBuildingContext.ResourceMemoryReader(s_Header, ResourceType.DxTexture, Name!);
+                var s_OdChunkId = s_OdConverter.GetTextureChunkId(s_OdProbe);
+                // The chunk MUST become a 0-byte cas-ref at superbundle-TOC level: a CAS sb's toc requires a
+                // sha1 per chunk (a payload toc chunk null-derefs fb::FileSuperBundleManager::mount), and the
+                // pool-2 file path only sees TOC chunks. TryGetChunkCatalogSha1 covers both catalog-backed
+                // and inline-but-content-in-cas.cat chunks. If neither, leave the texture UNTOUCHED rather
+                // than ship a pool-2 header whose chunk the file path can't reach.
+                if (s_OdChunkId == RimeLib.Frostbite.Core.GUID.Empty
+                    || !s_Mounter.TryGetChunkCatalogSha1(s_OdChunkId, out var s_OdSha1))
+                {
+                    p_Writer.WriteLine($"destream-ondemand {Name}: chunk {s_OdChunkId} NOT cas-ref-able — LEFT UNTOUCHED (needs another delivery).");
+                    return true;
+                }
+
+                // patch the header to pool 2, drop the bundle-manifest copy, ship the chunk as a toc cas-ref
                 try { s_Ctx.RemoveResource(Name!); } catch { }
                 s_Ctx.AddGeneratedResource(Name!, s_Header, ResourceType.DxTexture, new byte[16]);
-                p_Writer.WriteLine($"destream-ondemand {Name}: flags 0x{s_Flags:X}->0x{s_NewFlags:X} (Streaming|OnDemandLoaded), mipBase {s_MipBase}->0 (128B noncas resource; pair with a FULL-CHAIN toc chunk).");
+                try { s_Ctx.RemoveChunk(s_OdChunkId); } catch { }
+                s_SbCtx.AddCasTocChunk(s_OdChunkId, s_OdSha1!);
+                p_Writer.WriteLine($"destream-ondemand {Name}: flags 0x{s_Flags:X}->0x{s_NewFlags:X}, mipBase {s_MipBase}->0; toc cas-ref chunk {s_OdChunkId} -> {s_OdSha1}.");
                 return true;
             }
 

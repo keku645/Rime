@@ -1,4 +1,5 @@
 ﻿using RimeLib.Content.Building;
+using RimeLib.Content.Mounting;
 using RimeLib.Content.Frostbite2_0.Frostbite.Bundles;
 using RimeLib.Content.Frostbite2_0.Frostbite.Chunks;
 using RimeLib.Content.Frostbite2_0.Mounting;
@@ -27,10 +28,26 @@ namespace RimeLib.Content.Frostbite2_0.Building
         // are emitted as pure sha1 refs; otherwise their frame ships verbatim as idata.
         private readonly Func<Sha1, bool>? m_CatalogProbe;
 
-        public CasBundleManifestBuilder(BundleDescriptor p_Descriptor, Func<Sha1, bool>? p_CatalogProbe = null)
+        // INLINE-SWAPPABLE resolvers (set via SuperbundleBuilder.WithCatalogVariantResolvers): given an
+        // item's name/id, return a catalog-backed variant of the SAME item (or null). Lets a mounter-picked
+        // idata frame that is not itself a catalog key ship as a pure sha1 ref against the player's cas.cat
+        // instead of embedding its bytes.
+        private readonly Func<string, IReadableObjectWithHash?>? m_ResourceCatalogVariant;
+        private readonly Func<GUID, IReadableObjectWithHash?>? m_ChunkCatalogVariant;
+        private readonly Func<string, IReadableObjectWithHash?>? m_PartitionCatalogVariant;
+
+        public CasBundleManifestBuilder(
+            BundleDescriptor p_Descriptor,
+            Func<Sha1, bool>? p_CatalogProbe = null,
+            Func<string, IReadableObjectWithHash?>? p_ResourceCatalogVariant = null,
+            Func<GUID, IReadableObjectWithHash?>? p_ChunkCatalogVariant = null,
+            Func<string, IReadableObjectWithHash?>? p_PartitionCatalogVariant = null)
         {
             m_Descriptor = p_Descriptor;
             m_CatalogProbe = p_CatalogProbe;
+            m_ResourceCatalogVariant = p_ResourceCatalogVariant;
+            m_ChunkCatalogVariant = p_ChunkCatalogVariant;
+            m_PartitionCatalogVariant = p_PartitionCatalogVariant;
             m_Header = new CasBundle
             {
                 Path = p_Descriptor.BundleName,
@@ -224,6 +241,33 @@ namespace RimeLib.Content.Frostbite2_0.Building
             return p_Object; // FileReader, ChunkFileReader, ResourceFileReader, MemoryReader, etc.
         }
 
+        // INLINE-SWAPPABLE de-inline: when the picked variant's frame is NOT a catalog key but the
+        // resolver found a catalog-backed variant of the SAME item, adopt that variant's frame
+        // identity (compressed hash + size) so the entry can ship as a pure sha1 ref
+        // (InlineData=null) against the player's cas.cat instead of embedding the picked bytes.
+        // OriginalSize is unchanged: variants of one logical item decompress to identical data.
+        // Cheap for the common CatalogReadable case; hashes the stored frame otherwise.
+        bool TrySwapToCatalog(IReadableObjectWithHash? p_CatalogVariant, ref long p_CompressedSize, ref Sha1 p_Hash)
+        {
+            if (p_CatalogVariant == null)
+                return false;
+
+            var s_Readable = ResolveReadable(p_CatalogVariant);
+            if (s_Readable is CatalogReadable s_Catalog)
+            {
+                p_Hash = s_Catalog.GetCompressedHash()!;
+                p_CompressedSize = s_Catalog.GetCompressedSize();
+            }
+            else
+            {
+                var (s_Stored, s_StoredHash) = GetStoredFrame(s_Readable);
+                p_Hash = s_StoredHash;
+                p_CompressedSize = s_Stored.Length;
+            }
+
+            return true;
+        }
+
         public DbObject GetDbObject()
         {
             for (var s_ResourceIndex = 0; s_ResourceIndex < m_Descriptor.Resources.Count; s_ResourceIndex++)
@@ -267,9 +311,18 @@ namespace RimeLib.Content.Frostbite2_0.Building
                     // every cas bundle, so a cas-ref-only delivery would otherwise be forced to embed
                     // them. Only ever taken on a catalog HIT, so the header-without-payload failure the
                     // inline-variant preference guards against (CreateTexture2D E_INVALIDARG) cannot occur.
-                    s_ResourceInline = m_CatalogProbe != null && m_CatalogProbe(s_ResourceHash)
-                        ? null
-                        : GetInlineData(s_Readable);
+                    if (m_CatalogProbe != null && m_CatalogProbe(s_ResourceHash))
+                        s_ResourceInline = null;                                                               // INLINE-IN-CATALOG
+                    // ONLY de-inline MOUNTED idata to a catalog variant. A FILE/MEMORY-backed resource is
+                    // AUTHORED (add_dds, a generated/patched texture header like destream_texture ondemand,
+                    // a generated registry) — swapping it to a same-named catalog variant silently DISCARDS
+                    // the authored bytes and ships the original instead (this reverted the pool-2 ondemand
+                    // headers back to DICE's turbo flags -> vu+0xc1c76). Its exact-frame catalog hit is
+                    // already caught by INLINE-IN-CATALOG above; otherwise it MUST ship its own bytes.
+                    else if (!IsFileBacked(s_Readable) && TrySwapToCatalog(m_ResourceCatalogVariant?.Invoke(s_ResourceName), ref s_CompressedSize, ref s_ResourceHash))
+                        s_ResourceInline = null;                                                               // INLINE-SWAPPABLE
+                    else
+                        s_ResourceInline = GetInlineData(s_Readable);                                          // INLINE-MUST-SHIP
                 }
 
                 m_Header.ResourceEntries[s_ResourceIndex] = new CasBundle.Resource
@@ -334,7 +387,17 @@ namespace RimeLib.Content.Frostbite2_0.Building
                 {
                     s_ReadableSize = GetCompressedSize(s_Readable);
                     s_ChunkHash = GetCompressedHash(s_Readable);
-                    s_ChunkInline = GetInlineData(s_Readable);
+                    // SLICED chunks (rangeStart/logicalOffset != 0) keep their idata slice semantics —
+                    // a ref would re-base the range against a slice-sized blob (mirrors the noncas branch).
+                    var s_Sliced = s_RangeStart != 0 || s_LogicalOffset != 0;
+                    if (!s_Sliced && m_CatalogProbe != null && m_CatalogProbe(s_ChunkHash))
+                        s_ChunkInline = null;                                                                  // INLINE-IN-CATALOG
+                    // Same authored-bytes guard as resources: never swap a FILE/MEMORY-backed (generated,
+                    // e.g. add_dds) chunk to a catalog variant — that would discard the authored payload.
+                    else if (!s_Sliced && !IsFileBacked(s_Readable) && TrySwapToCatalog(m_ChunkCatalogVariant?.Invoke(s_ChunkId), ref s_ReadableSize, ref s_ChunkHash))
+                        s_ChunkInline = null;                                                                  // INLINE-SWAPPABLE
+                    else
+                        s_ChunkInline = GetInlineData(s_Readable);                                             // INLINE-MUST-SHIP
                 }
 
                 var s_ShouldWriteEntry = s_RangeStart != 0 || s_Readable is InlineReadable || s_ChunkInline != null;

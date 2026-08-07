@@ -155,6 +155,7 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<RaiseWaterPhysicsCommand>();
             RegisterCommand<ClonePartitionFreshCommand>();
             RegisterCommand<MvdbAddEntryCommand>();
+            RegisterCommand<MvdbKeepPrefixCommand>();
             RegisterCommand<MvdbAddAllCommand>();
             RegisterCommand<CheckTexturesCommand>();
             RegisterCommand<CheckChunksCommand>();
@@ -189,6 +190,7 @@ namespace RimeLib.Cmd.Contexts
             if (EngineInterfaceRegistry.IsSupported<IPartitionConverter>(s_EngineType))
             {
                 RegisterCommand<ResolvePartitionDependenciesCommand>();
+                RegisterCommand<ResolveEbxChunksCommand>();
             }
 
             RegisterCommand<ResolveResourceDependenciesCommand>();
@@ -199,6 +201,9 @@ namespace RimeLib.Cmd.Contexts
             }
 
             RegisterCommand<RemoveDuplicateBundleItemsCommand>();
+            RegisterCommand<StripPartitionsByPrefixCommand>();
+            RegisterCommand<StripResourcesByPrefixCommand>();
+            RegisterCommand<RenamePartitionsByPrefixCommand>();
             RegisterCommand<ResolveMissingChunksCommand>();
             RegisterCommand<ExportBundleContentsCommand>();
             RegisterCommand<GenerateRegistryContainerCommand>();
@@ -325,6 +330,31 @@ namespace RimeLib.Cmd.Contexts
         internal void RemovePartition(string p_Name)
         {
             m_Builder.RemovePartition(p_Name);
+        }
+
+        // Re-keys every partition whose (lowercased) name starts with p_OldPrefix so it starts with
+        // p_NewPrefix instead, keeping the same reader/variant. `clone_bundle` copies partitions under
+        // their OriginalName (e.g. levels/mp_subway/teamdeathmatch), but the engine looks up a sublevel's
+        // root DataContainer BY NAME (fb::ResourceManager::lookupDataContainer(compartment, name) @ retail
+        // 0x11A1342, reached from the level-load sublevel recursion sub_11A1170); a mismatch between the
+        // SubWorldReference's BundleName (levels/<newlevel>/...) and the cloned partition name returns NULL
+        // and crashes (sub_11A1170, mov esi,[NULL+0x20]). Inter-partition refs are by GUID (imports), so
+        // re-keying names does NOT break them — only the path lookup is affected. Returns the count renamed.
+        internal int RenamePartitionsByPrefix(string p_OldPrefix, string p_NewPrefix)
+        {
+            var s_Partitions = m_Builder.GetPartitions();
+            var s_Old = p_OldPrefix.ToLowerInvariant();
+            var s_New = p_NewPrefix.ToLowerInvariant();
+
+            var s_Matches = s_Partitions.Keys.Where(k => k.StartsWith(s_Old)).ToList();
+            foreach (var s_Key in s_Matches)
+            {
+                var s_Value = s_Partitions[s_Key];
+                s_Partitions.Remove(s_Key);
+                s_Partitions[s_New + s_Key.Substring(s_Old.Length)] = s_Value;
+            }
+
+            return s_Matches.Count;
         }
 
         internal void SetGeneratedRegistry(fb.RegistryContainer p_Registry)

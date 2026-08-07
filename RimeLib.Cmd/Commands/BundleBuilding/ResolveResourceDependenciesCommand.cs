@@ -26,7 +26,12 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
         [CommandArgument(Description = "Optional comma-separated name prefixes: skip TEXTURE resource/chunk adds for matching names (e.g. characters/).", Optional = true)]
         public string? SkipPrefixes { get; set; }
 
+        [CommandArgument(Description = "Optional comma-separated name prefixes EXEMPT from SkipPrefixes, i.e. their textures ARE shipped even though a broader skip prefix matches them (e.g. skip 'fx/' but exempt 'fx/visualenviroments/fullscreen/textures/'). Use when a wide skip prefix, added to keep a streaming-pool family out, also swallows a small set the level DOES sample directly — a fullscreen shader reading one of those gets a null SRV (+0x29bdb1) the first time the effect plays.", Optional = true)]
+        public string? ExemptPrefixes { get; set; }
+
         private string[] m_Skip = System.Array.Empty<string>();
+
+        private string[] m_Exempt = System.Array.Empty<string>();
 
         private HashSet<string> m_ResolvedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -47,6 +52,10 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
             m_Skip = string.IsNullOrWhiteSpace(SkipPrefixes)
                 ? System.Array.Empty<string>()
                 : SkipPrefixes!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            m_Exempt = string.IsNullOrWhiteSpace(ExemptPrefixes)
+                ? System.Array.Empty<string>()
+                : ExemptPrefixes!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             m_ResolvedKeys.Clear();
             var s_Resources = s_BundleContext.GetResources();
@@ -92,12 +101,17 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                     if (!string.IsNullOrEmpty(s_TexName))
                     {
                         var s_Low = s_TexName.ToLowerInvariant();
-                        foreach (var s_P in m_Skip)
+                        // An exempt prefix wins over a broader skip prefix: the level samples these
+                        // directly, so their resource/chunk must ship even though the skip matches.
+                        if (!m_Exempt.Any(p_E => s_Low.StartsWith(p_E, StringComparison.OrdinalIgnoreCase)))
                         {
-                            if (s_Low.StartsWith(s_P, StringComparison.OrdinalIgnoreCase))
+                            foreach (var s_P in m_Skip)
                             {
-                                p_Writer.WriteLine($"Skipped texture (prefix {s_P}): {s_Low}");
-                                return;
+                                if (s_Low.StartsWith(s_P, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    p_Writer.WriteLine($"Skipped texture (prefix {s_P}): {s_Low}");
+                                    return;
+                                }
                             }
                         }
                     }

@@ -30,6 +30,9 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
         [CommandArgument(Description = "Optional: its replacement (MUST be the same length as OldString).", Optional = true)]
         public string? NewString { get; set; }
 
+        [CommandArgument(Description = "Optional: a guid MAP file (lines 'oldCanonical newCanonical') for DETERMINISTIC fresh guids so a Python builder can predict the clone's blueprint/entity guids (needed when a stub/spawn references them). Guids absent from the map keep a random fresh guid.", Optional = true)]
+        public FileInfo? MapFile { get; set; }
+
         [CommandArgument(Description = "Optional: a float32 value to find in the partition (e.g. the vanilla LakeData Y = 67).", Optional = true)]
         public float OldFloat { get; set; } = float.NaN;
 
@@ -93,6 +96,24 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
             foreach (var s_Instance in s_Db.Instances)
                 if (s_Instance.InstanceId is DataContainerId.Guid s_Ig)
                     AddGuid(s_Ig.Id);
+
+            // DETERMINISTIC guids from a map file (Python-owned): override the random news for every
+            // old guid present in the map. Keyed by the .Id byte hex so it is layout-agnostic (both
+            // sides go canonical-string -> GUID -> .Id via the same Rime GUID type).
+            if (MapFile != null && MapFile.Exists)
+            {
+                var s_Map = new Dictionary<string, GUID>();
+                foreach (var s_Line in File.ReadAllLines(MapFile.FullName))
+                {
+                    var s_Parts = s_Line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+                    if (s_Parts.Length != 2) continue;
+                    s_Map[Convert.ToHexString(new GUID(Guid.Parse(s_Parts[0])).Id)] = new GUID(Guid.Parse(s_Parts[1]));
+                }
+                for (var i = 0; i < s_Remaps.Count; i++)
+                    if (s_Map.TryGetValue(Convert.ToHexString(s_Remaps[i].Old), out var s_Mapped))
+                        s_Remaps[i] = (s_Remaps[i].Old, s_Mapped);
+                p_Writer.WriteLine($"Applied guid map ({s_Map.Count} entr(ies)) from {MapFile.Name}.");
+            }
 
             var s_NewPrimary = s_Remaps[0].New;
 
