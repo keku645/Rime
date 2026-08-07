@@ -1,0 +1,5039 @@
+{
+ "types": {
+  "DataContainer": {
+   "flags": 53,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {}
+  },
+  "Asset": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "Name": {
+     "flags": 16509,
+     "offset": 8,
+     "soff": 16
+    }
+   }
+  },
+  "MaterialGridData": {
+   "flags": 53,
+   "align": 4,
+   "size": 36,
+   "ssize": 0,
+   "fields": {
+    "DefaultMaterial": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 48
+    },
+    "MaterialPairs": {
+     "flags": 65,
+     "offset": 16,
+     "soff": 52
+    },
+    "MaterialIndexMap": {
+     "flags": 65,
+     "offset": 20,
+     "soff": 56
+    },
+    "DefaultMaterialIndex": {
+     "flags": 49421,
+     "offset": 24,
+     "soff": 60
+    },
+    "MaterialProperties": {
+     "flags": 65,
+     "offset": 28,
+     "soff": 64
+    },
+    "InteractionGrid": {
+     "flags": 65,
+     "offset": 32,
+     "soff": 68
+    }
+   }
+  },
+  "MaterialRelationPropertyPair": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "PhysicsMaterialProperties": {
+     "flags": 65,
+     "offset": 0,
+     "soff": 0
+    },
+    "PhysicsPropertyProperties": {
+     "flags": 65,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "MaterialInteractionGridRow": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "Items": {
+     "flags": 65,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "MaterialRelationPropertyData": {
+   "flags": 53,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {}
+  },
+  "PhysicsMaterialRelationPropertyData": {
+   "flags": 53,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {}
+  },
+  "MaterialPropertySoundData": {
+   "flags": 53,
+   "align": 4,
+   "size": 32,
+   "ssize": 0,
+   "fields": {
+    "ImpactSound": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 24
+    },
+    "ScrapeSound": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 28
+    },
+    "ScrapeLength": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 32
+    },
+    "SoldierSettings": {
+     "flags": 53,
+     "offset": 20,
+     "soff": 36
+    },
+    "Softness": {
+     "flags": 49469,
+     "offset": 24,
+     "soff": 40
+    },
+    "MaterialSoundId": {
+     "flags": 49469,
+     "offset": 28,
+     "soff": 44
+    }
+   }
+  },
+  "MaterialPropertyTerrainData": {
+   "flags": 53,
+   "align": 16,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "DirtTriggerColor": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 32
+    },
+    "DestructionEffect": {
+     "flags": 53,
+     "offset": 32,
+     "soff": 48
+    },
+    "DirtTriggerFactor": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 52
+    }
+   }
+  },
+  "Vec3": {
+   "flags": 53289,
+   "align": 16,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "x": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "y": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "z": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    }
+   }
+  },
+  "PhysicsPropertyRelationPropertyData": {
+   "flags": 53,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {}
+  },
+  "MaterialRelationDamageData": {
+   "flags": 53,
+   "align": 4,
+   "size": 36,
+   "ssize": 0,
+   "fields": {
+    "CollisionDamageMultiplier": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 24
+    },
+    "CollisionDamageThreshold": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 28
+    },
+    "DamageProtectionMultiplier": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 32
+    },
+    "DamagePenetrationMultiplier": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 36
+    },
+    "DamageProtectionThreshold": {
+     "flags": 49469,
+     "offset": 24,
+     "soff": 40
+    },
+    "ExplosionCoverDamageModifier": {
+     "flags": 49469,
+     "offset": 28,
+     "soff": 44
+    },
+    "InflictsDemolitionDamage": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 48
+    }
+   }
+  },
+  "MaterialRelationDecalData": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "Decal": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 24
+    }
+   }
+  },
+  "MaterialRelationEffectData": {
+   "flags": 53,
+   "align": 4,
+   "size": 24,
+   "ssize": 0,
+   "fields": {
+    "ImpactEffects": {
+     "flags": 65,
+     "offset": 8,
+     "soff": 24
+    },
+    "ImpactDebris": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 28
+    },
+    "ImpactEffectMaxSpreadAngle": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 32
+    },
+    "MirrorImpactDirection": {
+     "flags": 49325,
+     "offset": 20,
+     "soff": 36
+    }
+   }
+  },
+  "MaterialRelationPenetrationData": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "NeverPenetrate": {
+     "flags": 49325,
+     "offset": 8,
+     "soff": 24
+    }
+   }
+  },
+  "MaterialRelationSoundData": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "ImpactSound": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 24
+    },
+    "ScrapeSound": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 28
+    },
+    "ScrapeLength": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 32
+    }
+   }
+  },
+  "MaterialRelationTerrainDestructionData": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Width": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 24
+    },
+    "Depth": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 28
+    }
+   }
+  },
+  "MaterialRelationVehicleData": {
+   "flags": 53,
+   "align": 4,
+   "size": 24,
+   "ssize": 0,
+   "fields": {
+    "ChassiEffect": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 24
+    },
+    "TrackEffect": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 28
+    },
+    "WheelEffect": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 32
+    },
+    "GroundEffect": {
+     "flags": 53,
+     "offset": 20,
+     "soff": 36
+    }
+   }
+  },
+  "EmitterSystemAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 24,
+   "ssize": 0,
+   "fields": {
+    "TextureInfos": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 48
+    },
+    "BaseAtlasTexture": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 52
+    },
+    "NormalAtlasTexture": {
+     "flags": 53,
+     "offset": 20,
+     "soff": 56
+    }
+   }
+  },
+  "EmitterTextureAtlasInfo": {
+   "flags": 41,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "TextureName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 16
+    },
+    "MinUv": {
+     "flags": 53289,
+     "offset": 4,
+     "soff": 0
+    },
+    "MaxUv": {
+     "flags": 53289,
+     "offset": 12,
+     "soff": 8
+    }
+   }
+  },
+  "Vec2": {
+   "flags": 53289,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "x": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "y": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "GameAIEntryData": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {}
+  },
+  "AIEntryData": {
+   "flags": 53,
+   "align": 4,
+   "size": 36,
+   "ssize": 0,
+   "fields": {
+    "EquipmentType": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 48
+    },
+    "Armament": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 52
+    },
+    "Mobility": {
+     "flags": 53,
+     "offset": 20,
+     "soff": 56
+    },
+    "StrengthType": {
+     "flags": 137,
+     "offset": 24,
+     "soff": 60
+    },
+    "ReuseTime": {
+     "flags": 49469,
+     "offset": 28,
+     "soff": 64
+    },
+    "Forbidden": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 68
+    },
+    "HasExposedSoldier": {
+     "flags": 49325,
+     "offset": 33,
+     "soff": 69
+    },
+    "InterludeOnly": {
+     "flags": 49325,
+     "offset": 34,
+     "soff": 70
+    },
+    "InvalidForAI": {
+     "flags": 49325,
+     "offset": 35,
+     "soff": 71
+    }
+   }
+  },
+  "StrengthType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "GameAIWeaponData": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {}
+  },
+  "AIWeaponData": {
+   "flags": 53,
+   "align": 4,
+   "size": 168,
+   "ssize": 0,
+   "fields": {
+    "Strengths": {
+     "flags": 41,
+     "offset": 12,
+     "soff": 48
+    },
+    "Indirect": {
+     "flags": 49325,
+     "offset": 28,
+     "soff": 180
+    },
+    "IsAiAllowed": {
+     "flags": 49325,
+     "offset": 29,
+     "soff": 191
+    },
+    "UseFromCover": {
+     "flags": 49325,
+     "offset": 30,
+     "soff": 187
+    },
+    "DisableWeaponSway": {
+     "flags": 49325,
+     "offset": 31,
+     "soff": 190
+    },
+    "MinRange": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 80
+    },
+    "MaxRange": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 84
+    },
+    "OptimalRangePercentage": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 88
+    },
+    "ReloadBehavior": {
+     "flags": 137,
+     "offset": 44,
+     "soff": 92
+    },
+    "MinExtraReloadTime": {
+     "flags": 49469,
+     "offset": 48,
+     "soff": 96
+    },
+    "MaxExtraReloadTime": {
+     "flags": 49469,
+     "offset": 52,
+     "soff": 100
+    },
+    "AllowedAgainstImmortals": {
+     "flags": 49325,
+     "offset": 56,
+     "soff": 177
+    },
+    "CanSuppress": {
+     "flags": 49325,
+     "offset": 57,
+     "soff": 186
+    },
+    "CanAltAttack": {
+     "flags": 49325,
+     "offset": 58,
+     "soff": 184
+    },
+    "IsStandStill": {
+     "flags": 49325,
+     "offset": 59,
+     "soff": 185
+    },
+    "IsMelee": {
+     "flags": 49325,
+     "offset": 60,
+     "soff": 181
+    },
+    "IsBlindFireAllowed": {
+     "flags": 49325,
+     "offset": 61,
+     "soff": 183
+    },
+    "WaitTimeBeforeFire": {
+     "flags": 49469,
+     "offset": 64,
+     "soff": 128
+    },
+    "BurstLimitNear": {
+     "flags": 41,
+     "offset": 68,
+     "soff": 132
+    },
+    "BurstLimitFar": {
+     "flags": 41,
+     "offset": 76,
+     "soff": 140
+    },
+    "MinBurstCoolDownTime": {
+     "flags": 49469,
+     "offset": 84,
+     "soff": 104
+    },
+    "MaxBurstCoolDownTime": {
+     "flags": 49469,
+     "offset": 88,
+     "soff": 64
+    },
+    "LostTargetBurstCoolDownModifier": {
+     "flags": 49469,
+     "offset": 92,
+     "soff": 68
+    },
+    "AimTransitionFireDelay": {
+     "flags": 49469,
+     "offset": 96,
+     "soff": 76
+    },
+    "AimAngularVelocity": {
+     "flags": 49469,
+     "offset": 100,
+     "soff": 108
+    },
+    "AngleToTargetSnap": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 116
+    },
+    "AimWhileReloading": {
+     "flags": 49325,
+     "offset": 108,
+     "soff": 178
+    },
+    "UseZoom": {
+     "flags": 49325,
+     "offset": 109,
+     "soff": 176
+    },
+    "AimOrigin": {
+     "flags": 137,
+     "offset": 112,
+     "soff": 172
+    },
+    "GravityModifier": {
+     "flags": 49469,
+     "offset": 116,
+     "soff": 164
+    },
+    "AimHighIndirectPath": {
+     "flags": 49325,
+     "offset": 120,
+     "soff": 179
+    },
+    "MinimumAccuracyBeforeFiring": {
+     "flags": 49469,
+     "offset": 124,
+     "soff": 152
+    },
+    "AdditionalMinimumAccuracyAtMinRange": {
+     "flags": 49469,
+     "offset": 128,
+     "soff": 160
+    },
+    "SweepFirstAttack": {
+     "flags": 49325,
+     "offset": 132,
+     "soff": 182
+    },
+    "SweepType": {
+     "flags": 137,
+     "offset": 136,
+     "soff": 168
+    },
+    "SweepDistance": {
+     "flags": 49469,
+     "offset": 140,
+     "soff": 120
+    },
+    "SweepTime": {
+     "flags": 49469,
+     "offset": 144,
+     "soff": 124
+    },
+    "InnerInaccurateDistance": {
+     "flags": 49469,
+     "offset": 148,
+     "soff": 112
+    },
+    "OuterInaccurateDistance": {
+     "flags": 49469,
+     "offset": 152,
+     "soff": 156
+    },
+    "InaccuracyFollowsTarget": {
+     "flags": 49325,
+     "offset": 156,
+     "soff": 188
+    },
+    "UseInaccuracyAtCloseRange": {
+     "flags": 49325,
+     "offset": 157,
+     "soff": 189
+    },
+    "StartAccuracyPercentage": {
+     "flags": 49469,
+     "offset": 160,
+     "soff": 148
+    },
+    "FinalAccuracyPercentage": {
+     "flags": 49469,
+     "offset": 164,
+     "soff": 72
+    }
+   }
+  },
+  "Strengths": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Infantry": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "LightArmour": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "HeavyArmour": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "Helicopter": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "ReloadBehavior": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "BurstLimit": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "Min": {
+     "flags": 49405,
+     "offset": 0,
+     "soff": 0
+    },
+    "Max": {
+     "flags": 49405,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "AimOrigin": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "SweepSelectionType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "AlternateCameraViewData": {
+   "flags": 53,
+   "align": 16,
+   "size": 176,
+   "ssize": 0,
+   "fields": {
+    "FieldOfView": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 100
+    },
+    "AllowFieldOfViewScaling": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 140
+    },
+    "FovTransitionTime": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 120
+    },
+    "WorldSpaceLockEfficiency": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 104
+    },
+    "Mesh": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 108
+    },
+    "MaskMeshBlueprint": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 112
+    },
+    "LockMeshToRenderView": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 141
+    },
+    "MeshOffset": {
+     "flags": 53289,
+     "offset": 48,
+     "soff": 16
+    },
+    "Hud": {
+     "flags": 41,
+     "offset": 64,
+     "soff": 32
+    },
+    "FadeToBlack": {
+     "flags": 49325,
+     "offset": 136,
+     "soff": 145
+    },
+    "FadeInDuration": {
+     "flags": 49469,
+     "offset": 140,
+     "soff": 116
+    },
+    "FadeOutDuration": {
+     "flags": 49469,
+     "offset": 144,
+     "soff": 136
+    },
+    "BlackDuration": {
+     "flags": 49469,
+     "offset": 148,
+     "soff": 124
+    },
+    "InputSuppression": {
+     "flags": 41,
+     "offset": 152,
+     "soff": 128
+    },
+    "ToggleViewChange": {
+     "flags": 49325,
+     "offset": 156,
+     "soff": 142
+    },
+    "UseProfileOptionForToggleViewChange": {
+     "flags": 49325,
+     "offset": 157,
+     "soff": 143
+    },
+    "FLIREnabled": {
+     "flags": 49325,
+     "offset": 158,
+     "soff": 144
+    },
+    "ScreenExposureAreaScale": {
+     "flags": 49469,
+     "offset": 160,
+     "soff": 132
+    }
+   }
+  },
+  "HudData": {
+   "flags": 41,
+   "align": 4,
+   "size": 72,
+   "ssize": 0,
+   "fields": {
+    "CrosshairScaleMin": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "CrosshairScaleMax": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "CrosshairOpacityMin": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "CrosshairOpacityMax": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    },
+    "CrosshairOpacityModifier": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 16
+    },
+    "CrosshairTypeId": {
+     "flags": 16509,
+     "offset": 20,
+     "soff": 20
+    },
+    "WeaponClass": {
+     "flags": 16509,
+     "offset": 24,
+     "soff": 24
+    },
+    "ShowMinimap": {
+     "flags": 49325,
+     "offset": 28,
+     "soff": 52
+    },
+    "HideAmmo": {
+     "flags": 49325,
+     "offset": 29,
+     "soff": 55
+    },
+    "LowAmmoWarning": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 36
+    },
+    "ReloadPrompt": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 40
+    },
+    "InfiniteAmmo": {
+     "flags": 49325,
+     "offset": 40,
+     "soff": 53
+    },
+    "HideCrosshairWhenAimOnFriend": {
+     "flags": 49325,
+     "offset": 41,
+     "soff": 54
+    },
+    "UseRenderTarget": {
+     "flags": 49325,
+     "offset": 42,
+     "soff": 66
+    },
+    "RenderTargetIndex": {
+     "flags": 49405,
+     "offset": 44,
+     "soff": 44
+    },
+    "HudPropertyList": {
+     "flags": 53,
+     "offset": 48,
+     "soff": 48
+    },
+    "UseRangeMeter": {
+     "flags": 49325,
+     "offset": 52,
+     "soff": 56
+    },
+    "UseAimWarning": {
+     "flags": 49325,
+     "offset": 53,
+     "soff": 65
+    },
+    "UsePredictedSight": {
+     "flags": 49325,
+     "offset": 54,
+     "soff": 57
+    },
+    "UseWeaponOrientations": {
+     "flags": 49325,
+     "offset": 55,
+     "soff": 58
+    },
+    "UseVelocityVectorMarker": {
+     "flags": 49325,
+     "offset": 56,
+     "soff": 59
+    },
+    "UseLockingController": {
+     "flags": 49325,
+     "offset": 57,
+     "soff": 60
+    },
+    "UseThrust": {
+     "flags": 49325,
+     "offset": 58,
+     "soff": 61
+    },
+    "UseGForce": {
+     "flags": 49325,
+     "offset": 59,
+     "soff": 62
+    },
+    "UseSkidSlip": {
+     "flags": 49325,
+     "offset": 60,
+     "soff": 63
+    },
+    "UseClimbRate": {
+     "flags": 49325,
+     "offset": 61,
+     "soff": 64
+    },
+    "SeaLevelAltFreq": {
+     "flags": 49469,
+     "offset": 64,
+     "soff": 32
+    },
+    "CameraShakeModifier": {
+     "flags": 49469,
+     "offset": 68,
+     "soff": 28
+    }
+   }
+  },
+  "InputSuppressionData": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "SuppressVehicleInput": {
+     "flags": 65,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "ActionSuppressor": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "ActionToSuppress": {
+     "flags": 137,
+     "offset": 0,
+     "soff": 0
+    },
+    "SuppressingValue": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "EntryInputActionEnum": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "GameDataContainer": {
+   "flags": 53,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {}
+  },
+  "GameObjectData": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "IsEventConnectionTarget": {
+     "flags": 49341,
+     "offset": 8,
+     "soff": 18
+    },
+    "IsPropertyConnectionTarget": {
+     "flags": 49341,
+     "offset": 9,
+     "soff": 19
+    },
+    "IndexInBlueprint": {
+     "flags": 49389,
+     "offset": 10,
+     "soff": 16
+    }
+   }
+  },
+  "ComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 96,
+   "ssize": 0,
+   "fields": {
+    "Transform": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 48
+    },
+    "Components": {
+     "flags": 65,
+     "offset": 80,
+     "soff": 112
+    },
+    "Excluded": {
+     "flags": 49325,
+     "offset": 84,
+     "soff": 116
+    }
+   }
+  },
+  "LinearTransform": {
+   "flags": 53289,
+   "align": 16,
+   "size": 64,
+   "ssize": 0,
+   "fields": {
+    "right": {
+     "flags": 53289,
+     "offset": 0,
+     "soff": 0
+    },
+    "up": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 16
+    },
+    "forward": {
+     "flags": 53289,
+     "offset": 32,
+     "soff": 32
+    },
+    "trans": {
+     "flags": 53289,
+     "offset": 48,
+     "soff": 48
+    }
+   }
+  },
+  "AnimationTurretRotationComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "Rotations": {
+     "flags": 65,
+     "offset": 96,
+     "soff": 128
+    },
+    "SoldierBaseIndex": {
+     "flags": 49405,
+     "offset": 100,
+     "soff": 132
+    },
+    "UseVehicleWorldTransform": {
+     "flags": 49325,
+     "offset": 104,
+     "soff": 136
+    },
+    "OutputWorldTransform": {
+     "flags": 49325,
+     "offset": 105,
+     "soff": 137
+    }
+   }
+  },
+  "TurretRotationInfo": {
+   "flags": 41,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {
+    "RotationAxis": {
+     "flags": 137,
+     "offset": 0,
+     "soff": 0
+    },
+    "Channel": {
+     "flags": 137,
+     "offset": 4,
+     "soff": 4
+    },
+    "NormalizeRotation": {
+     "flags": 49325,
+     "offset": 8,
+     "soff": 20
+    },
+    "MaxRotation": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 8
+    },
+    "MinRotation": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 12
+    },
+    "PhaseOffset": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 16
+    },
+    "InvertRotation": {
+     "flags": 49325,
+     "offset": 24,
+     "soff": 21
+    }
+   }
+  },
+  "RotationAxis": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "RotationChannel": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "AntEnumeration": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "AntAsset": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    },
+    "Value": {
+     "flags": 49405,
+     "offset": 12,
+     "soff": 72
+    }
+   }
+  },
+  "AntRef": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "AssetId": {
+     "flags": 49405,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "FloatPhysicsData": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Density": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 16
+    },
+    "FilledDensity": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 20
+    }
+   }
+  },
+  "HullFloatPhysicsData": {
+   "flags": 53,
+   "align": 16,
+   "size": 128,
+   "ssize": 0,
+   "fields": {
+    "WaterResistanceAxisMod": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 32
+    },
+    "WaterFrictionAxisMod": {
+     "flags": 53289,
+     "offset": 32,
+     "soff": 48
+    },
+    "Offset": {
+     "flags": 53289,
+     "offset": 48,
+     "soff": 64
+    },
+    "SubSurfaceSplits": {
+     "flags": 49405,
+     "offset": 64,
+     "soff": 80
+    },
+    "Depth": {
+     "flags": 49469,
+     "offset": 68,
+     "soff": 84
+    },
+    "Width": {
+     "flags": 49469,
+     "offset": 72,
+     "soff": 88
+    },
+    "Length": {
+     "flags": 49469,
+     "offset": 76,
+     "soff": 92
+    },
+    "FrontCurveDegree": {
+     "flags": 49469,
+     "offset": 80,
+     "soff": 96
+    },
+    "SideCurveDegree": {
+     "flags": 49469,
+     "offset": 84,
+     "soff": 100
+    },
+    "NonEngineSteer": {
+     "flags": 49469,
+     "offset": 88,
+     "soff": 104
+    },
+    "NonEngineSteerMinSpeed": {
+     "flags": 49469,
+     "offset": 92,
+     "soff": 108
+    },
+    "NonEngineSteerMaxSpeed": {
+     "flags": 49469,
+     "offset": 96,
+     "soff": 112
+    },
+    "WaterDampeningMod": {
+     "flags": 49469,
+     "offset": 100,
+     "soff": 116
+    },
+    "LiftModifier": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 120
+    },
+    "SupportSizeMod": {
+     "flags": 49469,
+     "offset": 108,
+     "soff": 124
+    },
+    "AngularDampening": {
+     "flags": 49469,
+     "offset": 112,
+     "soff": 128
+    },
+    "FrictionThrottleModifier": {
+     "flags": 49469,
+     "offset": 116,
+     "soff": 132
+    }
+   }
+  },
+  "BoatFloatPhysicsData": {
+   "flags": 53,
+   "align": 16,
+   "size": 144,
+   "ssize": 0,
+   "fields": {
+    "FrontRatio": {
+     "flags": 49469,
+     "offset": 128,
+     "soff": 144
+    }
+   }
+  },
+  "EntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {}
+  },
+  "BoolEntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "Realm": {
+     "flags": 137,
+     "offset": 12,
+     "soff": 44
+    },
+    "DefaultValue": {
+     "flags": 49325,
+     "offset": 16,
+     "soff": 48
+    }
+   }
+  },
+  "Realm": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "BoolToEventEntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "Realm": {
+     "flags": 137,
+     "offset": 12,
+     "soff": 44
+    },
+    "Value": {
+     "flags": 49325,
+     "offset": 16,
+     "soff": 48
+    },
+    "InitalEvent": {
+     "flags": 49325,
+     "offset": 17,
+     "soff": 49
+    }
+   }
+  },
+  "CameraComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 272,
+   "ssize": 0,
+   "fields": {
+    "Camera": {
+     "flags": 53,
+     "offset": 96,
+     "soff": 152
+    },
+    "FieldOfView": {
+     "flags": 49469,
+     "offset": 100,
+     "soff": 144
+    },
+    "ForceFieldOfView": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 148
+    },
+    "EnableCameraMesh": {
+     "flags": 49325,
+     "offset": 108,
+     "soff": 240
+    },
+    "AlternateView": {
+     "flags": 53,
+     "offset": 112,
+     "soff": 156
+    },
+    "RegularView": {
+     "flags": 41,
+     "offset": 128,
+     "soff": 160
+    },
+    "AlternateViewEnabled": {
+     "flags": 49325,
+     "offset": 192,
+     "soff": 243
+    },
+    "FreezeHeight": {
+     "flags": 49469,
+     "offset": 196,
+     "soff": 208
+    },
+    "IsFirstPerson": {
+     "flags": 49325,
+     "offset": 200,
+     "soff": 244
+    },
+    "SoldierAnimatedCamera": {
+     "flags": 41,
+     "offset": 204,
+     "soff": 224
+    },
+    "ReceiveImpulsesAsThirdPerson": {
+     "flags": 49325,
+     "offset": 212,
+     "soff": 241
+    },
+    "UseCameraTransition": {
+     "flags": 49325,
+     "offset": 213,
+     "soff": 242
+    },
+    "CameraTransitionPos": {
+     "flags": 53289,
+     "offset": 224,
+     "soff": 128
+    },
+    "CameraTransitionTime": {
+     "flags": 49469,
+     "offset": 240,
+     "soff": 232
+    },
+    "MeshParentComponentNumber": {
+     "flags": 49421,
+     "offset": 244,
+     "soff": 236
+    },
+    "StanceData": {
+     "flags": 41,
+     "offset": 248,
+     "soff": 212
+    },
+    "CameraSoundData": {
+     "flags": 53,
+     "offset": 256,
+     "soff": 220
+    },
+    "IgnoreOwnerOrientation": {
+     "flags": 49325,
+     "offset": 260,
+     "soff": 245
+    }
+   }
+  },
+  "RegularCameraViewData": {
+   "flags": 41,
+   "align": 16,
+   "size": 64,
+   "ssize": 0,
+   "fields": {
+    "FLIREnabled": {
+     "flags": 49325,
+     "offset": 0,
+     "soff": 38
+    },
+    "InputSuppression": {
+     "flags": 41,
+     "offset": 4,
+     "soff": 16
+    },
+    "FieldOfView": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 20
+    },
+    "AllowFieldOfViewScaling": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 37
+    },
+    "Mesh": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 24
+    },
+    "MaskMeshBlueprint": {
+     "flags": 53,
+     "offset": 20,
+     "soff": 32
+    },
+    "LockMeshToRenderView": {
+     "flags": 49325,
+     "offset": 24,
+     "soff": 36
+    },
+    "MeshOffset": {
+     "flags": 53289,
+     "offset": 32,
+     "soff": 0
+    },
+    "ScreenExposureAreaScale": {
+     "flags": 49469,
+     "offset": 48,
+     "soff": 28
+    }
+   }
+  },
+  "SoldierAnimatedCameraData": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "EnableFeature": {
+     "flags": 49325,
+     "offset": 0,
+     "soff": 4
+    },
+    "CameraTransitionTime": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 0
+    }
+   }
+  },
+  "StanceCameraData": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "ValidStances": {
+     "flags": 65,
+     "offset": 0,
+     "soff": 0
+    },
+    "DefaultCameraForStances": {
+     "flags": 65,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "CameraData": {
+   "flags": 53,
+   "align": 16,
+   "size": 80,
+   "ssize": 0,
+   "fields": {
+    "OcclusionRayOffset": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 48
+    },
+    "PreFadeTime": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 68
+    },
+    "FadeTime": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 72
+    },
+    "FadeWaitTime": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 76
+    },
+    "StayFadedWhileStreaming": {
+     "flags": 49325,
+     "offset": 44,
+     "soff": 100
+    },
+    "ViewFx": {
+     "flags": 53,
+     "offset": 48,
+     "soff": 84
+    },
+    "NearPlane": {
+     "flags": 49469,
+     "offset": 52,
+     "soff": 88
+    },
+    "ShadowViewDistanceScale": {
+     "flags": 49469,
+     "offset": 56,
+     "soff": 92
+    },
+    "SoundOcclusion": {
+     "flags": 49469,
+     "offset": 60,
+     "soff": 96
+    },
+    "SoundListenerRadius": {
+     "flags": 49469,
+     "offset": 64,
+     "soff": 80
+    },
+    "ShakeFactor": {
+     "flags": 49469,
+     "offset": 68,
+     "soff": 64
+    }
+   }
+  },
+  "TargetCameraData": {
+   "flags": 53,
+   "align": 16,
+   "size": 160,
+   "ssize": 0,
+   "fields": {
+    "Hud": {
+     "flags": 41,
+     "offset": 80,
+     "soff": 112
+    },
+    "UIParts": {
+     "flags": 65,
+     "offset": 152,
+     "soff": 180
+    }
+   }
+  },
+  "ChaseCameraData": {
+   "flags": 53,
+   "align": 16,
+   "size": 288,
+   "ssize": 0,
+   "fields": {
+    "TargetOffset": {
+     "flags": 53289,
+     "offset": 160,
+     "soff": 192
+    },
+    "TargetRotationOffset": {
+     "flags": 49469,
+     "offset": 176,
+     "soff": 228
+    },
+    "KeepTargetPitch": {
+     "flags": 49325,
+     "offset": 180,
+     "soff": 300
+    },
+    "ToWantedPositionScale": {
+     "flags": 53289,
+     "offset": 192,
+     "soff": 208
+    },
+    "MaxViewRotationAngleDeg": {
+     "flags": 49469,
+     "offset": 208,
+     "soff": 232
+    },
+    "WantedAngleDeg": {
+     "flags": 49469,
+     "offset": 212,
+     "soff": 236
+    },
+    "WantedDistance": {
+     "flags": 49469,
+     "offset": 216,
+     "soff": 240
+    },
+    "MaxDistance": {
+     "flags": 49469,
+     "offset": 220,
+     "soff": 244
+    },
+    "SnapDistance": {
+     "flags": 49469,
+     "offset": 224,
+     "soff": 248
+    },
+    "ForceFieldRadius": {
+     "flags": 49469,
+     "offset": 228,
+     "soff": 252
+    },
+    "CollisionRadius": {
+     "flags": 49469,
+     "offset": 232,
+     "soff": 256
+    },
+    "ForceFieldForceScale": {
+     "flags": 49469,
+     "offset": 236,
+     "soff": 260
+    },
+    "AwayFromTargetForceScale": {
+     "flags": 49469,
+     "offset": 240,
+     "soff": 224
+    },
+    "VelocityDrag": {
+     "flags": 49469,
+     "offset": 244,
+     "soff": 268
+    },
+    "MaxVelocity": {
+     "flags": 49469,
+     "offset": 248,
+     "soff": 264
+    },
+    "PillMinimumCollisionRadius": {
+     "flags": 49469,
+     "offset": 252,
+     "soff": 276
+    },
+    "PillMaximumCollisionRadius": {
+     "flags": 49469,
+     "offset": 256,
+     "soff": 280
+    },
+    "PillMinimumCollisionLength": {
+     "flags": 49469,
+     "offset": 260,
+     "soff": 284
+    },
+    "PillExpandSizeSpeedAcceleration": {
+     "flags": 49469,
+     "offset": 264,
+     "soff": 272
+    },
+    "LookDistanceScale": {
+     "flags": 49469,
+     "offset": 268,
+     "soff": 288
+    },
+    "LookDistanceInFrontOfTarget": {
+     "flags": 49469,
+     "offset": 272,
+     "soff": 292
+    },
+    "ShouldRollWithTarget": {
+     "flags": 49325,
+     "offset": 276,
+     "soff": 302
+    },
+    "InheritTargetVelocity": {
+     "flags": 49325,
+     "offset": 277,
+     "soff": 301
+    },
+    "UpdateRate": {
+     "flags": 49421,
+     "offset": 280,
+     "soff": 296
+    },
+    "HasCollision": {
+     "flags": 49325,
+     "offset": 284,
+     "soff": 303
+    }
+   }
+  },
+  "PartComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "HealthStates": {
+     "flags": 65,
+     "offset": 96,
+     "soff": 128
+    },
+    "PartLinks": {
+     "flags": 65,
+     "offset": 100,
+     "soff": 132
+    },
+    "IsSupported": {
+     "flags": 49325,
+     "offset": 104,
+     "soff": 136
+    },
+    "IsFragile": {
+     "flags": 49325,
+     "offset": 105,
+     "soff": 137
+    },
+    "IsNetworkable": {
+     "flags": 49325,
+     "offset": 106,
+     "soff": 138
+    },
+    "IsWindow": {
+     "flags": 49325,
+     "offset": 107,
+     "soff": 139
+    },
+    "AnimatePhysics": {
+     "flags": 49325,
+     "offset": 108,
+     "soff": 140
+    }
+   }
+  },
+  "ChassisComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 144,
+   "ssize": 0,
+   "fields": {
+    "VehicleConfig": {
+     "flags": 53,
+     "offset": 112,
+     "soff": 144
+    },
+    "GearboxConfig": {
+     "flags": 53,
+     "offset": 116,
+     "soff": 148
+    },
+    "AlwaysFullThrottle": {
+     "flags": 49325,
+     "offset": 120,
+     "soff": 168
+    },
+    "WaterEffects": {
+     "flags": 65,
+     "offset": 124,
+     "soff": 156
+    },
+    "WaterStreakEffects": {
+     "flags": 65,
+     "offset": 128,
+     "soff": 152
+    },
+    "TriggerGroundEffectImpulse": {
+     "flags": 49469,
+     "offset": 132,
+     "soff": 160
+    },
+    "LandingGearLogic": {
+     "flags": 53,
+     "offset": 136,
+     "soff": 164
+    },
+    "ForceLandingGearsRetract": {
+     "flags": 49325,
+     "offset": 140,
+     "soff": 169
+    },
+    "AllowNegativeThrottle": {
+     "flags": 49325,
+     "offset": 141,
+     "soff": 170
+    }
+   }
+  },
+  "ChildComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 224,
+   "ssize": 0,
+   "fields": {
+    "SoundEffect": {
+     "flags": 53,
+     "offset": 112,
+     "soff": 244
+    },
+    "MovingBody": {
+     "flags": 53,
+     "offset": 116,
+     "soff": 208
+    },
+    "HealthZone": {
+     "flags": 41,
+     "offset": 120,
+     "soff": 212
+    },
+    "SoundEffectStartRpm": {
+     "flags": 49469,
+     "offset": 140,
+     "soff": 232
+    },
+    "SoundEffectStopRpm": {
+     "flags": 49469,
+     "offset": 144,
+     "soff": 236
+    },
+    "AlignmentSettings": {
+     "flags": 53,
+     "offset": 148,
+     "soff": 240
+    },
+    "WorldSpacePositionLock": {
+     "flags": 49325,
+     "offset": 152,
+     "soff": 249
+    },
+    "EnableAlignToCamera": {
+     "flags": 49325,
+     "offset": 153,
+     "soff": 248
+    },
+    "AlignTransform": {
+     "flags": 53289,
+     "offset": 160,
+     "soff": 144
+    }
+   }
+  },
+  "VehicleHealthZoneData": {
+   "flags": 41,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "MaxHealth": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "MaxShieldHealth": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "UseDamageAngleCalculation": {
+     "flags": 49325,
+     "offset": 8,
+     "soff": 16
+    },
+    "MinDamageAngle": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    },
+    "DamageAngleMultiplier": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 8
+    }
+   }
+  },
+  "MovingBodyData": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Mass": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 16
+    },
+    "Inertia": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 20
+    }
+   }
+  },
+  "RotationBodyData": {
+   "flags": 53,
+   "align": 4,
+   "size": 60,
+   "ssize": 0,
+   "fields": {
+    "AngularMomentumMultiplier": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 24
+    },
+    "AngularMomentumThreshold": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 28
+    },
+    "AngularMomentumDamping": {
+     "flags": 49469,
+     "offset": 24,
+     "soff": 32
+    },
+    "AngularMomentumDampingAcc": {
+     "flags": 49469,
+     "offset": 28,
+     "soff": 36
+    },
+    "AngularMomentumDampingDeacc": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 40
+    },
+    "UsePostSatisfyConstraints": {
+     "flags": 49325,
+     "offset": 36,
+     "soff": 60
+    },
+    "AngularConstraintMin": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 44
+    },
+    "AngularConstraintMax": {
+     "flags": 49469,
+     "offset": 44,
+     "soff": 52
+    },
+    "RotationAxis": {
+     "flags": 49405,
+     "offset": 48,
+     "soff": 56
+    },
+    "ExtendedConstraints": {
+     "flags": 53,
+     "offset": 52,
+     "soff": 48
+    },
+    "UseAngularMomentumThreshold": {
+     "flags": 49325,
+     "offset": 56,
+     "soff": 61
+    },
+    "UseAngularMomentumDamping": {
+     "flags": 49325,
+     "offset": 57,
+     "soff": 62
+    },
+    "UseAngularConstraint": {
+     "flags": 49325,
+     "offset": 58,
+     "soff": 63
+    }
+   }
+  },
+  "ChildRotationBodyData": {
+   "flags": 53,
+   "align": 4,
+   "size": 84,
+   "ssize": 0,
+   "fields": {
+    "ForceModifier": {
+     "flags": 49469,
+     "offset": 60,
+     "soff": 64
+    },
+    "ResetForceModifier": {
+     "flags": 49469,
+     "offset": 64,
+     "soff": 68
+    },
+    "ResetForceInputThreshold": {
+     "flags": 49469,
+     "offset": 68,
+     "soff": 72
+    },
+    "UseLinearInput": {
+     "flags": 49325,
+     "offset": 72,
+     "soff": 84
+    },
+    "RotationInput": {
+     "flags": 137,
+     "offset": 76,
+     "soff": 76
+    },
+    "WorldSpaceLockEfficiency": {
+     "flags": 49469,
+     "offset": 80,
+     "soff": 80
+    }
+   }
+  },
+  "EffectComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 128,
+   "ssize": 0,
+   "fields": {
+    "Effect": {
+     "flags": 53,
+     "offset": 96,
+     "soff": 128
+    },
+    "AutoStart": {
+     "flags": 49325,
+     "offset": 100,
+     "soff": 144
+    },
+    "SnapToWaterSurface": {
+     "flags": 49325,
+     "offset": 101,
+     "soff": 145
+    },
+    "EmitterParameter1": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 132
+    },
+    "EmitterParameter2": {
+     "flags": 49469,
+     "offset": 108,
+     "soff": 140
+    },
+    "EmitterParameter3": {
+     "flags": 49469,
+     "offset": 112,
+     "soff": 136
+    }
+   }
+  },
+  "EngineComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "Config": {
+     "flags": 53,
+     "offset": 96,
+     "soff": 128
+    },
+    "SoundEffect": {
+     "flags": 53,
+     "offset": 100,
+     "soff": 132
+    },
+    "SurfaceSoundEffect": {
+     "flags": 53,
+     "offset": 104,
+     "soff": 136
+    },
+    "UseFirstPersonSounds": {
+     "flags": 49325,
+     "offset": 108,
+     "soff": 140
+    },
+    "OutputIsEngineInWater": {
+     "flags": 49325,
+     "offset": 109,
+     "soff": 141
+    }
+   }
+  },
+  "EntityVoiceOverInfo": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "VoiceOverType": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 16
+    },
+    "Labels": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 20
+    }
+   }
+  },
+  "EventSplitterEntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "RunOnce": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 48
+    },
+    "Realm": {
+     "flags": 137,
+     "offset": 16,
+     "soff": 44
+    }
+   }
+  },
+  "GearboxConfigData": {
+   "flags": 53,
+   "align": 4,
+   "size": 64,
+   "ssize": 0,
+   "fields": {
+    "ForwardGearRatios": {
+     "flags": 65,
+     "offset": 8,
+     "soff": 16
+    },
+    "ForwardGearSpeeds": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 20
+    },
+    "ReverseGearRatios": {
+     "flags": 65,
+     "offset": 16,
+     "soff": 24
+    },
+    "ReverseGearSpeeds": {
+     "flags": 65,
+     "offset": 20,
+     "soff": 28
+    },
+    "GearboxType": {
+     "flags": 49405,
+     "offset": 24,
+     "soff": 32
+    },
+    "GearboxMode": {
+     "flags": 49405,
+     "offset": 28,
+     "soff": 36
+    },
+    "GearChangeTime": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 40
+    },
+    "GearDownSpeedFactor": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 44
+    },
+    "OppositeDirGearChangeMaxSpeed": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 48
+    },
+    "OppositeDirGearChangeTime": {
+     "flags": 49469,
+     "offset": 44,
+     "soff": 52
+    },
+    "ClutchSpeedFactor": {
+     "flags": 49469,
+     "offset": 48,
+     "soff": 56
+    },
+    "TransmissionEfficiency": {
+     "flags": 49469,
+     "offset": 52,
+     "soff": 60
+    },
+    "UseAutoClutch": {
+     "flags": 49325,
+     "offset": 56,
+     "soff": 71
+    },
+    "UseClassicGearBoxAutoClutch": {
+     "flags": 49325,
+     "offset": 57,
+     "soff": 68
+    },
+    "UseNeutralGear": {
+     "flags": 49325,
+     "offset": 58,
+     "soff": 69
+    },
+    "LimitBackwardThrottle": {
+     "flags": 49325,
+     "offset": 59,
+     "soff": 70
+    },
+    "BackwardThrottleLimit": {
+     "flags": 49469,
+     "offset": 60,
+     "soff": 64
+    }
+   }
+  },
+  "HavokAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "Scale": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 48
+    },
+    "ExternalAssets": {
+     "flags": 65,
+     "offset": 16,
+     "soff": 52
+    }
+   }
+  },
+  "HealthStateData": {
+   "flags": 53,
+   "align": 4,
+   "size": 44,
+   "ssize": 0,
+   "fields": {
+    "Objects": {
+     "flags": 65,
+     "offset": 8,
+     "soff": 16
+    },
+    "LoosePartPhysics": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 20
+    },
+    "SpawnedBangerBlueprint": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 24
+    },
+    "CopyDamageToBanger": {
+     "flags": 49325,
+     "offset": 20,
+     "soff": 41
+    },
+    "SpawnedBangerImpulseParams": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 28
+    },
+    "PhysicsEnabled": {
+     "flags": 49325,
+     "offset": 28,
+     "soff": 40
+    },
+    "Health": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 32
+    },
+    "PartIndex": {
+     "flags": 49421,
+     "offset": 36,
+     "soff": 36
+    },
+    "CanSupportOtherParts": {
+     "flags": 49325,
+     "offset": 40,
+     "soff": 42
+    }
+   }
+  },
+  "InputModifierEntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {
+    "Enabled": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 56
+    },
+    "Action": {
+     "flags": 137,
+     "offset": 16,
+     "soff": 44
+    },
+    "Offset": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 52
+    },
+    "Scale": {
+     "flags": 49469,
+     "offset": 24,
+     "soff": 48
+    }
+   }
+  },
+  "DynamicDataContainer": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "Fields": {
+     "flags": 65,
+     "offset": 8,
+     "soff": 16
+    }
+   }
+  },
+  "DataField": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Value": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "ValueRef": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    },
+    "Id": {
+     "flags": 49405,
+     "offset": 8,
+     "soff": 8
+    },
+    "AccessType": {
+     "flags": 137,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "FieldAccessType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "InterfaceDescriptorData": {
+   "flags": 53,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {
+    "InputEvents": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 20
+    },
+    "OutputEvents": {
+     "flags": 65,
+     "offset": 16,
+     "soff": 24
+    },
+    "InputLinks": {
+     "flags": 65,
+     "offset": 20,
+     "soff": 28
+    },
+    "OutputLinks": {
+     "flags": 65,
+     "offset": 24,
+     "soff": 32
+    }
+   }
+  },
+  "DynamicEvent": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "Id": {
+     "flags": 49405,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "DynamicLink": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "Id": {
+     "flags": 49405,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "EngineConfigData": {
+   "flags": 53,
+   "align": 16,
+   "size": 96,
+   "ssize": 0,
+   "fields": {
+    "Position": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 16
+    },
+    "RpmCurvePoints": {
+     "flags": 65,
+     "offset": 32,
+     "soff": 32
+    },
+    "TorqueCurvePoints": {
+     "flags": 65,
+     "offset": 36,
+     "soff": 36
+    },
+    "RpmMin": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 40
+    },
+    "RpmMax": {
+     "flags": 49469,
+     "offset": 44,
+     "soff": 44
+    },
+    "RpmCut": {
+     "flags": 49469,
+     "offset": 48,
+     "soff": 48
+    },
+    "EnginePowerMultiplier": {
+     "flags": 49469,
+     "offset": 52,
+     "soff": 52
+    },
+    "InternalAccelerationFactor": {
+     "flags": 49469,
+     "offset": 56,
+     "soff": 56
+    },
+    "InternalDeaccelerationFactor": {
+     "flags": 49469,
+     "offset": 60,
+     "soff": 60
+    },
+    "Boost": {
+     "flags": 41,
+     "offset": 64,
+     "soff": 64
+    }
+   }
+  },
+  "Boost": {
+   "flags": 41,
+   "align": 4,
+   "size": 24,
+   "ssize": 0,
+   "fields": {
+    "ForwardStrength": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "ReverseStrength": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "DissipationTime": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "RecoveryTime": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    },
+    "CrawlStrength": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 16
+    },
+    "AccelerationScale": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 20
+    }
+   }
+  },
+  "JetEngineConfigData": {
+   "flags": 53,
+   "align": 16,
+   "size": 128,
+   "ssize": 0,
+   "fields": {
+    "DirectionVectorIndex": {
+     "flags": 49421,
+     "offset": 96,
+     "soff": 120
+    },
+    "ForceMagnitudeMultiplier": {
+     "flags": 49469,
+     "offset": 100,
+     "soff": 104
+    },
+    "AngleInputYMultiplier": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 108
+    },
+    "AngleInputPitchMultiplier": {
+     "flags": 49469,
+     "offset": 108,
+     "soff": 112
+    },
+    "MaxVelocity": {
+     "flags": 49469,
+     "offset": 112,
+     "soff": 116
+    },
+    "IsTurnable": {
+     "flags": 49325,
+     "offset": 116,
+     "soff": 125
+    },
+    "IsWaterJetEngine": {
+     "flags": 49325,
+     "offset": 117,
+     "soff": 124
+    },
+    "PowerFadeOutRange": {
+     "flags": 53289,
+     "offset": 120,
+     "soff": 96
+    }
+   }
+  },
+  "ReferenceObjectData": {
+   "flags": 53,
+   "align": 16,
+   "size": 96,
+   "ssize": 0,
+   "fields": {
+    "BlueprintTransform": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 48
+    },
+    "Blueprint": {
+     "flags": 53,
+     "offset": 80,
+     "soff": 112
+    },
+    "ObjectVariation": {
+     "flags": 53,
+     "offset": 84,
+     "soff": 116
+    },
+    "StreamRealm": {
+     "flags": 137,
+     "offset": 88,
+     "soff": 120
+    },
+    "CastSunShadowEnable": {
+     "flags": 49325,
+     "offset": 92,
+     "soff": 124
+    },
+    "Excluded": {
+     "flags": 49325,
+     "offset": 93,
+     "soff": 125
+    }
+   }
+  },
+  "StreamRealm": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "LogicReferenceObjectData": {
+   "flags": 53,
+   "align": 16,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "SubRealm": {
+     "flags": 137,
+     "offset": 96,
+     "soff": 144
+    }
+   }
+  },
+  "SubRealm": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "LogicVisualEnvironmentEntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "VisualEnvironment": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 44
+    },
+    "Visibility": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 48
+    }
+   }
+  },
+  "MeshComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "BoneFakePhysics": {
+     "flags": 65,
+     "offset": 96,
+     "soff": 128
+    },
+    "Mesh": {
+     "flags": 53,
+     "offset": 100,
+     "soff": 132
+    },
+    "Skeleton": {
+     "flags": 53,
+     "offset": 104,
+     "soff": 136
+    }
+   }
+  },
+  "MotionDampingData": {
+   "flags": 53,
+   "align": 16,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "LinearModifier": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 16
+    },
+    "Pitch": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 32
+    },
+    "Yaw": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 36
+    },
+    "Roll": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 40
+    },
+    "Linear": {
+     "flags": 49469,
+     "offset": 44,
+     "soff": 44
+    }
+   }
+  },
+  "Or4EntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "Realm": {
+     "flags": 137,
+     "offset": 12,
+     "soff": 44
+    },
+    "In1": {
+     "flags": 49325,
+     "offset": 16,
+     "soff": 48
+    },
+    "In2": {
+     "flags": 49325,
+     "offset": 17,
+     "soff": 49
+    },
+    "In3": {
+     "flags": 49325,
+     "offset": 18,
+     "soff": 50
+    },
+    "In4": {
+     "flags": 49325,
+     "offset": 19,
+     "soff": 51
+    }
+   }
+  },
+  "PhysicsEntityData": {
+   "flags": 53,
+   "align": 16,
+   "size": 96,
+   "ssize": 0,
+   "fields": {
+    "Asset": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 72
+    },
+    "ScaledAssets": {
+     "flags": 65,
+     "offset": 16,
+     "soff": 64
+    },
+    "RigidBodies": {
+     "flags": 65,
+     "offset": 20,
+     "soff": 68
+    },
+    "EncapsulatePartsInLists": {
+     "flags": 49325,
+     "offset": 24,
+     "soff": 108
+    },
+    "FloatPhysics": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 76
+    },
+    "Mass": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 80
+    },
+    "InertiaModifier": {
+     "flags": 53289,
+     "offset": 48,
+     "soff": 48
+    },
+    "Friction": {
+     "flags": 49469,
+     "offset": 64,
+     "soff": 88
+    },
+    "Restitution": {
+     "flags": 49469,
+     "offset": 68,
+     "soff": 84
+    },
+    "AngularVelocityDamping": {
+     "flags": 49469,
+     "offset": 72,
+     "soff": 96
+    },
+    "LinearVelocityDamping": {
+     "flags": 49469,
+     "offset": 76,
+     "soff": 92
+    },
+    "Proximity": {
+     "flags": 53,
+     "offset": 80,
+     "soff": 100
+    },
+    "Constraints": {
+     "flags": 65,
+     "offset": 84,
+     "soff": 104
+    },
+    "MovableParts": {
+     "flags": 49325,
+     "offset": 88,
+     "soff": 109
+    }
+   }
+  },
+  "EntryComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 224,
+   "ssize": 0,
+   "fields": {
+    "EntryClass": {
+     "flags": 137,
+     "offset": 96,
+     "soff": 148
+    },
+    "AIData": {
+     "flags": 53,
+     "offset": 100,
+     "soff": 144
+    },
+    "ForbiddenForHuman": {
+     "flags": 49325,
+     "offset": 104,
+     "soff": 221
+    },
+    "InputConceptDefinition": {
+     "flags": 53,
+     "offset": 108,
+     "soff": 152
+    },
+    "InputMapping": {
+     "flags": 53,
+     "offset": 112,
+     "soff": 156
+    },
+    "InputCurves": {
+     "flags": 65,
+     "offset": 116,
+     "soff": 160
+    },
+    "HudData": {
+     "flags": 41,
+     "offset": 120,
+     "soff": 164
+    },
+    "EntryOrderNumber": {
+     "flags": 49405,
+     "offset": 136,
+     "soff": 176
+    },
+    "EnterImpulse": {
+     "flags": 49469,
+     "offset": 140,
+     "soff": 180
+    },
+    "EntryRadius": {
+     "flags": 49469,
+     "offset": 144,
+     "soff": 184
+    },
+    "IsAllowedToExitInAir": {
+     "flags": 49325,
+     "offset": 148,
+     "soff": 213
+    },
+    "IsShielded": {
+     "flags": 49325,
+     "offset": 149,
+     "soff": 220
+    },
+    "LockSoldierAimingToEntry": {
+     "flags": 49325,
+     "offset": 150,
+     "soff": 212
+    },
+    "ShowSoldierInEntry": {
+     "flags": 49325,
+     "offset": 151,
+     "soff": 223
+    },
+    "Show1pSoldierInEntry": {
+     "flags": 49325,
+     "offset": 152,
+     "soff": 214
+    },
+    "SoldierTransitionInvisbleTime": {
+     "flags": 49469,
+     "offset": 156,
+     "soff": 200
+    },
+    "NumberOfStances": {
+     "flags": 49405,
+     "offset": 160,
+     "soff": 204
+    },
+    "StancesEnabled": {
+     "flags": 49325,
+     "offset": 164,
+     "soff": 215
+    },
+    "EntrySpottingSettings": {
+     "flags": 137,
+     "offset": 168,
+     "soff": 192
+    },
+    "ShowSoldierWeaponInEntry": {
+     "flags": 49325,
+     "offset": 172,
+     "soff": 222
+    },
+    "Show1pSoldierInEntryForPlayerOnly": {
+     "flags": 49325,
+     "offset": 173,
+     "soff": 216
+    },
+    "HideSoldierForPassengers": {
+     "flags": 49325,
+     "offset": 174,
+     "soff": 217
+    },
+    "Show3pSoldierWeaponInEntry": {
+     "flags": 49325,
+     "offset": 175,
+     "soff": 218
+    },
+    "ShowSoldierGearInEntry": {
+     "flags": 49325,
+     "offset": 176,
+     "soff": 219
+    },
+    "PoseConstraints": {
+     "flags": 41,
+     "offset": 177,
+     "soff": 196
+    },
+    "SoldierOffset": {
+     "flags": 53289,
+     "offset": 192,
+     "soff": 128
+    },
+    "EntryComponentSound": {
+     "flags": 53,
+     "offset": 208,
+     "soff": 208
+    },
+    "TriggerEventOnKey": {
+     "flags": 137,
+     "offset": 212,
+     "soff": 188
+    }
+   }
+  },
+  "EntryClass": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "EntryComponentHudData": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Index": {
+     "flags": 49405,
+     "offset": 0,
+     "soff": 0
+    },
+    "Frustum": {
+     "flags": 49325,
+     "offset": 4,
+     "soff": 8
+    },
+    "Visible": {
+     "flags": 49325,
+     "offset": 5,
+     "soff": 9
+    },
+    "SeatType": {
+     "flags": 137,
+     "offset": 8,
+     "soff": 4
+    },
+    "MaximizeMiniMapOnEntry": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 10
+    }
+   }
+  },
+  "EntrySeatType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "EntrySpottingSettings": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "PoseConstraintsData": {
+   "flags": 41,
+   "align": 1,
+   "size": 3,
+   "ssize": 0,
+   "fields": {
+    "StandPose": {
+     "flags": 49325,
+     "offset": 0,
+     "soff": 0
+    },
+    "CrouchPose": {
+     "flags": 49325,
+     "offset": 1,
+     "soff": 1
+    },
+    "PronePose": {
+     "flags": 49325,
+     "offset": 2,
+     "soff": 2
+    }
+   }
+  },
+  "PlayerEntryComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 272,
+   "ssize": 0,
+   "fields": {
+    "AntEntryID": {
+     "flags": 16509,
+     "offset": 224,
+     "soff": 244
+    },
+    "AntEntryId": {
+     "flags": 137,
+     "offset": 228,
+     "soff": 240
+    },
+    "AntEntryEnumeration": {
+     "flags": 53,
+     "offset": 232,
+     "soff": 248
+    },
+    "AnimationAccelerationMultiplier": {
+     "flags": 53289,
+     "offset": 240,
+     "soff": 224
+    },
+    "ShieldedTransitionExitTime": {
+     "flags": 49469,
+     "offset": 256,
+     "soff": 252
+    }
+   }
+  },
+  "AntEntryIdEnum": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "RigidBodyData": {
+   "flags": 53,
+   "align": 16,
+   "size": 80,
+   "ssize": 0,
+   "fields": {
+    "RigidBodyType": {
+     "flags": 137,
+     "offset": 8,
+     "soff": 32
+    },
+    "Mass": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 36
+    },
+    "Friction": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 44
+    },
+    "Restitution": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 40
+    },
+    "InertiaModifier": {
+     "flags": 53289,
+     "offset": 32,
+     "soff": 16
+    },
+    "AngularVelocityDamping": {
+     "flags": 49469,
+     "offset": 48,
+     "soff": 48
+    },
+    "LinearVelocityDamping": {
+     "flags": 49469,
+     "offset": 52,
+     "soff": 52
+    },
+    "InteractionToolkitCollisionVolumeId": {
+     "flags": 49421,
+     "offset": 56,
+     "soff": 56
+    },
+    "MotionType": {
+     "flags": 137,
+     "offset": 60,
+     "soff": 60
+    },
+    "QualityType": {
+     "flags": 137,
+     "offset": 64,
+     "soff": 64
+    },
+    "CollisionLayer": {
+     "flags": 137,
+     "offset": 68,
+     "soff": 68
+    },
+    "FloatPhysics": {
+     "flags": 53,
+     "offset": 72,
+     "soff": 72
+    },
+    "Constraints": {
+     "flags": 65,
+     "offset": 76,
+     "soff": 76
+    }
+   }
+  },
+  "RigidBodyType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "RigidBodyMotionType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "RigidBodyQualityType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "RigidBodyCollisionLayer": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "SoldierEntryComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 256,
+   "ssize": 0,
+   "fields": {
+    "AimingConstraints": {
+     "flags": 41,
+     "offset": 224,
+     "soff": 224
+    },
+    "AlignConstraintsToEntity": {
+     "flags": 49325,
+     "offset": 240,
+     "soff": 244
+    },
+    "AntEntryEnumeration": {
+     "flags": 53,
+     "offset": 244,
+     "soff": 240
+    }
+   }
+  },
+  "AimingConstraintsData": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "MinYaw": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "MaxYaw": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "MinPitch": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "MaxPitch": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "SpottingComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 160,
+   "ssize": 0,
+   "fields": {
+    "SpottingFov": {
+     "flags": 49469,
+     "offset": 96,
+     "soff": 128
+    },
+    "TeamOrderFov": {
+     "flags": 49469,
+     "offset": 100,
+     "soff": 132
+    },
+    "SpottingDistance": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 136
+    },
+    "PassiveSpottingTimeInterval": {
+     "flags": 49469,
+     "offset": 108,
+     "soff": 140
+    },
+    "TimeRequiredToPassiveSpot": {
+     "flags": 49469,
+     "offset": 112,
+     "soff": 144
+    },
+    "OrderNeedAmmoPercentage": {
+     "flags": 49469,
+     "offset": 116,
+     "soff": 148
+    },
+    "OrderHealPercentage": {
+     "flags": 49469,
+     "offset": 120,
+     "soff": 152
+    },
+    "OrderRepairPercentage": {
+     "flags": 49469,
+     "offset": 124,
+     "soff": 156
+    },
+    "PickupOrderDistance": {
+     "flags": 49469,
+     "offset": 128,
+     "soff": 160
+    },
+    "HealOrderDistance": {
+     "flags": 49469,
+     "offset": 132,
+     "soff": 164
+    },
+    "AmmoOrderDistance": {
+     "flags": 49469,
+     "offset": 136,
+     "soff": 168
+    },
+    "RepairOrderDistance": {
+     "flags": 49469,
+     "offset": 140,
+     "soff": 172
+    },
+    "OnlyAllowedToHaveOneSpottedPlayer": {
+     "flags": 49325,
+     "offset": 144,
+     "soff": 184
+    },
+    "CoolDownHistoryTime": {
+     "flags": 49469,
+     "offset": 148,
+     "soff": 176
+    },
+    "CoolDownAllowedSpotsWithinHistory": {
+     "flags": 49405,
+     "offset": 152,
+     "soff": 180
+    }
+   }
+  },
+  "SpottingTargetComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 128,
+   "ssize": 0,
+   "fields": {
+    "ActiveSpottedTime": {
+     "flags": 49469,
+     "offset": 96,
+     "soff": 128
+    },
+    "PassiveSpottedTime": {
+     "flags": 49469,
+     "offset": 100,
+     "soff": 132
+    },
+    "ActiveSpottedTimeMultiplier": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 136
+    },
+    "PassiveSpottedTimeMultiplier": {
+     "flags": 49469,
+     "offset": 108,
+     "soff": 140
+    },
+    "SpotOnFireMultiplier": {
+     "flags": 49469,
+     "offset": 112,
+     "soff": 144
+    },
+    "TargetBoundingBoxCenter": {
+     "flags": 49325,
+     "offset": 116,
+     "soff": 148
+    }
+   }
+  },
+  "StaticCameraData": {
+   "flags": 53,
+   "align": 16,
+   "size": 240,
+   "ssize": 0,
+   "fields": {
+    "LeftCurve": {
+     "flags": 65,
+     "offset": 160,
+     "soff": 192
+    },
+    "RightCurve": {
+     "flags": 65,
+     "offset": 164,
+     "soff": 196
+    },
+    "UpCurve": {
+     "flags": 65,
+     "offset": 168,
+     "soff": 200
+    },
+    "DownCurve": {
+     "flags": 65,
+     "offset": 172,
+     "soff": 204
+    },
+    "MirrorHorizontalCurves": {
+     "flags": 49325,
+     "offset": 176,
+     "soff": 257
+    },
+    "MirrorVerticalCurves": {
+     "flags": 49325,
+     "offset": 177,
+     "soff": 259
+    },
+    "LoosePartPhysics": {
+     "flags": 65,
+     "offset": 180,
+     "soff": 216
+    },
+    "LeftYawAngle": {
+     "flags": 49469,
+     "offset": 184,
+     "soff": 220
+    },
+    "RightYawAngle": {
+     "flags": 49469,
+     "offset": 188,
+     "soff": 224
+    },
+    "UpPitchAngle": {
+     "flags": 49469,
+     "offset": 192,
+     "soff": 208
+    },
+    "DownPitchAngle": {
+     "flags": 49469,
+     "offset": 196,
+     "soff": 232
+    },
+    "AverageFilterFrames": {
+     "flags": 49405,
+     "offset": 200,
+     "soff": 236
+    },
+    "YawInputAction": {
+     "flags": 137,
+     "offset": 204,
+     "soff": 212
+    },
+    "PitchInputAction": {
+     "flags": 137,
+     "offset": 208,
+     "soff": 240
+    },
+    "AccumulateInput": {
+     "flags": 49325,
+     "offset": 212,
+     "soff": 258
+    },
+    "ResetAccumulatedInputOnViewChange": {
+     "flags": 49325,
+     "offset": 213,
+     "soff": 256
+    },
+    "YawSensitivityNonZoomed": {
+     "flags": 49469,
+     "offset": 216,
+     "soff": 252
+    },
+    "YawSensitivityZoomed": {
+     "flags": 49469,
+     "offset": 220,
+     "soff": 244
+    },
+    "PitchSensitivityNonZoomed": {
+     "flags": 49469,
+     "offset": 224,
+     "soff": 248
+    },
+    "PitchSensitivityZoomed": {
+     "flags": 49469,
+     "offset": 228,
+     "soff": 228
+    }
+   }
+  },
+  "SyncedBoolEntityData": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 44
+    }
+   }
+  },
+  "UnlockComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "UnlockAsset": {
+     "flags": 53,
+     "offset": 96,
+     "soff": 128
+    },
+    "InvertUnlockTest": {
+     "flags": 49325,
+     "offset": 100,
+     "soff": 137
+    },
+    "UnlockableFromAllEntries": {
+     "flags": 49325,
+     "offset": 101,
+     "soff": 136
+    },
+    "UnlockDataKey": {
+     "flags": 49421,
+     "offset": 104,
+     "soff": 132
+    }
+   }
+  },
+  "DataBusData": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "PropertyConnections": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 48
+    },
+    "LinkConnections": {
+     "flags": 65,
+     "offset": 16,
+     "soff": 52
+    }
+   }
+  },
+  "PropertyConnection": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Source": {
+     "flags": 53,
+     "offset": 0,
+     "soff": 0
+    },
+    "Target": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    },
+    "SourceFieldId": {
+     "flags": 49405,
+     "offset": 8,
+     "soff": 8
+    },
+    "TargetFieldId": {
+     "flags": 49405,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "LinkConnection": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Source": {
+     "flags": 53,
+     "offset": 0,
+     "soff": 0
+    },
+    "Target": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    },
+    "SourceFieldId": {
+     "flags": 49405,
+     "offset": 8,
+     "soff": 8
+    },
+    "TargetFieldId": {
+     "flags": 49405,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "EntityBusData": {
+   "flags": 53,
+   "align": 4,
+   "size": 32,
+   "ssize": 0,
+   "fields": {
+    "EventConnections": {
+     "flags": 65,
+     "offset": 20,
+     "soff": 56
+    },
+    "Descriptor": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 60
+    },
+    "NeedNetworkId": {
+     "flags": 49325,
+     "offset": 28,
+     "soff": 64
+    },
+    "InterfaceHasConnections": {
+     "flags": 49325,
+     "offset": 29,
+     "soff": 65
+    },
+    "AlwaysCreateEntityBusClient": {
+     "flags": 49325,
+     "offset": 30,
+     "soff": 66
+    },
+    "AlwaysCreateEntityBusServer": {
+     "flags": 49325,
+     "offset": 31,
+     "soff": 67
+    }
+   }
+  },
+  "EventConnection": {
+   "flags": 41,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "Source": {
+     "flags": 53,
+     "offset": 0,
+     "soff": 0
+    },
+    "Target": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    },
+    "SourceEvent": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 8
+    },
+    "TargetEvent": {
+     "flags": 41,
+     "offset": 12,
+     "soff": 16
+    },
+    "TargetType": {
+     "flags": 137,
+     "offset": 16,
+     "soff": 24
+    }
+   }
+  },
+  "EventSpec": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "Id": {
+     "flags": 49405,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "EventConnectionTargetType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "Blueprint": {
+   "flags": 53,
+   "align": 4,
+   "size": 32,
+   "ssize": 0,
+   "fields": {}
+  },
+  "ObjectBlueprint": {
+   "flags": 53,
+   "align": 4,
+   "size": 36,
+   "ssize": 0,
+   "fields": {
+    "Object": {
+     "flags": 53,
+     "offset": 32,
+     "soff": 72
+    }
+   }
+  },
+  "VehicleBlueprint": {
+   "flags": 53,
+   "align": 4,
+   "size": 36,
+   "ssize": 0,
+   "fields": {}
+  },
+  "VehicleConfigData": {
+   "flags": 53,
+   "align": 16,
+   "size": 288,
+   "ssize": 0,
+   "fields": {
+    "CenterOfMass": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 16
+    },
+    "CenterOfMassHandlingOffset": {
+     "flags": 53289,
+     "offset": 32,
+     "soff": 32
+    },
+    "InertiaModifier": {
+     "flags": 53289,
+     "offset": 48,
+     "soff": 48
+    },
+    "AeroDynamicPhysics": {
+     "flags": 53,
+     "offset": 64,
+     "soff": 64
+    },
+    "ParachutePhysics": {
+     "flags": 53,
+     "offset": 68,
+     "soff": 68
+    },
+    "MotorbikePhysics": {
+     "flags": 53,
+     "offset": 72,
+     "soff": 72
+    },
+    "MotionDamping": {
+     "flags": 53,
+     "offset": 76,
+     "soff": 76
+    },
+    "Input": {
+     "flags": 41,
+     "offset": 80,
+     "soff": 80
+    },
+    "FloatPhysics": {
+     "flags": 53,
+     "offset": 160,
+     "soff": 160
+    },
+    "Stabilizer": {
+     "flags": 53,
+     "offset": 164,
+     "soff": 164
+    },
+    "Stabilizers": {
+     "flags": 65,
+     "offset": 168,
+     "soff": 168
+    },
+    "ConstantForce": {
+     "flags": 65,
+     "offset": 172,
+     "soff": 172
+    },
+    "VehicleModeAtReset": {
+     "flags": 137,
+     "offset": 176,
+     "soff": 176
+    },
+    "BodyMass": {
+     "flags": 49469,
+     "offset": 180,
+     "soff": 180
+    },
+    "GravityModifier": {
+     "flags": 49469,
+     "offset": 184,
+     "soff": 184
+    },
+    "YawMin": {
+     "flags": 49469,
+     "offset": 188,
+     "soff": 188
+    },
+    "YawMax": {
+     "flags": 49469,
+     "offset": 192,
+     "soff": 192
+    },
+    "DownForceBaseFactor": {
+     "flags": 49469,
+     "offset": 196,
+     "soff": 196
+    },
+    "DownForceWheelFactor": {
+     "flags": 49469,
+     "offset": 200,
+     "soff": 200
+    },
+    "VehicleModeChangeEnteringTime": {
+     "flags": 49469,
+     "offset": 204,
+     "soff": 204
+    },
+    "VehicleModeChangeStartingTime": {
+     "flags": 49469,
+     "offset": 208,
+     "soff": 208
+    },
+    "VehicleModeChangeStoppingTime": {
+     "flags": 49469,
+     "offset": 212,
+     "soff": 212
+    },
+    "VehicleModeChangeLeavingTime": {
+     "flags": 49469,
+     "offset": 216,
+     "soff": 216
+    },
+    "StandStillLowSpeedTimeLimit": {
+     "flags": 49469,
+     "offset": 220,
+     "soff": 220
+    },
+    "StaticFrictionBreakCollisionMod": {
+     "flags": 49469,
+     "offset": 224,
+     "soff": 224
+    },
+    "StaticFrictionBreakVelocityMod": {
+     "flags": 49469,
+     "offset": 228,
+     "soff": 228
+    },
+    "CoefficientOfAirFriction": {
+     "flags": 49469,
+     "offset": 232,
+     "soff": 232
+    },
+    "AirDensity": {
+     "flags": 49469,
+     "offset": 236,
+     "soff": 236
+    },
+    "AirDragArea": {
+     "flags": 49469,
+     "offset": 240,
+     "soff": 240
+    },
+    "WindResistanceBaseFactor": {
+     "flags": 49469,
+     "offset": 244,
+     "soff": 244
+    },
+    "WindResistanceVelocityFactor": {
+     "flags": 49469,
+     "offset": 248,
+     "soff": 248
+    },
+    "WindResistanceVelocityFactorMin": {
+     "flags": 49469,
+     "offset": 252,
+     "soff": 252
+    },
+    "WindResistanceVelocityFactorMax": {
+     "flags": 49469,
+     "offset": 256,
+     "soff": 256
+    },
+    "UseDownForce": {
+     "flags": 49325,
+     "offset": 260,
+     "soff": 276
+    },
+    "UseDownForceWheelFactor": {
+     "flags": 49325,
+     "offset": 261,
+     "soff": 268
+    },
+    "UseGearbox": {
+     "flags": 49325,
+     "offset": 262,
+     "soff": 269
+    },
+    "UseStandStillBrake": {
+     "flags": 49325,
+     "offset": 263,
+     "soff": 270
+    },
+    "UseStandStillSleep": {
+     "flags": 49325,
+     "offset": 264,
+     "soff": 271
+    },
+    "UseTurnAroundForce": {
+     "flags": 49325,
+     "offset": 265,
+     "soff": 272
+    },
+    "UseMotorcycleControl": {
+     "flags": 49325,
+     "offset": 266,
+     "soff": 273
+    },
+    "InvertPitchAllowed": {
+     "flags": 49325,
+     "offset": 267,
+     "soff": 274
+    },
+    "UseWindResistance": {
+     "flags": 49325,
+     "offset": 268,
+     "soff": 275
+    },
+    "AntiRollBars": {
+     "flags": 41,
+     "offset": 272,
+     "soff": 260
+    }
+   }
+  },
+  "VehicleInputData": {
+   "flags": 41,
+   "align": 4,
+   "size": 80,
+   "ssize": 0,
+   "fields": {
+    "ThrottleDeadzone": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "BrakeDeadzone": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "YawDeadzone": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "PitchDeadzone": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    },
+    "RollDeadzone": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 16
+    },
+    "ThrottleInertiaOutDuration": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 20
+    },
+    "ThrottleInertiaInDuration": {
+     "flags": 49469,
+     "offset": 24,
+     "soff": 24
+    },
+    "ThrottleInertiaMinRatio": {
+     "flags": 49469,
+     "offset": 28,
+     "soff": 28
+    },
+    "BrakeInertiaOutDuration": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 32
+    },
+    "BrakeInertiaInDuration": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 36
+    },
+    "BrakeInertiaMinRatio": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 40
+    },
+    "YawInertiaOutDuration": {
+     "flags": 49469,
+     "offset": 44,
+     "soff": 44
+    },
+    "YawInertiaInDuration": {
+     "flags": 49469,
+     "offset": 48,
+     "soff": 48
+    },
+    "YawInertiaMinRatio": {
+     "flags": 49469,
+     "offset": 52,
+     "soff": 52
+    },
+    "PitchInertiaOutDuration": {
+     "flags": 49469,
+     "offset": 56,
+     "soff": 56
+    },
+    "PitchInertiaInDuration": {
+     "flags": 49469,
+     "offset": 60,
+     "soff": 60
+    },
+    "PitchInertiaMinRatio": {
+     "flags": 49469,
+     "offset": 64,
+     "soff": 64
+    },
+    "RollInertiaOutDuration": {
+     "flags": 49469,
+     "offset": 68,
+     "soff": 68
+    },
+    "RollInertiaInDuration": {
+     "flags": 49469,
+     "offset": 72,
+     "soff": 72
+    },
+    "RollInertiaMinRatio": {
+     "flags": 49469,
+     "offset": 76,
+     "soff": 76
+    }
+   }
+  },
+  "StabilizerSettings": {
+   "flags": 41,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "Property": {
+     "flags": 137,
+     "offset": 0,
+     "soff": 0
+    },
+    "Strength": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "Advanced": {
+     "flags": 49325,
+     "offset": 8,
+     "soff": 8
+    }
+   }
+  },
+  "StabilizerProperty": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "ConstantForceData": {
+   "flags": 41,
+   "align": 16,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "Condition": {
+     "flags": 137,
+     "offset": 0,
+     "soff": 16
+    },
+    "TypeOfForce": {
+     "flags": 137,
+     "offset": 4,
+     "soff": 20
+    },
+    "Value": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 0
+    },
+    "Space": {
+     "flags": 137,
+     "offset": 32,
+     "soff": 24
+    }
+   }
+  },
+  "ForceCondition": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "ForceType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "SpaceType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "VehicleMode": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "AntiRollBars": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "Front": {
+     "flags": 53,
+     "offset": 0,
+     "soff": 0
+    },
+    "Rear": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "SpatialEntityData": {
+   "flags": 53,
+   "align": 16,
+   "size": 80,
+   "ssize": 0,
+   "fields": {
+    "Transform": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 48
+    }
+   }
+  },
+  "GameEntityData": {
+   "flags": 53,
+   "align": 16,
+   "size": 96,
+   "ssize": 0,
+   "fields": {
+    "Enabled": {
+     "flags": 49325,
+     "offset": 80,
+     "soff": 116
+    },
+    "Components": {
+     "flags": 65,
+     "offset": 84,
+     "soff": 112
+    },
+    "RuntimeComponentCount": {
+     "flags": 49341,
+     "offset": 88,
+     "soff": 117
+    }
+   }
+  },
+  "GamePhysicsEntityData": {
+   "flags": 53,
+   "align": 16,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "PhysicsData": {
+     "flags": 53,
+     "offset": 96,
+     "soff": 128
+    }
+   }
+  },
+  "ControllableEntityData": {
+   "flags": 53,
+   "align": 16,
+   "size": 144,
+   "ssize": 0,
+   "fields": {
+    "UsePrediction": {
+     "flags": 49325,
+     "offset": 112,
+     "soff": 158
+    },
+    "DefaultTeam": {
+     "flags": 137,
+     "offset": 116,
+     "soff": 148
+    },
+    "ResetTeamOnLastPlayerExits": {
+     "flags": 49325,
+     "offset": 120,
+     "soff": 156
+    },
+    "Immortal": {
+     "flags": 49325,
+     "offset": 121,
+     "soff": 159
+    },
+    "FakeImmortal": {
+     "flags": 49325,
+     "offset": 122,
+     "soff": 157
+    },
+    "LowHealthThreshold": {
+     "flags": 49469,
+     "offset": 124,
+     "soff": 144
+    },
+    "MaterialPair": {
+     "flags": 53,
+     "offset": 128,
+     "soff": 152
+    },
+    "ForceForegroundRendering": {
+     "flags": 49325,
+     "offset": 132,
+     "soff": 160
+    }
+   }
+  },
+  "TeamId": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "VehicleEntityData": {
+   "flags": 53,
+   "align": 16,
+   "size": 640,
+   "ssize": 0,
+   "fields": {
+    "ControllableType": {
+     "flags": 16509,
+     "offset": 144,
+     "soff": 244
+    },
+    "AllowVehicleOutsideCombatAreas": {
+     "flags": 49325,
+     "offset": 148,
+     "soff": 569
+    },
+    "DisabledDamageThreshold": {
+     "flags": 49469,
+     "offset": 152,
+     "soff": 240
+    },
+    "PreDestructionDamageThreshold": {
+     "flags": 49469,
+     "offset": 156,
+     "soff": 248
+    },
+    "FrontHealthZone": {
+     "flags": 41,
+     "offset": 160,
+     "soff": 316
+    },
+    "RearHealthZone": {
+     "flags": 41,
+     "offset": 180,
+     "soff": 252
+    },
+    "LeftHealthZone": {
+     "flags": 41,
+     "offset": 200,
+     "soff": 272
+    },
+    "RightHealthZone": {
+     "flags": 41,
+     "offset": 220,
+     "soff": 292
+    },
+    "HealthZonesShareDamage": {
+     "flags": 49325,
+     "offset": 240,
+     "soff": 565
+    },
+    "RegenerationDelay": {
+     "flags": 49469,
+     "offset": 244,
+     "soff": 388
+    },
+    "RegenerationRate": {
+     "flags": 49469,
+     "offset": 248,
+     "soff": 376
+    },
+    "UseProtectedShields": {
+     "flags": 49325,
+     "offset": 252,
+     "soff": 572
+    },
+    "ArmorMultiplier": {
+     "flags": 49469,
+     "offset": 256,
+     "soff": 344
+    },
+    "RegenerationDelayMultiplier": {
+     "flags": 49469,
+     "offset": 260,
+     "soff": 348
+    },
+    "RegenerationRateMultiplier": {
+     "flags": 49469,
+     "offset": 264,
+     "soff": 352
+    },
+    "EmergencyRepairHealth": {
+     "flags": 49469,
+     "offset": 268,
+     "soff": 356
+    },
+    "DecayDelay": {
+     "flags": 49469,
+     "offset": 272,
+     "soff": 360
+    },
+    "DecayRate": {
+     "flags": 49469,
+     "offset": 276,
+     "soff": 364
+    },
+    "ShowPlayerHealth": {
+     "flags": 49325,
+     "offset": 280,
+     "soff": 557
+    },
+    "CriticallyDamagedEffect": {
+     "flags": 53,
+     "offset": 284,
+     "soff": 372
+    },
+    "CriticallyDamagedEffectPosition": {
+     "flags": 53289,
+     "offset": 288,
+     "soff": 176
+    },
+    "CriticalDamageTime": {
+     "flags": 49469,
+     "offset": 304,
+     "soff": 380
+    },
+    "PreExplosionEffect": {
+     "flags": 53,
+     "offset": 308,
+     "soff": 384
+    },
+    "PreExplosionEffectPosition": {
+     "flags": 53289,
+     "offset": 320,
+     "soff": 208
+    },
+    "PreExplosionTime": {
+     "flags": 49469,
+     "offset": 336,
+     "soff": 392
+    },
+    "Explosion": {
+     "flags": 53,
+     "offset": 340,
+     "soff": 396
+    },
+    "Mesh": {
+     "flags": 53,
+     "offset": 344,
+     "soff": 400
+    },
+    "CockpitMesh": {
+     "flags": 53,
+     "offset": 348,
+     "soff": 404
+    },
+    "ForegroundRenderCockpitMesh": {
+     "flags": 49325,
+     "offset": 352,
+     "soff": 558
+    },
+    "MotionBlurMask": {
+     "flags": 49325,
+     "offset": 353,
+     "soff": 571
+    },
+    "HudData": {
+     "flags": 41,
+     "offset": 368,
+     "soff": 416
+    },
+    "NameSid": {
+     "flags": 16509,
+     "offset": 416,
+     "soff": 448
+    },
+    "MaxPlayersInVehicle": {
+     "flags": 49405,
+     "offset": 420,
+     "soff": 452
+    },
+    "MinSpeedForMineActivation": {
+     "flags": 49469,
+     "offset": 424,
+     "soff": 312
+    },
+    "UpsideDownDamage": {
+     "flags": 49469,
+     "offset": 428,
+     "soff": 336
+    },
+    "UpsideDownDamageDelay": {
+     "flags": 49469,
+     "offset": 432,
+     "soff": 464
+    },
+    "UpsideDownAngle": {
+     "flags": 49469,
+     "offset": 436,
+     "soff": 468
+    },
+    "WaterDamage": {
+     "flags": 49469,
+     "offset": 440,
+     "soff": 472
+    },
+    "BelowWaterDamageDelay": {
+     "flags": 49469,
+     "offset": 444,
+     "soff": 368
+    },
+    "WaterDamageOffset": {
+     "flags": 49469,
+     "offset": 448,
+     "soff": 340
+    },
+    "IsAffectedByEMP": {
+     "flags": 49325,
+     "offset": 452,
+     "soff": 560
+    },
+    "VelocityDamageThreshold": {
+     "flags": 49469,
+     "offset": 456,
+     "soff": 488
+    },
+    "VelocityDamageMagnifier": {
+     "flags": 49469,
+     "offset": 460,
+     "soff": 408
+    },
+    "ThrowOutSoldierInsideOnWaterDamage": {
+     "flags": 49325,
+     "offset": 464,
+     "soff": 561
+    },
+    "KillSoldierCollisionSpeedThreshold": {
+     "flags": 49469,
+     "offset": 468,
+     "soff": 500
+    },
+    "IgnoreSoldierCollisionNormal": {
+     "flags": 49325,
+     "offset": 472,
+     "soff": 556
+    },
+    "ChoseExitPointByDirection": {
+     "flags": 49325,
+     "offset": 473,
+     "soff": 564
+    },
+    "ExitSpeedThreshold": {
+     "flags": 49469,
+     "offset": 476,
+     "soff": 412
+    },
+    "ExitDirectionSpeedThreshold": {
+     "flags": 49469,
+     "offset": 480,
+     "soff": 504
+    },
+    "ExitAllowed": {
+     "flags": 49325,
+     "offset": 484,
+     "soff": 567
+    },
+    "EnableGroundmapLighting": {
+     "flags": 49325,
+     "offset": 485,
+     "soff": 570
+    },
+    "UseAsTeamSpawner": {
+     "flags": 49325,
+     "offset": 486,
+     "soff": 562
+    },
+    "FLIRValue": {
+     "flags": 49469,
+     "offset": 488,
+     "soff": 548
+    },
+    "FLIRKeyColor": {
+     "flags": 53289,
+     "offset": 496,
+     "soff": 192
+    },
+    "RenderVehicleMesh": {
+     "flags": 49325,
+     "offset": 512,
+     "soff": 559
+    },
+    "MPMode": {
+     "flags": 41,
+     "offset": 516,
+     "soff": 552
+    },
+    "ExitCameraSwitchDelay": {
+     "flags": 49469,
+     "offset": 520,
+     "soff": 496
+    },
+    "AngleOfImpact": {
+     "flags": 41,
+     "offset": 524,
+     "soff": 508
+    },
+    "IsLockable": {
+     "flags": 49325,
+     "offset": 548,
+     "soff": 563
+    },
+    "LockingTimeMultiplier": {
+     "flags": 49469,
+     "offset": 552,
+     "soff": 476
+    },
+    "VehicleLockableInfo": {
+     "flags": 41,
+     "offset": 556,
+     "soff": 532
+    },
+    "NeverReportVehicleAsEmpty": {
+     "flags": 49325,
+     "offset": 572,
+     "soff": 566
+    },
+    "HighAltitudeLockHeight": {
+     "flags": 49469,
+     "offset": 576,
+     "soff": 484
+    },
+    "UseLowAltitudeHeatSignature": {
+     "flags": 49325,
+     "offset": 580,
+     "soff": 568
+    },
+    "Sound": {
+     "flags": 53,
+     "offset": 584,
+     "soff": 460
+    },
+    "VoiceOverInfo": {
+     "flags": 53,
+     "offset": 588,
+     "soff": 492
+    },
+    "NametagHeightScale": {
+     "flags": 49469,
+     "offset": 592,
+     "soff": 456
+    },
+    "NametagHeightOffset": {
+     "flags": 49469,
+     "offset": 596,
+     "soff": 480
+    },
+    "UseDriverEyePosForNametagPos": {
+     "flags": 49325,
+     "offset": 600,
+     "soff": 573
+    },
+    "InteractionOffset": {
+     "flags": 53289,
+     "offset": 608,
+     "soff": 224
+    },
+    "EquipmentFakeVehicle": {
+     "flags": 49325,
+     "offset": 624,
+     "soff": 574
+    },
+    "ExplosionPacksAttachable": {
+     "flags": 49325,
+     "offset": 625,
+     "soff": 575
+    }
+   }
+  },
+  "VehicleHudData": {
+   "flags": 41,
+   "align": 16,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "Customization": {
+     "flags": 53,
+     "offset": 0,
+     "soff": 16
+    },
+    "CustomizationOffset": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 0
+    },
+    "MinimapIcon": {
+     "flags": 137,
+     "offset": 32,
+     "soff": 20
+    },
+    "Texture": {
+     "flags": 53,
+     "offset": 36,
+     "soff": 24
+    },
+    "VehicleItemHash": {
+     "flags": 49421,
+     "offset": 40,
+     "soff": 28
+    }
+   }
+  },
+  "UIHudIcon": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "MPModeData": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "VehiclePoints": {
+     "flags": 49405,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "AngleOfImpactData": {
+   "flags": 41,
+   "align": 4,
+   "size": 24,
+   "ssize": 0,
+   "fields": {
+    "Zone12Delimiter": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "Zone23Delimiter": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "Zone1Multiplier": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "Zone2Multiplier": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    },
+    "Zone3Multiplier": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 16
+    },
+    "Enabled": {
+     "flags": 49325,
+     "offset": 20,
+     "soff": 20
+    }
+   }
+  },
+  "VehicleLockableInfoData": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "HeatSignature": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "RadarSignature": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "LowAltitudeHeight": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "LowAltitudeHeatSignature": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "VehicleExitPointComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 144,
+   "ssize": 0,
+   "fields": {
+    "Ordinal": {
+     "flags": 49405,
+     "offset": 96,
+     "soff": 148
+    },
+    "TerrainHeight": {
+     "flags": 49469,
+     "offset": 100,
+     "soff": 144
+    },
+    "Velocity": {
+     "flags": 49469,
+     "offset": 104,
+     "soff": 152
+    },
+    "InheritCameraDirection": {
+     "flags": 49325,
+     "offset": 108,
+     "soff": 156
+    },
+    "Impulse": {
+     "flags": 53289,
+     "offset": 112,
+     "soff": 128
+    },
+    "CheckForVehicleOverrun": {
+     "flags": 49325,
+     "offset": 128,
+     "soff": 157
+    }
+   }
+  },
+  "VehicleSoundData": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "BulletImpact": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 16
+    }
+   }
+  },
+  "WeaponComponentData": {
+   "flags": 53,
+   "align": 16,
+   "size": 192,
+   "ssize": 0,
+   "fields": {
+    "ProjectileSpawnOffset": {
+     "flags": 53289,
+     "offset": 112,
+     "soff": 144
+    },
+    "SequentialFiring": {
+     "flags": 49325,
+     "offset": 128,
+     "soff": 216
+    },
+    "WeaponMesh": {
+     "flags": 53,
+     "offset": 132,
+     "soff": 164
+    },
+    "WeaponFiring": {
+     "flags": 53,
+     "offset": 136,
+     "soff": 168
+    },
+    "DamageGiverName": {
+     "flags": 16509,
+     "offset": 140,
+     "soff": 172
+    },
+    "AIData": {
+     "flags": 53,
+     "offset": 144,
+     "soff": 176
+    },
+    "CustomWeaponType": {
+     "flags": 53,
+     "offset": 148,
+     "soff": 180
+    },
+    "ImpulseStrength": {
+     "flags": 49469,
+     "offset": 152,
+     "soff": 160
+    },
+    "Classification": {
+     "flags": 137,
+     "offset": 156,
+     "soff": 184
+    },
+    "ReloadTimeMultiplier": {
+     "flags": 49469,
+     "offset": 160,
+     "soff": 192
+    },
+    "DamageMultiplier": {
+     "flags": 49469,
+     "offset": 164,
+     "soff": 196
+    },
+    "ExplosionDamageMultiplier": {
+     "flags": 49469,
+     "offset": 168,
+     "soff": 188
+    },
+    "OverheatDropPerSecondMultiplier": {
+     "flags": 49469,
+     "offset": 172,
+     "soff": 204
+    },
+    "LockTimeMultiplier": {
+     "flags": 49469,
+     "offset": 176,
+     "soff": 208
+    },
+    "LockingAcceptanceAngleMultiplier": {
+     "flags": 49469,
+     "offset": 180,
+     "soff": 212
+    },
+    "WeaponItemHash": {
+     "flags": 49421,
+     "offset": 184,
+     "soff": 200
+    }
+   }
+  },
+  "WeaponClassification": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  }
+ },
+ "arrayMembers": {
+  "class": 53,
+  "prim:16": 49421,
+  "struct:MaterialRelationPropertyPair": 41,
+  "struct:MaterialInteractionGridRow": 41,
+  "struct:EmitterTextureAtlasInfo": 41,
+  "struct:ActionSuppressor": 41,
+  "struct:TurretRotationInfo": 41,
+  "prim:15": 49405,
+  "prim:19": 49469,
+  "struct:DataField": 41,
+  "struct:DynamicEvent": 41,
+  "struct:DynamicLink": 41,
+  "struct:Vec3": 53289,
+  "struct:PropertyConnection": 41,
+  "struct:LinkConnection": 41,
+  "struct:EventConnection": 41,
+  "struct:StabilizerSettings": 41,
+  "struct:ConstantForceData": 41
+ },
+ "primitives": {
+  "7": 16509,
+  "16": 49421,
+  "19": 49469,
+  "10": 49325,
+  "15": 49405,
+  "11": 49341,
+  "14": 49389
+ }
+}
