@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -151,7 +152,7 @@ public class EbxWriter : IEbxWriter
             {
                 ++s_InstanceEntry.ExportCount;
                 s_InstanceGuid.Serialize(m_PayloadWriter);
-                s_Instance.Serialize(m_PayloadWriter, this);
+                EmitInstanceOrFallback(s_Instance, s_Type, m_PayloadWriter);
             }
 
             m_InstanceEntries.Add(s_InstanceEntry);
@@ -452,6 +453,21 @@ public class EbxWriter : IEbxWriter
         return (uint) s_TypeIndex;
     }
 
+    // DICE orders a type's own fields by their GAME offset (the fidelity offset), NOT the C# declaration
+    // order — the SDK class generator sometimes lays fields out at DIFFERENT offsets than the game (e.g.
+    // AIWeaponData.AimOrigin is SDK@136 but game@112, SweepType SDK@132 but game@136). The field-descriptor
+    // block, the type-string table and the type-descriptor registration order all follow that game-offset
+    // order, so we sort by it in BOTH the descriptor pass and the payload pass (identically).
+    private static List<(PropertyInfo Property, ContainerFieldAttribute? Field)> OrderedContainerFields(Type p_Type)
+    {
+        return p_Type
+            .GetProperties(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance)
+            .Select((p_Property) => (Property: p_Property, Field: p_Property.GetCustomAttribute<ContainerFieldAttribute>()))
+            .Where((p_Pair) => p_Pair.Field != null)
+            .OrderBy((p_Pair) => EbxFidelity.GetField(p_Type.Name, p_Pair.Field!.Name)?.Offset ?? (int) p_Pair.Field!.Offset)
+            .ToList();
+    }
+
     private uint WriteTypeDescriptor(Type p_Type)
     {
         if (m_TypeDescriptors.Count >= ushort.MaxValue)
@@ -478,11 +494,7 @@ public class EbxWriter : IEbxWriter
         if (p_Type.BaseType != null && (p_Type.BaseType != typeof(EbxSerializable) && p_Type.BaseType != typeof(DataContainerBase)))
             s_BaseTypeIndex = WriteTypeDescriptor(p_Type.BaseType);
 
-        var s_Properties = p_Type
-            .GetProperties(BindingFlags.Public | BindingFlags.DeclaredOnly | BindingFlags.Instance)
-            .Select((p_Property) => (Property: p_Property, Field: p_Property.GetCustomAttribute<ContainerFieldAttribute>()))
-            .Where((p_Pair) => p_Pair.Field != null)
-            .ToList();
+        var s_Properties = OrderedContainerFields(p_Type);
 
         var s_TypeFidelity = EbxFidelity.GetType(p_Type.Name);
 
@@ -574,14 +586,14 @@ public class EbxWriter : IEbxWriter
 
             ApplyTypeFlags(s_FieldDescriptor.Flags, s_Property.GetCustomAttributes());
 
-            // Exact flags + SecondaryOffset from the fidelity map (not derivable via reflection).
+            // Exact flags + offsets from the fidelity map (not derivable via reflection): the SDK generator
+            // sometimes emits a different primary offset than the game, so the GAME offset wins here (the
+            // payload already seeks to it, and the field-descriptor order is sorted by it too).
             if (EbxFidelity.GetField(p_Type.Name, s_ContainerField.Name) is { } s_FieldFidelity)
             {
                 s_FieldDescriptor.Flags.SetFromFlagBits(s_FieldFidelity.Flags);
                 s_FieldDescriptor.SecondaryOffset = s_FieldFidelity.SecondaryOffset;
-
-                if (s_FieldFidelity.Offset != s_FieldDescriptor.Offset)
-                    Console.WriteLine($"EBX fidelity: offset mismatch for {p_Type.Name}.{s_ContainerField.Name} (SDK {s_FieldDescriptor.Offset} vs game {s_FieldFidelity.Offset}) - keeping the SDK layout.");
+                s_FieldDescriptor.Offset = s_FieldFidelity.Offset;
             }
         }
 
@@ -670,6 +682,144 @@ public class EbxWriter : IEbxWriter
         m_PendingIndexCapture = s_Array;
 
         return (s_Array.Writer, 0u);
+    }
+
+    // ── Fidelity OFFSET-DRIVEN payload emission (2026-08-07) ─────────────────────────────────────
+    // The fb/*.cs Serialize methods write fields SEQUENTIALLY in C# declaration order. That matches
+    // DICE only for types whose SDK layout == the game layout (grids/emitter). For types whose game
+    // layout diverges (vehicles: reserved gaps, secondary-column / reordered offsets, larger Size) the
+    // payload lands at the wrong offsets and the engine memory-maps garbage. When the fidelity map
+    // covers the type we instead PRE-RESERVE the exact game Size (zero-filled), then write each field's
+    // VALUE at its fidelity primary offset (gaps stay zero) - reusing the SAME value logic (WriteImport /
+    // GetArrayWriter / WriteString / struct recursion) so the bytes are identical, only repositioned.
+    // Types absent from fidelity fall back to the legacy sequential path (unchanged - grids/emitter).
+    private void EmitInstanceOrFallback(EbxSerializable p_Instance, Type p_Type, RimeWriter p_Writer)
+    {
+        var s_Fidelity = EbxFidelity.GetType(p_Type.Name);
+
+        if (s_Fidelity == null)
+        {
+            p_Instance.Serialize(p_Writer, this);   // legacy sequential path
+            return;
+        }
+
+        var s_Base = p_Writer.Position;
+        p_Writer.WriteNullBytes(s_Fidelity.Size);   // reserve the exact game size, zero-filled (fills gaps)
+        EmitContainerFields(p_Instance, p_Type, p_Writer, s_Base);
+        p_Writer.Seek(s_Base + s_Fidelity.Size, SeekOrigin.Begin);
+    }
+
+    private void EmitContainerFields(object p_Obj, Type p_Type, RimeWriter p_Writer, long p_Base)
+    {
+        // Base fields live at their own offsets within the same reserved instance/struct span.
+        var s_BaseType = p_Type.BaseType;
+
+        if (s_BaseType != null && s_BaseType != typeof(EbxSerializable) &&
+            s_BaseType != typeof(DataContainerBase) && s_BaseType != typeof(object))
+            EmitContainerFields(p_Obj, s_BaseType, p_Writer, p_Base);
+
+        foreach (var (s_Property, s_ContainerField) in OrderedContainerFields(p_Type))
+        {
+            var s_FieldFidelity = EbxFidelity.GetField(p_Type.Name, s_ContainerField!.Name);
+            var s_Offset = p_Base + (s_FieldFidelity?.Offset ?? (int) s_ContainerField.Offset);
+
+            p_Writer.Seek(s_Offset, SeekOrigin.Begin);
+            EmitFieldValue(s_Property.GetValue(p_Obj), s_Property.PropertyType, p_Writer, s_Offset);
+        }
+    }
+
+    private void EmitFieldValue(object? p_Value, Type p_Type, RimeWriter p_Writer, long p_Offset)
+    {
+        // Reference decided by the RUNTIME value: RefArray<T> declares its element type as the raw target
+        // T (not CtrRef<T>), so a declared-type check alone misroutes a CtrRef element into the struct path.
+        if (p_Value is CtrRefBase s_RuntimeRef)
+        {
+            p_Writer.Write(WriteImport(s_RuntimeRef));
+        }
+        else if (typeof(CtrRefBase).IsAssignableFrom(p_Type))
+        {
+            p_Writer.Write(WriteImport((CtrRefBase) p_Value!));
+        }
+        else if (typeof(EbxSerializable).IsAssignableFrom(p_Type))
+        {
+            // Inline struct (Vec3, InertiaModifier, SurfaceShaderInstanceDataStruct...). Offset-driven
+            // within the parent's already-reserved span; sequential fallback if the struct isn't mined.
+            if (EbxFidelity.GetType(p_Type.Name) == null)
+                ((EbxSerializable) p_Value!).Serialize(p_Writer, this);
+            else
+                EmitContainerFields(p_Value!, p_Type, p_Writer, p_Offset);
+        }
+        else if (p_Type.IsGenericType)
+        {
+            var s_Elements = (ICollection) p_Value!;
+            var (s_ArrayWriter, s_Index) = GetArrayWriter(p_Type, s_Elements.Count);
+            p_Writer.Write(s_Index);   // placeholder index; captured at p_Offset, patched post-order
+            EmitArrayElements(s_Elements, p_Type.GetGenericArguments()[0], s_ArrayWriter);
+        }
+        else if (p_Type.IsEnum)
+        {
+            p_Writer.Write(Convert.ToInt32(p_Value));
+        }
+        else
+        {
+            EmitPrimitive(p_Value, p_Type, p_Writer);
+        }
+    }
+
+    private void EmitArrayElements(IEnumerable p_Elements, Type p_ElementType, RimeWriter p_Writer)
+    {
+        // Dispatch per ELEMENT by its runtime type: RefArray<T>'s element type is the raw target T, but the
+        // actual entries are CtrRef<T>; a struct/primitive array's entries are the value itself.
+        foreach (var s_Element in p_Elements)
+        {
+            if (s_Element is CtrRefBase s_Ref)                       // RefArray<T>: entries are CtrRef<T>
+            {
+                p_Writer.Write(WriteImport(s_Ref));
+            }
+            else if (s_Element is EbxSerializable s_Struct)          // inline-struct array
+            {
+                var s_ElementType = s_Element.GetType();
+                var s_ElementFidelity = EbxFidelity.GetType(s_ElementType.Name);
+
+                if (s_ElementFidelity == null)
+                {
+                    s_Struct.Serialize(p_Writer, this);
+                }
+                else
+                {
+                    var s_ElementBase = p_Writer.Position;
+                    p_Writer.WriteNullBytes(s_ElementFidelity.Size);
+                    EmitContainerFields(s_Element, s_ElementType, p_Writer, s_ElementBase);
+                    p_Writer.Seek(s_ElementBase + s_ElementFidelity.Size, SeekOrigin.Begin);
+                }
+            }
+            else if (p_ElementType.IsEnum)
+            {
+                p_Writer.Write(Convert.ToInt32(s_Element));
+            }
+            else
+            {
+                EmitPrimitive(s_Element, p_ElementType, p_Writer);
+            }
+        }
+    }
+
+    private void EmitPrimitive(object? p_Value, Type p_Type, RimeWriter p_Writer)
+    {
+        if (p_Type == typeof(bool)) p_Writer.Write((bool) p_Value!);
+        else if (p_Type == typeof(sbyte)) p_Writer.Write((sbyte) p_Value!);
+        else if (p_Type == typeof(byte)) p_Writer.Write((byte) p_Value!);
+        else if (p_Type == typeof(short)) p_Writer.Write((short) p_Value!);
+        else if (p_Type == typeof(ushort)) p_Writer.Write((ushort) p_Value!);
+        else if (p_Type == typeof(int)) p_Writer.Write((int) p_Value!);
+        else if (p_Type == typeof(uint)) p_Writer.Write((uint) p_Value!);
+        else if (p_Type == typeof(long)) p_Writer.Write((long) p_Value!);
+        else if (p_Type == typeof(ulong)) p_Writer.Write((ulong) p_Value!);
+        else if (p_Type == typeof(float)) p_Writer.Write((float) p_Value!);
+        else if (p_Type == typeof(double)) p_Writer.Write((double) p_Value!);
+        else if (p_Type == typeof(string)) p_Writer.Write(WriteString((string) p_Value!));
+        else if (p_Type == typeof(GUID)) ((GUID) p_Value!).Serialize(p_Writer);
+        else throw new Exception($"Offset-driven EBX emitter: unhandled primitive type '{p_Type.Name}'.");
     }
 
     public void Dispose()
