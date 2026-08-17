@@ -62,8 +62,15 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<ShaderDbRoundtripCommand>();
             RegisterCommand<ShaderDbFunctionsCommand>();
             RegisterCommand<DumpShaderBindingsCommand>();
+            RegisterCommand<ShaderDbAddTextureCommand>();
+            RegisterCommand<DumpHeightfieldCommand>();
             RegisterCommand<ReplaceShaderBytecodeCommand>();
+            RegisterCommand<ReplaceVertexShaderBytecodeCommand>();
+            RegisterCommand<ExtractShaderDxbcCommand>();
             RegisterCommand<DumpShaderSolutionsCommand>();
+            RegisterCommand<DumpShaderTexturesCommand>();
+            RegisterCommand<ShaderDbCensusCommand>();
+            RegisterCommand<DumpShaderProgramDbCommand>();
             RegisterCommand<DumpMvdbVariationsCommand>();
             RegisterCommand<ListPartitionsCommand>();
             RegisterCommand<ListSbChunksCommand>();

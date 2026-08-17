@@ -26,18 +26,21 @@ public class ExternalTextureConstant : IFbSerializable
         Deserialize(p_Reader);
     }
 
+    // Mirror of Deserialize: 0x20 fixed-length name | u32 Handle | u16 Index | u8 TextureType | u8 Required.
     public bool Serialize(RimeWriter p_Writer)
     {
-        throw new NotImplementedException();
+        var s_Name = Encoding.UTF8.GetBytes(Name);
+        if (s_Name.Length >= 0x20)
+            return false;
 
-        /*p_Writer.Write(Encoding.ASCII.GetBytes(m_Name).Take(0x20).ToArray());
+        p_Writer.Write(s_Name);
+        p_Writer.WriteNullBytes((uint) (0x20 - s_Name.Length));
 
-        p_Writer.Write(m_Handle);
-        p_Writer.Write(m_Index);
-        p_Writer.Write(m_TextureType);
-        p_Writer.Write(m_Required);
-
-        return true;*/
+        p_Writer.Write(Handle);
+        p_Writer.Write(Index);
+        p_Writer.Write((byte) TextureType);
+        p_Writer.Write((byte) (Required ? 1 : 0));
+        return true;
     }
         
     public void Deserialize(RimeReader p_Reader)

@@ -1,0 +1,123 @@
+<Window x:Class="RimeShaderEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:view="clr-namespace:RimeShaderEditor.View"
+        Title="Rime Shader Editor" Height="860" Width="1400"
+        Background="#FF2D2D30">
+
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#FF3F3F46" />
+            <Setter Property="Foreground" Value="#FFF0F0F0" />
+            <Setter Property="BorderBrush" Value="#FF54545A" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#FFDCDCDC" />
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="#FFDCDCDC" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#FF1E1E1E" />
+            <Setter Property="Foreground" Value="#FFF0F0F0" />
+            <Setter Property="BorderBrush" Value="#FF54545A" />
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#FF1E1E1E" />
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#FFF0F0F0" />
+        </Style>
+        <!-- TreeViewItem does not inherit the TreeView's Foreground, so the node list needs its own. -->
+        <Style TargetType="TreeViewItem">
+            <Setter Property="Foreground" Value="#FFFFFFFF" />
+        </Style>
+    </Window.Resources>
+
+    <Window.InputBindings>
+        <KeyBinding Key="Z" Modifiers="Ctrl" Command="ApplicationCommands.Undo" />
+        <KeyBinding Key="Y" Modifiers="Ctrl" Command="ApplicationCommands.Redo" />
+    </Window.InputBindings>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Undo" Executed="OnUndo" />
+        <CommandBinding Command="ApplicationCommands.Redo" Executed="OnRedo" />
+    </Window.CommandBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="170" />
+        </Grid.RowDefinitions>
+
+        <ToolBarPanel Grid.Row="0" Background="#FF383840">
+            <StackPanel Orientation="Horizontal" Margin="6">
+                <Button x:Name="NewButton" Content="New" Click="OnNew" />
+                <Button x:Name="SampleButton" Content="Load vanilla sample" Click="OnLoadSample" />
+                <Button x:Name="OpenButton" Content="Open…" Click="OnOpen" />
+                <Button x:Name="SaveButton" Content="Save…" Click="OnSave" />
+                <Separator Width="12" Background="Transparent" />
+                <Button x:Name="EmitButton" Content="Emit HLSL" Click="OnEmit" />
+                <Button x:Name="CompileButton" Content="Compile (fxc)" Click="OnCompile" />
+                <Button x:Name="BakeButton" Content="Write bake script" Click="OnWriteBakeScript" />
+                <Separator Width="12" Background="Transparent" />
+                <Button x:Name="TexturesButton" Content="Load target textures" Click="OnLoadTextures" />
+                <Separator Width="12" Background="Transparent" />
+                <Button x:Name="UndoButton" Content="Undo" Click="OnUndoClick" />
+                <Button x:Name="RedoButton" Content="Redo" Click="OnRedoClick" />
+                <Button x:Name="DeleteButton" Content="Delete node" Click="OnDeleteNode" />
+            </StackPanel>
+        </ToolBarPanel>
+
+        <Grid Grid.Row="1" Background="#FF32323A">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
+            <Label Grid.Column="0" Content="Target shader" VerticalAlignment="Center" Margin="6,0,4,0" />
+            <TextBox Grid.Column="1" x:Name="TargetShaderBox" Margin="0,4" VerticalContentAlignment="Center" />
+            <Label Grid.Column="2" Content="BF3 path" VerticalAlignment="Center" Margin="10,0,4,0" />
+            <TextBox Grid.Column="3" x:Name="GamePathBox" Margin="0,4" VerticalContentAlignment="Center" />
+            <Label Grid.Column="4" Content="Output folder" VerticalAlignment="Center" Margin="10,0,4,0" />
+            <TextBox Grid.Column="5" x:Name="OutputFolderBox" Margin="0,4,6,4" VerticalContentAlignment="Center" />
+        </Grid>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="210" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="260" />
+            </Grid.ColumnDefinitions>
+
+            <DockPanel Grid.Column="0" Background="#FF252526">
+                <TextBlock DockPanel.Dock="Top" Text="Nodes" Margin="6,6,6,2" FontWeight="Bold" />
+                <TreeView x:Name="PaletteTree" Background="#FF1E1E1E" Foreground="#FFF0F0F0"
+                          BorderThickness="0" MouseDoubleClick="OnPaletteDoubleClick" />
+            </DockPanel>
+
+            <view:GraphCanvas Grid.Column="1" x:Name="Canvas" ClipToBounds="True" />
+
+            <DockPanel Grid.Column="2" Background="#FF252526">
+                <TextBlock DockPanel.Dock="Top" x:Name="PropertiesHeader" Text="Properties"
+                           Margin="6,6,6,2" FontWeight="Bold" />
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel x:Name="PropertiesPanel" Margin="6" />
+                </ScrollViewer>
+            </DockPanel>
+        </Grid>
+
+        <DockPanel Grid.Row="3" Background="#FF1E1E1E">
+            <TextBlock DockPanel.Dock="Top" Text="Output" Margin="6,4,6,2" FontWeight="Bold" />
+            <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" BorderThickness="0"
+                     FontFamily="Consolas" FontSize="11" VerticalScrollBarVisibility="Auto" />
+        </DockPanel>
+    </Grid>
+</Window>

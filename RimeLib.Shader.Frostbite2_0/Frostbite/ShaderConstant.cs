@@ -1,9 +1,11 @@
 ﻿using RimeLib.Frostbite;
 using RimeLib.IO;
+using RimeLib.IO.Conversion;
 using RimeLib.Shader.Frostbite2_0.Frostbite.ShaderConstants;
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Text;
 using fb;
 
 namespace RimeLib.Shader.Frostbite2_0.Frostbite;
@@ -103,6 +105,91 @@ public class ShaderConstant : IFbSerializable
         p_Writer.Seek(s_End, SeekOrigin.Begin);
 
         return true;
+    }
+
+    /// <summary>
+    /// Adds a streamable-texture slot (TextureConstant) to this constant record. The record is offset-driven, so
+    /// blocks may live anywhere inside it; the authored writer is used only when it can PROVE fidelity by
+    /// reproducing the current record byte-identically, otherwise the texture block (old entries + the new one) is
+    /// appended at the record's TAIL and only the texture-block offset + count in the header are patched — every
+    /// other original byte stays in place. Returns a report line ("ERROR: ..." on failure).
+    /// </summary>
+    public string AddTextureConstant(byte p_Register, byte p_TextureType, string p_Name)
+    {
+        var s_New = new TextureConstant { Index = p_Register, TextureType = (TextureType) p_TextureType, Name = p_Name };
+
+        var s_Model = new TextureConstant[Textures.Length + 1];
+        Array.Copy(Textures, s_Model, Textures.Length);
+        s_Model[Textures.Length] = s_New;
+
+        if (RawBytes == null)
+        {
+            // Already an authored constant — just extend the model.
+            Textures = s_Model;
+            return "authored constant: texture appended to the model";
+        }
+
+        // Fidelity probe: does the authored writer reproduce this record byte-identically?
+        byte[] s_Authored;
+        var s_Saved = RawBytes;
+        RawBytes = null;
+        using (var s_Ms = new MemoryStream())
+        {
+            using (var s_W = new RimeWriter(s_Ms, Endianness.LittleEndian, false))
+            {
+                s_W.Write((uint) 0); // stand-in for the container's size field, so offsets match the on-disk convention
+                Serialize(s_W);
+            }
+            s_Authored = s_Ms.ToArray();
+        }
+        RawBytes = s_Saved;
+
+        if (s_Authored.Length - 4 == RawBytes.Length && s_Authored.AsSpan(4).SequenceEqual(RawBytes))
+        {
+            Textures = s_Model;
+            RawBytes = null; // re-emit through the (now fidelity-proven) authored writer
+            return "authored writer verified byte-identical -> texture appended, record re-authored";
+        }
+
+        // Tail-append surgery on the raw record. Header layout inside RawBytes (payload, size field excluded):
+        // pad @0 | 5*u64 block offsets @4 (relative to the SIZE FIELD = payload start - 4) | u16 ConstantCount @44 |
+        // u16 ValueConstantsStart @46 | 5*u8 block counts @48 (value, texture, extVal, extTex, sampler).
+        const int c_EntrySize = 0x98; // u8 Index + u8 Type + 6 pad + 0x80 name + 0x10 pad
+        var s_Old = RawBytes;
+        if (s_Old.Length < 53)
+            return "ERROR: record too small to be a ShaderConstant";
+
+        int s_TexCount = s_Old[49];
+        var s_TexOff = (long) BitConverter.ToUInt64(s_Old, 12) - 4; // payload-relative
+        if (s_TexCount != Textures.Length)
+            return $"ERROR: header texture count {s_TexCount} != parsed {Textures.Length}";
+        if (s_TexCount > 0 && (s_TexOff < 53 || s_TexOff + (long) s_TexCount * c_EntrySize > s_Old.Length))
+            return "ERROR: texture block out of bounds (unexpected layout)";
+        if (s_TexCount > 0 && s_Old[(int) s_TexOff] != Textures[0].Index)
+            return "ERROR: texture block sanity check failed (entry layout mismatch)";
+
+        var s_NameBytes = Encoding.UTF8.GetBytes(p_Name);
+        if (s_NameBytes.Length >= 0x80)
+            return "ERROR: texture name too long";
+
+        var s_Out = new byte[s_Old.Length + (s_TexCount + 1) * c_EntrySize];
+        Array.Copy(s_Old, s_Out, s_Old.Length);
+
+        var s_TailOff = s_Old.Length; // payload-relative position of the relocated texture block
+        if (s_TexCount > 0)
+            Array.Copy(s_Old, (int) s_TexOff, s_Out, s_TailOff, s_TexCount * c_EntrySize);
+
+        var s_E = s_TailOff + s_TexCount * c_EntrySize;
+        s_Out[s_E] = p_Register;
+        s_Out[s_E + 1] = p_TextureType;
+        Array.Copy(s_NameBytes, 0, s_Out, s_E + 8, s_NameBytes.Length);
+
+        BitConverter.GetBytes((ulong) (s_TailOff + 4)).CopyTo(s_Out, 12); // back to size-field-relative
+        s_Out[49] = (byte) (s_TexCount + 1);
+
+        RawBytes = s_Out;
+        Textures = s_Model; // keep the parsed model in sync for dumps
+        return $"raw tail-append: texture block relocated to +{s_TailOff}, {s_TexCount}+1 entries, record {s_Old.Length} -> {s_Out.Length} B";
     }
 
     public void Deserialize(RimeReader p_Reader)

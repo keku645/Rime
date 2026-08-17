@@ -22,12 +22,29 @@ public class SamplerState : IFbSerializable
         Deserialize(p_Reader);
     }
 
+    // Mirror of Deserialize: u32 Index | i32 Filter | 3 * i32 AddressUVW | f32 MipLodBias | i32 MaxAnisotropy |
+    // i32 Comparison | 4 * f32 BorderColor | f32 MinLod | f32 MaxLod | 8 pad.
     public bool Serialize(RimeWriter p_Writer)
     {
-        throw new System.NotImplementedException();
+        p_Writer.Write(Index);
+        p_Writer.Write((int) Desc.Filter);
+        p_Writer.Write((int) Desc.AddressU);
+        p_Writer.Write((int) Desc.AddressV);
+        p_Writer.Write((int) Desc.AddressW);
+        p_Writer.Write(Desc.MipLodBias);
+        p_Writer.Write(Desc.MaximumAnisotropy);
+        p_Writer.Write((int) Desc.ComparisonFunction);
+        p_Writer.Write(Desc.BorderColor.R);
+        p_Writer.Write(Desc.BorderColor.G);
+        p_Writer.Write(Desc.BorderColor.B);
+        p_Writer.Write(Desc.BorderColor.A);
+        p_Writer.Write(Desc.MinimumLod);
+        p_Writer.Write(Desc.MaximumLod);
+        p_Writer.WriteNullBytes(0x8);
+        return true;
     }
 
-        
+
 
     public void Deserialize(RimeReader p_Reader)
     {

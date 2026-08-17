@@ -23,9 +23,22 @@ public class TextureConstant : IFbSerializable
         Deserialize(p_Reader);
     }
 
+    // Mirror of Deserialize: u8 Index | u8 TextureType | 6 pad | 0x80 fixed-length name | 0x10 pad.
     public bool Serialize(RimeWriter p_Writer)
     {
-        throw new System.NotImplementedException();
+        p_Writer.Write((byte) Index);
+        p_Writer.Write((byte) TextureType);
+        p_Writer.WriteNullBytes(0x6);
+
+        var s_Name = Encoding.UTF8.GetBytes(Name);
+        if (s_Name.Length >= 0x80)
+            return false;
+
+        p_Writer.Write(s_Name);
+        p_Writer.WriteNullBytes((uint) (0x80 - s_Name.Length));
+
+        p_Writer.WriteNullBytes(0x10);
+        return true;
     }
 
     public void Deserialize(RimeReader p_Reader)

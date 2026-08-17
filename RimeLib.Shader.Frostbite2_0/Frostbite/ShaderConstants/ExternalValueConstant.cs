@@ -28,9 +28,29 @@ public class ExternalValueConstant : IFbSerializable
         Deserialize(p_Reader);
     }
 
+    // Mirror of Deserialize: 0x20 fixed-length name | u32 Handle | u16 Index | u16 ArraySize | u8 Size |
+    // u8 Required | 2 pad | 4 * f32 DefaultValue.
     public bool Serialize(RimeWriter p_Writer)
     {
-        throw new NotImplementedException();
+        var s_Name = Encoding.UTF8.GetBytes(Name);
+        if (s_Name.Length >= 0x20)
+            return false;
+
+        p_Writer.Write(s_Name);
+        p_Writer.WriteNullBytes((uint) (0x20 - s_Name.Length));
+
+        p_Writer.Write(Handle);
+        p_Writer.Write(Index);
+        p_Writer.Write(ArraySize);
+        p_Writer.Write(Size);
+        p_Writer.Write((byte) (Required ? 1 : 0));
+        p_Writer.WriteNullBytes(2);
+
+        p_Writer.Write(DefaultValue.x);
+        p_Writer.Write(DefaultValue.y);
+        p_Writer.Write(DefaultValue.z);
+        p_Writer.Write(DefaultValue.w);
+        return true;
     }
 
     public void Deserialize(RimeReader p_Reader)
