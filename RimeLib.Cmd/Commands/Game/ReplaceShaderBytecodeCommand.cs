@@ -83,7 +83,36 @@ namespace RimeLib.Cmd.Commands.Game
             var s_Databases = s_Container.GetType().GetProperty("Databases")?.GetValue(s_Container) as IDictionary;
             if (s_Databases == null) { p_Writer.WriteLine("No databases."); return false; }
 
-            byte[] s_NewDxbc = File.ReadAllBytes(Dxbc.FullName);
+            // ⛔ A .manifest PATCHES PER VARIANT, and for a replacement that is not a refinement — it is the
+            // difference between the object rendering and rendering BLACK. One shader name owns several
+            // pixel flavours (base, probe-lit, instanced, ...) and each has its OWN constant/texture
+            // contract; stuffing a single compilation into all of them leaves every flavour but one reading
+            // registers that hold something else. Measured: a replacement patched with one blob turned the
+            // map's barriers black, while the same graph shipped through a manifest rendered correctly.
+            // Each line is "<vanilla-variant.dxbc>|<authored.dxbc>", the same form the clone command takes.
+            List<(byte[] Vanilla, byte[] Authored)>? s_Patches = null;
+            if (Dxbc.Extension.Equals(".manifest", StringComparison.OrdinalIgnoreCase))
+            {
+                s_Patches = new List<(byte[], byte[])>();
+                foreach (var s_Line in File.ReadAllLines(Dxbc.FullName))
+                {
+                    var s_Parts = s_Line.Split('|');
+                    if (s_Parts.Length != 2 || s_Parts[0].Trim().Length == 0)
+                        continue;
+
+                    if (!File.Exists(s_Parts[0]) || !File.Exists(s_Parts[1]))
+                    {
+                        p_Writer.WriteLine($"Manifest entry missing on disk: {s_Line}");
+                        return false;
+                    }
+
+                    s_Patches.Add((File.ReadAllBytes(s_Parts[0]), File.ReadAllBytes(s_Parts[1])));
+                }
+
+                p_Writer.WriteLine($"Patch manifest: {s_Patches.Count} variant pair(s).");
+            }
+
+            byte[] s_NewDxbc = s_Patches != null ? s_Patches[0].Authored : File.ReadAllBytes(Dxbc.FullName);
             if (s_NewDxbc.Length < 4 || s_NewDxbc[0] != 0x44 || s_NewDxbc[1] != 0x58 || s_NewDxbc[2] != 0x42 || s_NewDxbc[3] != 0x43)
                 p_Writer.WriteLine("WARNING: file does not start with the 'DXBC' magic.");
 
@@ -172,9 +201,30 @@ namespace RimeLib.Cmd.Commands.Game
                 var s_ByteProp = s_Pp.GetType().GetProperty("ShaderBytecode");
                 if (s_ByteProp == null || !s_ByteProp.CanWrite) continue;
 
-                s_ByteProp.SetValue(s_Pp, s_NewDxbc);
+                // With a manifest, a flavour takes the bytecode compiled for ITS OWN vanilla bytes and no
+                // other. A flavour the manifest does not name keeps vanilla: correct, just not customised,
+                // which is the honest fallback — the alternative is the black render above.
+                var s_Bytes = s_NewDxbc;
+                if (s_Patches != null)
+                {
+                    var s_Current = s_ByteProp.GetValue(s_Pp) as byte[];
+                    var s_Match = s_Patches.FirstOrDefault(
+                        p_P => s_Current != null && p_P.Vanilla.AsSpan().SequenceEqual(s_Current));
+
+                    if (s_Match.Authored == null)
+                    {
+                        p_Writer.WriteLine($"  KEEP  {s_Owners[s_Pp]}: no manifest entry for this flavour");
+                        s_SkippedShared++;
+                        continue;
+                    }
+
+                    s_Bytes = s_Match.Authored;
+                }
+
+                s_ByteProp.SetValue(s_Pp, s_Bytes);
                 s_Replaced++;
-                p_Writer.WriteLine($"  PATCH {s_Owners[s_Pp]}: modes [{string.Join(", ", s_PermModes)}]");
+                p_Writer.WriteLine($"  PATCH {s_Owners[s_Pp]}: modes [{string.Join(", ", s_PermModes)}]" +
+                                   (s_Patches != null ? $" ({s_Bytes.Length} B, its own variant)" : ""));
             }
 
             if (s_Replaced == 0)
@@ -193,7 +243,13 @@ namespace RimeLib.Cmd.Commands.Game
             using (var s_W = new RimeWriter(s_Fs, Endianness.LittleEndian, false))
                 s_Serialize.Invoke(s_Container, new object[] { s_W });
 
-            p_Writer.WriteLine($"Replaced {s_Replaced} pixel permutation(s) with {s_NewDxbc.Length}-byte DXBC" +
+            // ⛔ Say WHICH lane ran. "with <N>-byte DXBC" on a manifest run names one variant's size as if it
+            // were the only bytecode written, which reads exactly like the single-blob lane — and comparing
+            // two logs is how the single-blob lane was caught in the first place.
+            p_Writer.WriteLine($"Replaced {s_Replaced} pixel permutation(s) " +
+                               (s_Patches != null
+                                   ? $"from a {s_Patches.Count}-pair manifest, each with its own variant"
+                                   : $"with {s_NewDxbc.Length}-byte DXBC") +
                                (s_Filtering ? $" (mode filter '{Mode}': left {s_SkippedMode} untouched)" : "") + ".");
             p_Writer.WriteLine($"Wrote modified shaderdb -> {Output.FullName} ({new FileInfo(Output.FullName).Length} bytes)");
             return true;

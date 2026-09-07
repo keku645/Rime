@@ -498,15 +498,29 @@ public class EbxWriter : IEbxWriter
 
         var s_TypeFidelity = EbxFidelity.GetType(p_Type.Name);
 
+        // ⛔ The fidelity layout may only shape the DESCRIPTOR when the PAYLOAD is emitted with it —
+        // and EmitInstanceOrFallback applies fidelity to INSTANCES (DataContainers) only. A VALUE type
+        // (an inline array element, a nested struct) is always written sequentially in C# declaration
+        // order, so its descriptor must declare the C# layout: the reader strides array elements by the
+        // descriptor's Size, and a fidelity size over a sequential payload derails every element after
+        // the first. Real case: TextureShaderParameter mined as size 52 from a vehicle partition while
+        // the sequential payload is 8 — the engine's EBX reader crashed the server's load thread on it,
+        // and Rime's own reader returned mangled names ("iffuse") and self-referential refs.
+        var s_OffsetDriven = typeof(DataContainer).IsAssignableFrom(p_Type);
+
         // ...then the type itself is allocated...
         var s_Descriptor = new TypeDescriptor()
         {
             NameHash = WriteTypeString(p_Type.Name),
             LayoutDescriptor = (uint) m_FieldDescriptors.Count,
             FieldCount = (byte) ((s_BaseTypeIndex != null ? 1 : 0) + s_Properties.Count),
-            Alignment = s_TypeFidelity?.Alignment ?? s_ContainerTypeAttr.DataAlignment,
-            Size = s_TypeFidelity?.Size ?? s_ContainerTypeAttr.Size,
-            SecondarySize = s_TypeFidelity?.SecondarySize ?? 0,
+            Alignment = (byte) (s_OffsetDriven
+                ? s_TypeFidelity?.Alignment ?? s_ContainerTypeAttr.DataAlignment
+                : s_ContainerTypeAttr.DataAlignment),
+            Size = (ushort) (s_OffsetDriven
+                ? s_TypeFidelity?.Size ?? s_ContainerTypeAttr.Size
+                : s_ContainerTypeAttr.Size),
+            SecondarySize = (ushort) (s_OffsetDriven ? s_TypeFidelity?.SecondarySize ?? 0 : 0),
         };
 
         if (typeof(DataContainer).IsAssignableFrom(p_Type))
@@ -588,12 +602,29 @@ public class EbxWriter : IEbxWriter
 
             // Exact flags + offsets from the fidelity map (not derivable via reflection): the SDK generator
             // sometimes emits a different primary offset than the game, so the GAME offset wins here (the
-            // payload already seeks to it, and the field-descriptor order is sorted by it too).
+            // payload already seeks to it, and the field-descriptor order is sorted by it too). Only for
+            // OFFSET-DRIVEN types — a value type's payload is sequential C# order, so its descriptor keeps
+            // the C# offsets (the same rule as the type's Size above); its FLAGS still come from fidelity,
+            // they carry type semantics, not layout.
             if (EbxFidelity.GetField(p_Type.Name, s_ContainerField.Name) is { } s_FieldFidelity)
             {
                 s_FieldDescriptor.Flags.SetFromFlagBits(s_FieldFidelity.Flags);
+
+                // SecondaryOffset is NOT a layout choice of ours — it is data DICE writes for every
+                // field it has one for, value types included. Measured 2026-09-03 by diffing shipped
+                // partitions against our own output: LinearTransform.up/forward/trans (16/32/48),
+                // Vec3.y (4), EventConnection.TargetEvent/TargetType (16/24) and the whole
+                // SurfaceShaderInstanceDataStruct family all carry a real secondary offset in DICE's
+                // files and came out as 0 here, because this used to be gated on s_OffsetDriven.
+                // The fidelity map already holds the right values; they were simply not applied.
                 s_FieldDescriptor.SecondaryOffset = s_FieldFidelity.SecondaryOffset;
-                s_FieldDescriptor.Offset = s_FieldFidelity.Offset;
+
+                if (s_OffsetDriven)
+                {
+                    // The PRIMARY offset stays gated: a value type's payload is written in sequential
+                    // C# order, so its descriptor must keep the C# offsets (same rule as Size above).
+                    s_FieldDescriptor.Offset = s_FieldFidelity.Offset;
+                }
             }
         }
 

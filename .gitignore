@@ -275,3 +275,7 @@ RimeREPL*.zip
 _ebxfix_out/
 _cattest/
 distalpha/
+
+# hand-made backups taken before an edit (*.bak_pre_soff_20260903, *.bak_prevariation…):
+# working copies, never part of a change
+*.bak_*

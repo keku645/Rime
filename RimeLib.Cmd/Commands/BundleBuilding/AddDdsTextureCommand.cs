@@ -30,6 +30,11 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
         [CommandArgument(Description = "TextureGroup override (16-char engine pool group, e.g. 'AtlasTextureGro'). Defaults to the mounted original's group (same-name lookup) or 'Default'.", Optional = true)]
         public string? TextureGroup { get; set; }
 
+        [CommandArgument(Description = "Optional DONOR texture name whose TextureGroup is copied when the asset name " +
+                                       "has no mounted original (a BRAND-NEW texture has no same-name original, and " +
+                                       "'Default' is not a valid pool group -> black texture).", Optional = true)]
+        public string? GroupDonor { get; set; }
+
         public override bool Execute(ref ExecutionContext p_Context, TextWriter p_Writer)
         {
             if (!FilePath!.Exists)
@@ -47,7 +52,7 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                 IsNormalMap = NormalMap,
             };
 
-            ((BundleBuildingContext) p_Context).AddDDSTexture(FilePath, s_Attributes);
+            ((BundleBuildingContext) p_Context).AddDDSTexture(FilePath, s_Attributes, GroupDonor);
 
             return true;
         }

@@ -11,6 +11,11 @@ public class GraphNode
     public string Kind { get; set; } = "";
     public double X { get; set; }
     public double Y { get; set; }
+
+    /// <summary>Free-text note rendered as a bubble above the node. Null (the common case) is not serialized.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Comment { get; set; }
+
     public Dictionary<string, string> Params { get; set; } = new();
 
     [JsonIgnore]
@@ -51,6 +56,24 @@ public class GraphConnection
     public string ToPort { get; set; } = "";
 }
 
+/// <summary>
+/// A comment box on the canvas: a titled, coloured region that moves the nodes inside it when dragged by its
+/// title bar. Purely organisational - groups never affect emission, translation or baking; they only exist so
+/// a hundred-node graph can be read the way its author thinks about it.
+/// </summary>
+public class GraphGroup
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Title { get; set; } = "Comment";
+    public double X { get; set; }
+    public double Y { get; set; }
+    public double Width { get; set; } = 320;
+    public double Height { get; set; } = 200;
+
+    /// <summary>Index into the canvas's preset palette, so saved files stay stable across theme tweaks.</summary>
+    public int Colour { get; set; }
+}
+
 public class ShaderGraph
 {
     public string Name { get; set; } = "Untitled";
@@ -58,8 +81,67 @@ public class ShaderGraph
     /// <summary>Shader this graph is authored against; its binding table defines the available input nodes.</summary>
     public string TargetShader { get; set; } = "";
 
+    /// <summary>
+    /// Fingerprint (FNV-1a of the emitted HLSL) of this graph AS TRANSLATED from the game, stamped by the
+    /// translate step. It is what lets a variation bake decide honestly whether the user changed the shader's
+    /// LOGIC (current emission hashes differently -> the variation needs its own cloned shader) or only its
+    /// textures (same hash -> the variation rides the vanilla shader). Absent in older files / hand-made graphs.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TranslatedHlslHash { get; set; }
+
+    /// <summary>
+    /// When set, the bake creates a brand-new object VARIATION under this asset name (full path, sibling of
+    /// the object like the game's own variations) instead of replacing the target shader: the target's
+    /// database entry is cloned under a fresh sibling name, custom textures ride under sibling names, and a
+    /// mesh-variation entry keyed by FNV(name) makes the variation spawnable. Null = plain replacement bake.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? BakeVariation { get; set; }
+
+    /// <summary>
+    /// Whether the baked mod should point the level's OWN copies of the object at this variation as the level
+    /// loads. Without it a variation only shows on objects placed with it, so the map looks unchanged — which
+    /// is almost never what someone authoring a variation wants, hence the default.
+    ///
+    /// It lives on the GRAPH and not on the bake request because it is a property of THIS shader: a mod can
+    /// carry several, and one of them may be meant for hand placement while another replaces what is already
+    /// in the map. Meaningless without <see cref="BakeVariation"/>.
+    /// </summary>
+    public bool ApplyVariationToLevel { get; set; } = true;
+
+    /// <summary>
+    /// The mesh the baked variation's database entry rides on. Stamped from the preview's (mesh, variation)
+    /// selection when the open document bakes; empty means the bake picks one — and a shared shader can be
+    /// used by meshes that are NOT resident when the level bundle loads (a destruction mesh was the first
+    /// found for the glass preset), whose entry then crashes the load registering against a null mesh. The
+    /// user's pick is the only reliable answer to "which object is this variation for".
+    /// </summary>
+    public string? BakeMesh { get; set; }
+
+    /// <summary>
+    /// The contract family this graph's explicit interpolator indices were TRANSLATED under, stamped by the
+    /// translator. Emission shifts a graph's saved indices when compiling into a probe twin (the SH rows
+    /// displace the base layout), which is right for a graph that speaks BASE numbering — but a graph
+    /// translated straight from a probe solution already speaks the shifted numbering, and shifting it again
+    /// reads past the layout. Null (every pre-existing graph, every hand-authored one) means base numbering.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TranslatedFamily { get; set; }
+
+    /// <summary>
+    /// A MASTER document embeds every variation of its object as a full graph here — one file holds them
+    /// all; the editor unpacks them into working drafts on open and re-embeds on save, and the bake ships
+    /// every one without the user listing files by hand. Null on plain single-look documents.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<ShaderGraph>? Variations { get; set; }
+
     public List<GraphNode> Nodes { get; set; } = new();
     public List<GraphConnection> Connections { get; set; } = new();
+
+    /// <summary>Comment boxes. Absent in older files, which deserialize to an empty list.</summary>
+    public List<GraphGroup> Groups { get; set; } = new();
 
     public GraphNode? FindNode(string p_Id) => Nodes.Find(p_N => p_N.Id == p_Id);
 

@@ -63,6 +63,10 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<ShaderDbFunctionsCommand>();
             RegisterCommand<DumpShaderBindingsCommand>();
             RegisterCommand<ShaderDbAddTextureCommand>();
+            RegisterCommand<ShaderDbCloneEntryCommand>();
+            RegisterCommand<ShaderDbSetFlagsCommand>();
+            RegisterCommand<ShaderDbMergeCommand>();
+            RegisterCommand<ShaderDbSliceCommand>();
             RegisterCommand<DumpHeightfieldCommand>();
             RegisterCommand<ReplaceShaderBytecodeCommand>();
             RegisterCommand<ReplaceVertexShaderBytecodeCommand>();
@@ -72,6 +76,7 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<ShaderDbCensusCommand>();
             RegisterCommand<DumpShaderProgramDbCommand>();
             RegisterCommand<DumpMvdbVariationsCommand>();
+            RegisterCommand<DumpShaderMaterialTexturesCommand>();
             RegisterCommand<ListPartitionsCommand>();
             RegisterCommand<ListSbChunksCommand>();
             RegisterCommand<ListBundleChunksCommand>();
@@ -118,6 +123,7 @@ namespace RimeLib.Cmd.Contexts
             if (EngineInterfaceRegistry.IsSupported<IMeshConverter>(s_EngineType))
             {
                 RegisterCommand<DumpMeshCommand>();
+                RegisterCommand<DumpMeshSectionsCommand>();
                 RegisterCommand<MeshRoundtripCommand>();
 
                 if (EngineInterfaceRegistry.IsSupported<IToolKit>(s_EngineType) && EngineInterfaceRegistry.IsSupported<IPartitionConverter>(s_EngineType))
@@ -237,7 +243,7 @@ namespace RimeLib.Cmd.Contexts
         /// <param name="p_Name">Name of the resource</param>
         /// <param name="p_Destination">Destination file to write</param>
         /// <exception cref="Exception">If the resource is not found, exception will be thrown</exception>
-        internal void DumpResource(string p_Name, FileInfo p_Destination)
+        internal void DumpResource(string p_Name, FileInfo p_Destination, bool p_LastVariant = false)
         {
             if (!m_Mounter.TryGetResource(p_Name, out var s_Resource))
                 throw new Exception($"Could not find resource with name '{p_Name}'.");
@@ -246,7 +252,12 @@ namespace RimeLib.Cmd.Contexts
             if (p_Destination.Directory != null && !Directory.Exists(p_Destination.Directory.FullName))
                 Directory.CreateDirectory(p_Destination.Directory.FullName);
 
-            using var s_Reader = s_Resource.FirstVariant.GetReader();
+            // A name can be mounted more than once (the game's own copy plus a standalone superbundle's).
+            // The first variant is the game's; the LAST is the most recently mounted — asking for it is how
+            // a mod's copy of a colliding name (a level's shader database) is read instead of the game's.
+            var s_Variant = p_LastVariant ? System.Linq.Enumerable.Last(s_Resource.Variants) : s_Resource.FirstVariant;
+
+            using var s_Reader = s_Variant.GetReader();
             using var s_FileStream = File.Create(p_Destination.FullName);
 
             s_Reader.CopyTo(s_FileStream);
@@ -733,6 +744,275 @@ namespace RimeLib.Cmd.Contexts
         /// <param name="p_Name">Name of the MeshSet resource</param>
         /// <param name="p_Destination">Output file destination</param>
         /// <exception cref="NotImplementedException">If the format isn't supported</exception>
+        /// <summary>
+        /// LOD-0 subset -> material -> surface shader, walked in the SAME order the OBJ converter walks
+        /// subsets (its usemtl Material_N groups are numbered by that walk). The shader comes from the
+        /// mesh partition's own MeshMaterial instances — the same resolution the MVDB tooling uses.
+        /// </summary>
+        internal int DumpMeshSections(string p_Name, FileInfo p_Destination, TextWriter p_Writer,
+            string? p_ShaderDb = null)
+        {
+            // Per-shader double-sided flags, read from the level's shaderdb when one is named: DoubleSided
+            // is bit 1 of each SOLUTION's Flags (measured on the glass preset's RE), and it is consistent
+            // enough per shader that "any visible solution carries it" is the per-section answer a preview
+            // needs. No shaderdb (or a parse failure) just means every section culls back faces.
+            var s_DoubleSided = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (!string.IsNullOrWhiteSpace(p_ShaderDb) &&
+                m_Mounter.TryGetResource(p_ShaderDb!, out var s_DbResource) && s_DbResource.FirstVariant != null)
+                try
+                {
+                    var s_Resolver = EngineInterfaceRegistry.Create<RimeLib.Shader.IShaderResolver>(m_Mounter.GetEngineType());
+                    s_Resolver.Initialize(s_DbResource.FirstVariant, m_Mounter);
+                    var s_Container = s_Resolver.GetType().GetProperty("ShaderDatabaseContainer")?.GetValue(s_Resolver);
+                    if (s_Container?.GetType().GetProperty("Databases")?.GetValue(s_Container)
+                        is System.Collections.IDictionary s_Databases)
+                        foreach (var s_PathKey in s_Databases.Keys)
+                        {
+                            if (s_Databases[s_PathKey]?.GetType().GetProperty("Shaders")
+                                    ?.GetValue(s_Databases[s_PathKey]) is not System.Collections.IDictionary s_Shaders)
+                                continue;
+
+                            foreach (var s_ShaderKey in s_Shaders.Keys)
+                            {
+                                var s_Info = s_Shaders[s_ShaderKey];
+                                if (s_Info?.GetType().GetProperty("Solutions")?.GetValue(s_Info)
+                                        is not System.Array s_Solutions)
+                                    continue;
+
+                                foreach (var s_Solution in s_Solutions)
+                                    if (s_Solution?.GetType().GetProperty("Flags")?.GetValue(s_Solution) is byte s_Flags &&
+                                        (s_Flags & 1) != 0)
+                                    {
+                                        s_DoubleSided.Add(s_ShaderKey?.ToString() ?? "");
+                                        break;
+                                    }
+                            }
+                        }
+                }
+                catch (Exception s_Exception)
+                {
+                    p_Writer.WriteLine($"(double-sided flags unavailable: {s_Exception.Message})");
+                }
+
+            bool IsDoubleSided(string p_Shader) =>
+                s_DoubleSided.Contains(p_Shader) ||
+                s_DoubleSided.Any(p_K => p_K.EndsWith("/" + p_Shader, StringComparison.OrdinalIgnoreCase) ||
+                                         p_Shader.EndsWith("/" + p_K, StringComparison.OrdinalIgnoreCase));
+            // The material list, by index, from the mesh EBX partition.
+            var s_ShadersByIndex = new System.Collections.Generic.Dictionary<int, string>();
+            if (m_Mounter.TryGetPartition(p_Name, out var s_MeshMounted))
+            {
+                var s_Variant = s_MeshMounted.Variants.FirstOrDefault(p_V => p_V.GetContainedBundle() != null)
+                                ?? s_MeshMounted.FirstVariant;
+                var s_Converter = EngineInterfaceRegistry.Create<IPartitionConverter>(m_Mounter.GetEngineType());
+
+                if (s_Variant != null &&
+                    s_Converter.FromPartitionObject(p_Name, s_Variant)
+                        is RimeLib.Serialization.Frostbite2_0.Ebx.DatabasePartition s_Partition)
+                {
+                    var s_MeshAsset = s_Partition.InstanceMap.Values.OfType<fb.MeshAsset>().FirstOrDefault();
+                    if (s_MeshAsset != null)
+                    {
+                        var s_Index = 0;
+                        foreach (var s_MaterialRef in s_MeshAsset.Materials)
+                        {
+                            if ((s_MaterialRef.InstanceId as DataContainerId.Guid)?.Id is { } s_MaterialGuid &&
+                                s_Partition.InstanceMap.TryGetValue(s_MaterialGuid, out var s_Instance) &&
+                                s_Instance is fb.MeshMaterial s_Material &&
+                                m_Mounter.TryGetPartitionByGuid(s_Material.Shader.Shader.PartitionGuid,
+                                    out var s_ShaderName, out _))
+                                s_ShadersByIndex[s_Index] = s_ShaderName;
+
+                            s_Index++;
+                        }
+                    }
+                }
+            }
+
+            // The LOD-0 geometry, decoded per VISIBLE-category subset (opaque, transparent, transparent
+            // decal — NOT ZOnly) straight from the vertex streams, written as a simple sectioned binary
+            // ("RSM1"). The OBJ path was abandoned for this: its writer only walks the OPAQUE category
+            // (a glass canopy silently vanished) and renames every material, so the section mapping was
+            // unrecoverable from the file.
+            var s_Count = 0;
+
+            foreach (var s_Resource in m_Mounter.GetResources().Where(p_R => p_R.Key == p_Name))
+            {
+                var s_Variant = s_Resource.Value.FirstVariant;
+                if (s_Variant.GetResourceType() != ResourceType.MeshSet)
+                    continue;
+
+                using var s_ResourceReader1 = s_Variant.GetReader();
+                var s_Data = s_ResourceReader1.ReadBytes((int) s_ResourceReader1.Length);
+                using var s_Reader = new RimeReader(new MemoryStream(s_Data));
+
+                var s_MeshSet = new RimeLib.Mesh.Frostbite.MeshSetLayout(s_Reader);
+                var s_MeshLayout = s_MeshSet.Lods[0].Object;
+                if (s_MeshLayout == null)
+                    continue;
+
+                if (!m_Mounter.TryGetChunk(s_MeshLayout.DataChunkId, out var s_MeshChunk))
+                {
+                    p_Writer.WriteLine($"Mesh data chunk {s_MeshLayout.DataChunkId} is not mounted.");
+                    break;
+                }
+
+                using var s_ChunkReader1 = s_MeshChunk.FirstVariant.GetReader();
+                var s_ChunkData = s_ChunkReader1.ReadBytes((int) s_ChunkReader1.Length);
+                var s_VertexData = s_ChunkData.AsSpan(0, (int) s_MeshLayout.VertexDataSize).ToArray();
+                var s_IndexData = s_ChunkData.AsSpan((int) s_MeshLayout.VertexDataSize,
+                    (int) s_MeshLayout.IndexDataSize).ToArray();
+
+                // The categories a player can SEE, deduplicated (a subset may be listed by more than one);
+                // each subset remembers the FIRST category that listed it — a preview needs to know a
+                // transparent section from an opaque one to stand in for it sanely.
+                var s_SubsetIndices = new System.Collections.Generic.List<(int Index, int Category)>();
+                foreach (var s_Category in new[]
+                         {
+                             RimeLib.Mesh.Frostbite.Fb2.MeshSubsetCategory.Opaque,
+                             RimeLib.Mesh.Frostbite.Fb2.MeshSubsetCategory.Transparent,
+                             RimeLib.Mesh.Frostbite.Fb2.MeshSubsetCategory.TransparentDecal,
+                         })
+                    foreach (int s_SubsetIndex in s_MeshLayout.CategorySubsetIndices[(int) s_Category].Get)
+                        if (s_SubsetIndices.All(p_S => p_S.Index != s_SubsetIndex))
+                            s_SubsetIndices.Add((s_SubsetIndex, (int) s_Category));
+
+                using var s_Out = new BinaryWriter(File.Create(p_Destination.FullName));
+                s_Out.Write(System.Text.Encoding.ASCII.GetBytes("RSM3"));
+                var s_CountPosition = s_Out.BaseStream.Position;
+                s_Out.Write(0);
+
+                using var s_VertexReader = new RimeReader(new MemoryStream(s_VertexData));
+
+                foreach (var (s_SubsetIndex, s_SubsetCategory) in s_SubsetIndices)
+                {
+                    var s_Subset = s_MeshLayout.Subsets.Get[s_SubsetIndex];
+                    var s_MaterialIndex = (int) s_Subset.MaterialIndex;
+                    var s_Shader = s_ShadersByIndex.TryGetValue(s_MaterialIndex, out var s_Found) ? s_Found : "";
+
+                    // Decode ONLY position and the first UV per vertex; the preview computes normals and
+                    // tangents itself. Formats are read by width — halves through the same conversion the
+                    // exporter uses.
+                    var s_Positions = new float[s_Subset.VertexCount * 3];
+                    var s_Uvs = new float[s_Subset.VertexCount * 2];
+                    var s_Declaration = s_Subset.GeometryDeclarationDesc;
+
+                    // A shader can only draw the vertex declarations it has a compiled solution for, so the
+                    // layout is what decides whether a given preset is usable on this mesh at all.
+                    p_Writer.WriteLine($"MESHDECL: subset={s_SubsetIndex} material={s_MaterialIndex} " +
+                                       $"stride={s_Subset.VertexStride} shader={s_Shader} elements=" +
+                                       string.Join(",", s_Declaration.Elements
+                                           .Where(e => e.Usage != fb.VertexElementUsage.VertexElementUsage_Unknown)
+                                           .Select(e => $"{e.Usage}:{e.Format}@{e.Offset}")));
+
+                    for (var s_VertexIndex = 0; s_VertexIndex < s_Subset.VertexCount; s_VertexIndex++)
+                    {
+                        var s_VertexBase = s_Subset.VertexOffset + (long) s_VertexIndex * s_Subset.VertexStride;
+                        foreach (var s_Element in s_Declaration.Elements)
+                        {
+                            var s_IsPosition = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_Pos;
+                            var s_IsUv = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_TexCoord0;
+                            if (!s_IsPosition && !s_IsUv)
+                                continue;
+
+                            s_VertexReader.Seek(s_VertexBase + s_Element.Offset, SeekOrigin.Begin);
+                            var s_Components = ReadVertexElement(s_VertexReader, s_Element.Format);
+
+                            if (s_IsPosition)
+                                for (var c = 0; c < 3 && c < s_Components.Length; c++)
+                                    s_Positions[s_VertexIndex * 3 + c] = s_Components[c];
+                            else
+                                for (var c = 0; c < 2 && c < s_Components.Length; c++)
+                                    s_Uvs[s_VertexIndex * 2 + c] = s_Components[c];
+                        }
+                    }
+
+                    // Subset indices are 16-bit and RELATIVE to the subset's own vertex window.
+                    var s_Indices = new int[s_Subset.PrimitiveCount * 3];
+                    for (var i = 0; i < s_Indices.Length; i++)
+                    {
+                        var s_Offset = ((long) s_Subset.StartIndex + i) * sizeof(ushort);
+                        s_Indices[i] = BitConverter.ToUInt16(s_IndexData, (int) s_Offset);
+                    }
+
+                    var s_ShaderBytes = System.Text.Encoding.UTF8.GetBytes(s_Shader);
+                    var s_MaterialBytes = System.Text.Encoding.UTF8.GetBytes(s_Subset.MaterialName.Object ?? "");
+                    s_Out.Write(s_ShaderBytes.Length);
+                    s_Out.Write(s_ShaderBytes);
+                    s_Out.Write(s_MaterialBytes.Length);
+                    s_Out.Write(s_MaterialBytes);
+                    s_Out.Write(s_SubsetCategory);
+                    s_Out.Write(s_Shader.Length > 0 && IsDoubleSided(s_Shader) ? 1 : 0);
+                    s_Out.Write((int) s_Subset.VertexCount);
+                    for (var i = 0; i < s_Subset.VertexCount; i++)
+                    {
+                        s_Out.Write(s_Positions[i * 3]);
+                        s_Out.Write(s_Positions[i * 3 + 1]);
+                        s_Out.Write(s_Positions[i * 3 + 2]);
+                        s_Out.Write(s_Uvs[i * 2]);
+                        s_Out.Write(s_Uvs[i * 2 + 1]);
+                    }
+
+                    s_Out.Write(s_Indices.Length);
+                    foreach (var s_Index in s_Indices)
+                        s_Out.Write(s_Index);
+
+                    s_Count++;
+                }
+
+                s_Out.Seek((int) s_CountPosition, SeekOrigin.Begin);
+                s_Out.Write(s_Count);
+                break;
+            }
+
+            return s_Count;
+        }
+
+        /// <summary>One vertex element as floats, by declared format width; halves converted like the exporter.</summary>
+        private static float[] ReadVertexElement(RimeReader p_Reader,
+            fb.VertexElementFormat p_Format)
+        {
+            switch (p_Format)
+            {
+                case fb.VertexElementFormat.VertexElementFormat_Float:
+                    return new[] { p_Reader.ReadSingle() };
+                case fb.VertexElementFormat.VertexElementFormat_Float2:
+                    return new[] { p_Reader.ReadSingle(), p_Reader.ReadSingle() };
+                case fb.VertexElementFormat.VertexElementFormat_Float3:
+                    return new[] { p_Reader.ReadSingle(), p_Reader.ReadSingle(), p_Reader.ReadSingle() };
+                case fb.VertexElementFormat.VertexElementFormat_Float4:
+                    return new[]
+                    {
+                        p_Reader.ReadSingle(), p_Reader.ReadSingle(), p_Reader.ReadSingle(), p_Reader.ReadSingle(),
+                    };
+                case fb.VertexElementFormat.VertexElementFormat_Half:
+                    return new[] { RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()) };
+                case fb.VertexElementFormat.VertexElementFormat_Half2:
+                    return new[]
+                    {
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                    };
+                case fb.VertexElementFormat.VertexElementFormat_Half3:
+                    return new[]
+                    {
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                    };
+                case fb.VertexElementFormat.VertexElementFormat_Half4:
+                    return new[]
+                    {
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                        RimeLib.Math.RimeMath.HalfToFloat(p_Reader.ReadUInt16()),
+                    };
+                default:
+                    return Array.Empty<float>();
+            }
+        }
+
         internal void DumpMesh(MeshConverterType p_Type, string p_Name, FileInfo p_Destination)
         {
             // Get all resources

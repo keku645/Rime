@@ -5532,6 +5532,207 @@
      "soff": 336
     }
    }
+  },
+  "SurfaceShaderBaseAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {}
+  },
+  "ShaderGraph": {
+   "flags": 53,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "MaxSubMaterialCount": {
+     "flags": 49421,
+     "offset": 12,
+     "soff": 48
+    },
+    "GammaCorrectionEnable": {
+     "flags": 49325,
+     "offset": 16,
+     "soff": 52
+    }
+   }
+  },
+  "MeshMaterialVariation": {
+   "flags": 53,
+   "align": 4,
+   "size": 72,
+   "ssize": 0,
+   "fields": {
+    "Shader": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    }
+   }
+  },
+  "SurfaceShaderInstanceDataStruct": {
+   "flags": 41,
+   "align": 4,
+   "size": 64,
+   "ssize": 0,
+   "fields": {
+    "Shader": {
+     "flags": 53,
+     "offset": 0,
+     "soff": 0
+    },
+    "BoolParameters": {
+     "flags": 65,
+     "offset": 48,
+     "soff": 4
+    },
+    "VectorParameters": {
+     "flags": 65,
+     "offset": 52,
+     "soff": 8
+    },
+    "VectorArrayParameters": {
+     "flags": 65,
+     "offset": 56,
+     "soff": 12
+    },
+    "TextureParameters": {
+     "flags": 65,
+     "offset": 60,
+     "soff": 16
+    }
+   }
+  },
+  "BoolShaderParameter": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "ParameterName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "Value": {
+     "flags": 49325,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "VectorShaderParameter": {
+   "flags": 41,
+   "align": 16,
+   "size": 32,
+   "ssize": 0,
+   "fields": {
+    "ParameterName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 20
+    },
+    "ParameterType": {
+     "flags": 137,
+     "offset": 4,
+     "soff": 16
+    },
+    "Value": {
+     "flags": 53289,
+     "offset": 16,
+     "soff": 0
+    }
+   }
+  },
+  "ShaderParameterType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "Vec4": {
+   "flags": 53289,
+   "align": 16,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "x": {
+     "flags": 49469,
+     "offset": 0,
+     "soff": 0
+    },
+    "y": {
+     "flags": 49469,
+     "offset": 4,
+     "soff": 4
+    },
+    "z": {
+     "flags": 49469,
+     "offset": 8,
+     "soff": 8
+    },
+    "w": {
+     "flags": 49469,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "VectorArrayShaderParameter": {
+   "flags": 41,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "ParameterName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "ParameterType": {
+     "flags": 137,
+     "offset": 4,
+     "soff": 4
+    },
+    "Values": {
+     "flags": 65,
+     "offset": 8,
+     "soff": 8
+    }
+   }
+  },
+  "TextureShaderParameter": {
+   "flags": 41,
+   "align": 4,
+   "size": 52,
+   "ssize": 0,
+   "fields": {
+    "ParameterName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "Value": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "ObjectVariation": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "NameHash": {
+     "flags": 49421,
+     "offset": 12,
+     "soff": 48
+    }
+   }
   }
  },
  "arrayMembers": {
@@ -5552,7 +5753,12 @@
   "struct:LinkConnection": 41,
   "struct:EventConnection": 41,
   "struct:StabilizerSettings": 41,
-  "struct:ConstantForceData": 41
+  "struct:ConstantForceData": 41,
+  "struct:BoolShaderParameter": 41,
+  "struct:VectorShaderParameter": 41,
+  "struct:VectorArrayShaderParameter": 41,
+  "struct:Vec4": 53289,
+  "struct:TextureShaderParameter": 41
  },
  "primitives": {
   "7": 16509,

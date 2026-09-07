@@ -61,18 +61,22 @@ namespace RimeLib.Cmd.Commands.Game
 
                     var s_Info = s_Shaders[s_ShKey];
                     var s_Sols = s_Info?.GetType().GetProperty("Solutions")?.GetValue(s_Info) as System.Array;
-                    p_Writer.WriteLine($"SHSOL-SHADER: [{s_PathKey}] {s_ShName}  solutions={(s_Sols?.Length ?? 0)}");
+                    var s_Type = s_Info?.GetType().GetProperty("SurfaceShaderType")?.GetValue(s_Info);
+                    p_Writer.WriteLine($"SHSOL-SHADER: [{s_PathKey}] {s_ShName}  type={s_Type}  " +
+                                       $"solutions={(s_Sols?.Length ?? 0)}");
                     if (s_Sols == null) continue;
 
                     foreach (var s_Sol in s_Sols)
                     {
                         var s_HashObj = s_Sol!.GetType().GetProperty("StateHash")?.GetValue(s_Sol);
                         var s_State = s_Sol.GetType().GetProperty("State")?.GetValue(s_Sol);
+                        var s_Flags = s_Sol.GetType().GetProperty("Flags")?.GetValue(s_Sol);
                         object? Get(string p_N) => s_State?.GetType().GetProperty(p_N)?.GetValue(s_State);
                         p_Writer.WriteLine(
                             $"  SHSOL: tech={Get("Technique")} colorScale={Get("ColorScale")} " +
                             $"boolPerm={Get("BoolPermutation")} mode={Get("Mode")} " +
-                            $"objLight={Get("ObjectLighting")} stateHash=0x{s_HashObj:X}");
+                            $"objLight={Get("ObjectLighting")} decl=0x{Get("GeometryDeclarationHash"):X8} " +
+                            $"inst={Get("InstancingMethod")} flags={s_Flags} stateHash=0x{s_HashObj:X}");
                     }
                 }
             }

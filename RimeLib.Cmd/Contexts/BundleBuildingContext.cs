@@ -410,7 +410,7 @@ namespace RimeLib.Cmd.Contexts
         }
 
         // TODO: This should probably be moved somewhere else
-        internal void AddDDSTexture(FileInfo p_File, TextureAttributes p_Attributes)
+        internal void AddDDSTexture(FileInfo p_File, TextureAttributes p_Attributes, string? p_GroupDonor = null)
         {
             var s_TextureGenerator = EngineInterfaceRegistry.Create<ITextureGenerator>(((SbBuildingContext)Parent!).EngineType);
 
@@ -418,24 +418,34 @@ namespace RimeLib.Cmd.Contexts
             // ("Vehicle", "World_SkipNo_St", ...). The old hardcoded "Default" is not a valid BF3
             // group -> the mesh/MVDB texture-bind path never pools/uploads it -> vehicles sample
             // BLACK (the by-name shaderdb path tolerated it, which is why the water palette worked).
-            // Read the group (char[16] at offset 112) from the mounted original's 128-byte header.
+            // Read the group (char[16] at offset 112) from the mounted original's 128-byte header;
+            // a BRAND-NEW name has no original, so a DONOR (a sibling texture of the same material)
+            // lends its group instead.
             try
             {
                 var s_BaseCtx = (BaseContext)((SbBuildingContext)Parent!).Parent!;
                 var s_Mounter = s_BaseCtx.GetMounters().Values.FirstOrDefault();
-                if (s_Mounter != null && s_Mounter.TryGetResource(p_Attributes.Name, out var s_Orig))
+
+                string? GroupOf(string p_Name)
                 {
+                    if (s_Mounter == null || !s_Mounter.TryGetResource(p_Name, out var s_Orig))
+                        return null;
+
                     using var s_OrigReader = s_Orig.FirstVariant.GetReader();
-                    if (s_OrigReader.Length >= 128)
-                    {
-                        var s_Header = s_OrigReader.ReadBytes(128);
-                        var s_GroupEnd = System.Array.IndexOf(s_Header, (byte)0, 112, 16);
-                        if (s_GroupEnd < 0) s_GroupEnd = 128;
-                        var s_Group = System.Text.Encoding.ASCII.GetString(s_Header, 112, s_GroupEnd - 112);
-                        if (!string.IsNullOrWhiteSpace(s_Group))
-                            p_Attributes.TextureGroup = s_Group;
-                    }
+                    if (s_OrigReader.Length < 128)
+                        return null;
+
+                    var s_Header = s_OrigReader.ReadBytes(128);
+                    var s_GroupEnd = System.Array.IndexOf(s_Header, (byte)0, 112, 16);
+                    if (s_GroupEnd < 0) s_GroupEnd = 128;
+                    var s_Group = System.Text.Encoding.ASCII.GetString(s_Header, 112, s_GroupEnd - 112);
+                    return string.IsNullOrWhiteSpace(s_Group) ? null : s_Group;
                 }
+
+                var s_Resolved = GroupOf(p_Attributes.Name) ??
+                                 (p_GroupDonor != null ? GroupOf(p_GroupDonor) : null);
+                if (s_Resolved != null)
+                    p_Attributes.TextureGroup = s_Resolved;
             }
             catch { /* no original -> keep the attribute's group */ }
 

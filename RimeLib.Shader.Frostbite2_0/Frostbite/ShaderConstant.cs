@@ -116,6 +116,41 @@ public class ShaderConstant : IFbSerializable
     /// </summary>
     public string AddTextureConstant(byte p_Register, byte p_TextureType, string p_Name)
     {
+        // A register the record ALREADY binds is a REPLACE, not an append: two entries for one register is
+        // undefined territory, and replacing is exactly what a custom variation does to wear its own art.
+        // The name field is 0x80 fixed-length, so the raw record can be patched in place — no relocation.
+        for (var i = 0; i < Textures.Length; i++)
+        {
+            if (Textures[i].Index != p_Register)
+                continue;
+
+            var s_ReplacementBytes = Encoding.UTF8.GetBytes(p_Name);
+            if (s_ReplacementBytes.Length >= 0x80)
+                return "ERROR: texture name too long";
+
+            var s_Previous = Textures[i].Name;
+            Textures[i] = new TextureConstant
+            {
+                Index = p_Register, TextureType = (TextureType) p_TextureType, Name = p_Name,
+            };
+
+            if (RawBytes != null)
+            {
+                var s_BlockOff = (long) BitConverter.ToUInt64(RawBytes, 12) - 4;
+                const int c_Entry = 0x98;
+                var s_NameOff = (int) s_BlockOff + i * c_Entry + 8;
+                if (s_BlockOff < 53 || s_NameOff + 0x80 > RawBytes.Length ||
+                    RawBytes[(int) s_BlockOff + i * c_Entry] != p_Register)
+                    return "ERROR: texture block layout mismatch on in-place replace";
+
+                Array.Clear(RawBytes, s_NameOff, 0x80);
+                Array.Copy(s_ReplacementBytes, 0, RawBytes, s_NameOff, s_ReplacementBytes.Length);
+                RawBytes[(int) s_BlockOff + i * c_Entry + 1] = p_TextureType;
+            }
+
+            return $"replaced t{p_Register}: '{s_Previous}' -> '{p_Name}' (in place)";
+        }
+
         var s_New = new TextureConstant { Index = p_Register, TextureType = (TextureType) p_TextureType, Name = p_Name };
 
         var s_Model = new TextureConstant[Textures.Length + 1];

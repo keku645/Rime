@@ -66,10 +66,32 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
 
             p_Writer.WriteLine("Resolving resource dependencies...");
 
+            var s_Converter = EngineInterfaceRegistry.Create<IPartitionConverter>(s_Mounter.GetEngineType());
+
             var s_Partitions = s_BundleContext.GetPartitions().ToList();
             foreach (var s_PartitionEntry in s_Partitions)
             {
                 var s_Partition = PartitionRegistry.Partitions.FirstOrDefault(p => p.Name.Equals(s_PartitionEntry.Key, StringComparison.OrdinalIgnoreCase));
+
+                // ⛔ THE REGISTRY IS A GLOBAL INDEX SOMEBODY ELSE HAS TO HAVE FILLED, AND WHEN IT IS EMPTY
+                // THIS USED TO RESOLVE NOTHING AND SAY SO ONLY AS A ZERO. resolve_partition_dependencies
+                // populates it (it parses every partition in the game); a script that adds a partition and
+                // asks for its resources without calling that first got "Total resources in bundle: 0" and a
+                // bundle carrying texture shells with no pixels behind them. The bundle already holds the
+                // variant, so the partition can be read straight from it — no global parse needed.
+                if (s_Partition == null && s_PartitionEntry.Value is IObjectVariant s_Variant)
+                {
+                    try
+                    {
+                        s_Partition = s_Converter.FromPartitionObject(s_PartitionEntry.Key, s_Variant);
+                        p_Writer.WriteLine($"Read partition from the bundle (not in the registry): {s_PartitionEntry.Key}");
+                    }
+                    catch (Exception s_Exception)
+                    {
+                        p_Writer.WriteLine($"Could not read partition {s_PartitionEntry.Key}: {s_Exception.Message}");
+                    }
+                }
+
                 if (s_Partition == null) continue;
 
                 if (s_Partition.Name == "animations/antanimations") continue;

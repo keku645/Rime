@@ -47,7 +47,7 @@ public enum SurfaceShaderType
 
 /// <summary>
 /// Which lighting maths the surface feeds — BF3's equivalent of Unreal's Shading Model. Mirrors
-/// fb::ShaderLightingModel, and in FrostED it also picked the ROOT NODE variant (Standard -> StandardRoot).
+/// fb::ShaderLightingModel, and at authoring time it also picked the ROOT NODE variant (Standard -> StandardRoot).
 /// </summary>
 public enum ShaderLightingModel
 {

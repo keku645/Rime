@@ -34,47 +34,126 @@
         <Style TargetType="TreeViewItem">
             <Setter Property="Foreground" Value="#FFFFFFFF" />
         </Style>
+    <!-- One dark combo for the whole editor: the system chrome paints a closed ComboBox light or
+         dark depending on the environment, so no fixed text colour survives it and the template has
+         to own every colour. It was written inline on one box; a second one needed the same. -->
+    <Style x:Key="DarkCombo" TargetType="ComboBox">
+      <Setter Property="Foreground" Value="#FFF0F0F0" />
+                              <Setter Property="Template"><Setter.Value>
+                                  <ControlTemplate TargetType="ComboBox">
+                                      <Grid>
+                                          <ToggleButton Focusable="False" ClickMode="Press"
+                                                        IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                              <ToggleButton.Template>
+                                                  <ControlTemplate TargetType="ToggleButton">
+                                                      <Border Background="#FF2D2D30" BorderBrush="#FF54545A"
+                                                              BorderThickness="1">
+                                                          <Path HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                                Margin="0,0,6,0" Data="M 0 0 L 4 4 L 8 0 Z"
+                                                                Fill="#FFF0F0F0" />
+                                                      </Border>
+                                                  </ControlTemplate>
+                                              </ToggleButton.Template>
+                                          </ToggleButton>
+                                          <ContentPresenter Margin="6,2,20,2" VerticalAlignment="Center"
+                                                            IsHitTestVisible="False"
+                                                            Content="{TemplateBinding SelectionBoxItem}"
+                                                            ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
+                                          <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                                 AllowsTransparency="True" Focusable="False">
+                                              <Border Background="#FF1E1E1E" BorderBrush="#FF54545A"
+                                                      BorderThickness="1"
+                                                      MinWidth="{TemplateBinding ActualWidth}"
+                                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                                  <ScrollViewer>
+                                                      <ItemsPresenter />
+                                                  </ScrollViewer>
+                                              </Border>
+                                          </Popup>
+                                      </Grid>
+                                  </ControlTemplate>
+                              </Setter.Value></Setter>
+                              <Setter Property="ItemContainerStyle"><Setter.Value>
+                                  <Style TargetType="ComboBoxItem">
+                                      <Setter Property="Background" Value="#FF1E1E1E" />
+                                      <Setter Property="Foreground" Value="#FFF0F0F0" />
+                                      <Style.Triggers>
+                                          <Trigger Property="IsHighlighted" Value="True">
+                                              <Setter Property="Background" Value="#FF3F3F46" />
+                                          </Trigger>
+                                      </Style.Triggers>
+                                  </Style>
+                              </Setter.Value></Setter>
+    </Style>
+        <view:MeshLeafConverter x:Key="MeshLeaf" />
     </Window.Resources>
 
     <Window.InputBindings>
         <KeyBinding Key="Z" Modifiers="Ctrl" Command="ApplicationCommands.Undo" />
         <KeyBinding Key="Y" Modifiers="Ctrl" Command="ApplicationCommands.Redo" />
+        <KeyBinding Key="C" Modifiers="Ctrl" Command="ApplicationCommands.Copy" />
+        <KeyBinding Key="V" Modifiers="Ctrl" Command="ApplicationCommands.Paste" />
     </Window.InputBindings>
 
     <Window.CommandBindings>
         <CommandBinding Command="ApplicationCommands.Undo" Executed="OnUndo" />
         <CommandBinding Command="ApplicationCommands.Redo" Executed="OnRedo" />
+        <CommandBinding Command="ApplicationCommands.Copy" Executed="OnCopy" />
+        <CommandBinding Command="ApplicationCommands.Paste" Executed="OnPaste" />
     </Window.CommandBindings>
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="170" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="150" />
+            <RowDefinition Height="5" />
+            <RowDefinition Height="170" MinHeight="60" />
         </Grid.RowDefinitions>
+
+        <!-- Right-click search, Unreal style: type to filter, Enter or click to place at the click point. -->
+        <Popup x:Name="SearchPopup" Placement="Relative" StaysOpen="False" AllowsTransparency="True">
+            <Border Background="#FF2D2D30" BorderBrush="#FF6A6A70" BorderThickness="1" Width="260">
+                <StackPanel Margin="4">
+                    <TextBox x:Name="SearchBox" Margin="0,0,0,4"
+                             PreviewKeyDown="OnSearchKeyDown" TextChanged="OnSearchTextChanged" />
+                    <ListBox x:Name="SearchResults" Height="240" Background="#FF1E1E1E"
+                             Foreground="#FFF0F0F0" BorderThickness="0"
+                             MouseLeftButtonUp="OnSearchPick" />
+                </StackPanel>
+            </Border>
+        </Popup>
 
         <ToolBarPanel Grid.Row="0" Background="#FF383840">
             <StackPanel Orientation="Horizontal" Margin="6">
                 <Button x:Name="NewButton" Content="New" Click="OnNew" />
-                <Button x:Name="SampleButton" Content="Load vanilla sample" Click="OnLoadSample" />
                 <Button x:Name="OpenButton" Content="Open…" Click="OnOpen" />
                 <Button x:Name="SaveButton" Content="Save…" Click="OnSave" />
                 <Separator Width="12" Background="Transparent" />
-                <Button x:Name="EmitButton" Content="Emit HLSL" Click="OnEmit" />
-                <Button x:Name="CompileButton" Content="Compile (fxc)" Click="OnCompile" />
-                <Button x:Name="BakeButton" Content="Write bake script" Click="OnWriteBakeScript" />
+                <Button x:Name="ExportButton" Content="Export HLSL" Click="OnExportHlsl"
+                        ToolTip="Writes the graph's HLSL to the output folder and checks it compiles with fxc — for inspection; baking does this on its own." />
+                <Button x:Name="BakeButton" Content="Bake shader…" Click="OnBakeShader" />
                 <Separator Width="12" Background="Transparent" />
-                <Button x:Name="TexturesButton" Content="Load target textures" Click="OnLoadTextures" />
+                <Button x:Name="ReloadButton" Content="Reload from game" Click="OnReloadFromGame"
+                        Tag="translate"
+                        ToolTip="Re-reads the target shader out of the game: translates its bytecode to a graph AND loads its textures — the same thing double-clicking it in the browser does. Use it as a retry, or after deleting the texture cache." />
+                <Button x:Name="CollapseButton" Content="Convert to UDK nodes" Click="OnConvertToUdk"
+                        Visibility="Collapsed"
+                        ToolTip="Rewrites this graph into the UDK vocabulary — a shader read out of the game arrives as this engine's nodes, and this turns them into the ones the palette offers: texture-and-mask pairs become one TextureSample, TexCoord becomes TextureCoordinate, Lerp becomes LinearInterpolate, the constants and the panner become theirs, and the output node becomes Material when every one of its pins fits. The shader does not change: the converted graph emits exactly the same HLSL, and Undo puts it back. Anything that would need extra maths or has no property to hold its value is LEFT alone and named in the log." />
                 <Separator Width="12" Background="Transparent" />
                 <Button x:Name="UndoButton" Content="Undo" Click="OnUndoClick" />
                 <Button x:Name="RedoButton" Content="Redo" Click="OnRedoClick" />
-                <Button x:Name="DeleteButton" Content="Delete node" Click="OnDeleteNode" />
+                <Separator Width="12" Background="Transparent" />
+                <Button x:Name="SettingsButton" Content="Settings…" Click="OnOpenSettings" Tag="settings"
+                        ToolTip="Editor preferences: zoom speeds, node shortcut keys, preview options." />
             </StackPanel>
         </ToolBarPanel>
 
         <Grid Grid.Row="1" Background="#FF32323A">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="150" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -82,39 +161,247 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="260" />
             </Grid.ColumnDefinitions>
-            <Label Grid.Column="0" Content="Target shader" VerticalAlignment="Center" Margin="6,0,4,0" />
-            <TextBox Grid.Column="1" x:Name="TargetShaderBox" Margin="0,4" VerticalContentAlignment="Center" />
-            <Label Grid.Column="2" Content="BF3 path" VerticalAlignment="Center" Margin="10,0,4,0" />
-            <TextBox Grid.Column="3" x:Name="GamePathBox" Margin="0,4" VerticalContentAlignment="Center" />
-            <Label Grid.Column="4" Content="Output folder" VerticalAlignment="Center" Margin="10,0,4,0" />
-            <TextBox Grid.Column="5" x:Name="OutputFolderBox" Margin="0,4,6,4" VerticalContentAlignment="Center" />
+            <!-- The graph name is not cosmetic: it names the emitted .hlsl/.dxbc and is the default mod name. -->
+            <Label Grid.Column="0" Content="Graph name" VerticalAlignment="Center" Margin="6,0,4,0" />
+            <TextBox Grid.Column="1" x:Name="GraphNameBox" Margin="0,4" VerticalContentAlignment="Center"
+                     ToolTip="Names the emitted files and is offered as the mod name when you bake." />
+            <Label Grid.Column="2" Content="Target shader" VerticalAlignment="Center" Margin="10,0,4,0" />
+            <TextBox Grid.Column="3" x:Name="TargetShaderBox" Margin="0,4" VerticalContentAlignment="Center" />
+            <Label Grid.Column="4" Content="BF3 path" VerticalAlignment="Center" Margin="10,0,4,0" />
+            <TextBox Grid.Column="5" x:Name="GamePathBox" Margin="0,4" VerticalContentAlignment="Center" />
+            <Label Grid.Column="6" Content="Output folder" VerticalAlignment="Center" Margin="10,0,4,0" />
+            <TextBox Grid.Column="7" x:Name="OutputFolderBox" Margin="0,4,6,4" VerticalContentAlignment="Center" />
         </Grid>
 
-        <Grid Grid.Row="2">
+        <!-- One tab per open shader graph, Unreal style: double-clicking a NEW shader opens a tab, clicking a
+             tab switches documents (graph, target, contract, textures, undo history all travel with it). -->
+        <Border Grid.Row="2" Background="#FF26262A" BorderBrush="#FF1A1A1C" BorderThickness="0,0,0,1">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="TabStrip" Orientation="Horizontal" Margin="4,3,4,0" />
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="210" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="260" />
+                <ColumnDefinition Width="210" MinWidth="120" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="*" MinWidth="200" />
+                <ColumnDefinition Width="5" />
+                <ColumnDefinition Width="300" MinWidth="220" />
             </Grid.ColumnDefinitions>
 
-            <DockPanel Grid.Column="0" Background="#FF252526">
-                <TextBlock DockPanel.Dock="Top" Text="Nodes" Margin="6,6,6,2" FontWeight="Bold" />
-                <TreeView x:Name="PaletteTree" Background="#FF1E1E1E" Foreground="#FFF0F0F0"
-                          BorderThickness="0" MouseDoubleClick="OnPaletteDoubleClick" />
-            </DockPanel>
+            <!-- Top: the game's shader directory, pruned to branches that actually hold shaders.
+                 Bottom: the node palette. Draggable divider between them. -->
+            <Grid Grid.Column="0" Background="#FF252526">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <!-- The shader tree gets the larger share: it is hierarchical and its paths are long,
+                         while the node palette is a flat list that reads fine in less space. Both draggable.
+                         The splitter's neighbours MUST both be these star rows: with the palette label in a
+                         row of its own, dragging turned the label's Auto row into a huge fixed height — a
+                         dead band above the node list, with the squeezed list misbehaving below it. -->
+                    <RowDefinition Height="3*" MinHeight="60" />
+                    <RowDefinition Height="5" />
+                    <RowDefinition Height="2*" MinHeight="80" />
+                </Grid.RowDefinitions>
 
-            <view:GraphCanvas Grid.Column="1" x:Name="Canvas" ClipToBounds="True" />
+                <StackPanel Grid.Row="0" Margin="6,6,6,2">
+                    <TextBlock Text="Game shaders" FontWeight="Bold" Margin="0,0,0,3" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox Grid.Column="0" x:Name="LevelBox" ToolTip="Which level's shader database to browse." />
+                        <Button Grid.Column="1" x:Name="LoadIndexButton" Content="Load" Margin="4,0,0,0"
+                                Click="OnLoadShaderIndex"
+                                ToolTip="Reads that level's shader list. The first time per level it mounts the game (minutes); after that it is cached." />
+                    </Grid>
+                    <TextBox x:Name="ShaderFilterBox" Margin="0,3,0,0" VerticalContentAlignment="Center"
+                             TextChanged="OnShaderFilterChanged"
+                             ToolTip="Type to narrow the tree; matches anywhere in the path." />
+                </StackPanel>
 
-            <DockPanel Grid.Column="2" Background="#FF252526">
-                <TextBlock DockPanel.Dock="Top" x:Name="PropertiesHeader" Text="Properties"
-                           Margin="6,6,6,2" FontWeight="Bold" />
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel x:Name="PropertiesPanel" Margin="6" />
-                </ScrollViewer>
-            </DockPanel>
+                <TreeView Grid.Row="1" x:Name="ShaderTree" Background="#FF1E1E1E" Foreground="#FFF0F0F0"
+                          BorderThickness="0" Margin="0,2,0,0"
+                          SelectedItemChanged="OnShaderTreeSelected"
+                          MouseDoubleClick="OnShaderTreeDoubleClick" />
+
+                <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                              Background="#FF3F3F46" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" />
+
+                <Grid Grid.Row="3">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Nodes" Margin="6,4,6,2" FontWeight="Bold" />
+
+                    <TreeView Grid.Row="1" x:Name="PaletteTree" Background="#FF1E1E1E" Foreground="#FFF0F0F0"
+                              BorderThickness="0" MouseDoubleClick="OnPaletteDoubleClick"
+                              PreviewMouseLeftButtonDown="OnPaletteMouseDown"
+                              PreviewMouseMove="OnPaletteMouseMove" />
+                </Grid>
+            </Grid>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          Background="#FF3F3F46" ResizeBehavior="PreviousAndNext" />
+
+            <view:GraphCanvas Grid.Column="2" x:Name="Canvas" ClipToBounds="True" />
+
+            <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch"
+                          Background="#FF3F3F46" ResizeBehavior="PreviousAndNext" />
+
+            <Grid Grid.Column="4" Background="#FF252526">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="340" MinHeight="140" />
+                    <RowDefinition Height="5" />
+                    <RowDefinition Height="*" MinHeight="80" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="Preview" Margin="6,6,6,2" FontWeight="Bold" />
+
+                <DockPanel Grid.Row="1">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="6,9,6,3">
+                        <StackPanel.Resources>
+                            <Style x:Key="ShapeIcon" TargetType="ToggleButton">
+                                <Setter Property="Width" Value="26" />
+                                <Setter Property="Height" Value="22" />
+                                <Setter Property="Margin" Value="0,0,3,0" />
+                                <Setter Property="ToolTipService.InitialShowDelay" Value="500" />
+                                <Setter Property="ToolTipService.ShowDuration" Value="8000" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Border x:Name="Chrome" Background="#FF2A2A2E" BorderBrush="#FF3A3A40"
+                                                    BorderThickness="1" CornerRadius="3">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="Chrome" Property="Background" Value="#FF3D5A80" />
+                                                    <Setter TargetName="Chrome" Property="BorderBrush" Value="#FF7FA6D9" />
+                                                </Trigger>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Chrome" Property="BorderBrush" Value="#FF8A8A92" />
+                                                </Trigger>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter TargetName="Chrome" Property="Opacity" Value="0.35" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </StackPanel.Resources>
+
+                        <ToggleButton x:Name="ShapeSphere" Style="{StaticResource ShapeIcon}" Tag="Sphere"
+                                      Click="OnShapeIcon"
+                                      ToolTip="Sphere — curvature everywhere; the shape that makes Smoothness readable.">
+                            <Ellipse Width="12" Height="12" Stroke="#FFD8D8DC" StrokeThickness="1.3" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="ShapeCube" Style="{StaticResource ShapeIcon}" Tag="Cube"
+                                      Click="OnShapeIcon" IsChecked="True"
+                                      ToolTip="Cube — flat faces; the shape that shows tiling and normal maps honestly.">
+                            <Path Stroke="#FFD8D8DC" StrokeThickness="1.2"
+                                  Data="M8,2 L13,4.8 L13,10.8 L8,13.6 L3,10.8 L3,4.8 Z M3,4.8 L8,7.6 L13,4.8 M8,7.6 L8,13.6" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="ShapeCylinder" Style="{StaticResource ShapeIcon}" Tag="Cylinder"
+                                      Click="OnShapeIcon"
+                                      ToolTip="Cylinder — the highlight sweeps across the side; curvature and tiling together.">
+                            <Path Stroke="#FFD8D8DC" StrokeThickness="1.2"
+                                  Data="M4,4.2 A4,1.7 0 1 0 12,4.2 A4,1.7 0 1 0 4,4.2 M4,4.2 L4,11.8 A4,1.7 0 0 0 12,11.8 L12,4.2" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="ShapePlane" Style="{StaticResource ShapeIcon}" Tag="Plane"
+                                      Click="OnShapeIcon"
+                                      ToolTip="Plane — the honest view for decals, terrain layers and pure texture work.">
+                            <Path Stroke="#FFD8D8DC" StrokeThickness="1.2" Data="M3.5,11.5 L6.5,4.5 L12.5,4.5 L9.5,11.5 Z" />
+                        </ToggleButton>
+                        <ToggleButton x:Name="ShapeMesh" Style="{StaticResource ShapeIcon}"
+                                      Click="OnMeshIcon"
+                                      ToolTip="Linked mesh — pick one of the objects that wear this shader.">
+                            <Path Stroke="#FFD8D8DC" StrokeThickness="1.1"
+                                  Data="M2.5,12.5 L8,3 L13.5,12.5 Z M5.2,12.5 L8,7.6 L10.8,12.5 M6.6,5.4 L9.4,5.4" />
+                        </ToggleButton>
+
+                        <ProgressBar x:Name="MeshProgress" Width="56" Height="6" Margin="2,8,0,8"
+                                     Minimum="0" Maximum="100" Visibility="Collapsed"
+                                     Foreground="#FF7FA6D9" Background="#FF2A2A2E" BorderBrush="#FF3A3A40"
+                                     ToolTip="Mounting the game to dump this mesh (estimated)." />
+
+                        <TextBlock x:Name="VariationLabel" Text="Linked objects" Margin="16,2,4,0"
+                                   Visibility="Collapsed" />
+                        <ComboBox x:Name="VariationBox" MinWidth="140" Visibility="Collapsed"
+                                  Style="{StaticResource DarkCombo}" SelectionChanged="OnVariationChanged"
+                                  ToolTip="Object (texture set) to preview. Every listed object wears this same shader; only its material textures differ.">
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Bottom" x:Name="PreviewStatus" Margin="6,2,6,0" FontSize="10"
+                               Opacity="0.75" TextWrapping="Wrap"
+                               Text="LMB orbit · MMB pan · RMB or wheel zoom · hold L + LMB turns the light · F frames" />
+                    <Border Margin="6,0,6,0" BorderThickness="1" BorderBrush="#FF54545A">
+                        <WindowsFormsHost x:Name="PreviewHost" />
+                    </Border>
+                </DockPanel>
+
+                <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch"
+                              VerticalAlignment="Center" Background="#FF3F3F46"
+                              ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" />
+
+                <DockPanel Grid.Row="3">
+                    <!-- Only on screen in mesh mode: on a cube or a sphere these two say nothing about
+                         what is being previewed, and a panel that is always there is a panel nobody reads. -->
+                    <StackPanel x:Name="MeshPanel" DockPanel.Dock="Top" Margin="6,6,6,0"
+                                Visibility="Collapsed">
+                        <TextBlock Text="Preview mesh" FontWeight="Bold" Margin="0,0,0,2" />
+                        <TextBlock FontSize="10" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,4"
+                                   Text="The objects in this map that wear this shader. Picking one dumps it from the game (once, then cached) and previews it in place of the primitive." />
+                        <ComboBox x:Name="MeshList" Style="{StaticResource DarkCombo}" MinWidth="140"
+                                  SelectionChanged="OnMeshPicked"
+                                  ToolTip="Objects that wear this shader. This is a PREVIEW choice; what a bake is aimed at is the texture set picked above.">
+                            <!-- The part that tells two objects apart is at the END of the path, which is
+                                 exactly what an ellipsis eats in a narrow column: the row shows the object
+                                 and carries the full path as its tooltip. -->
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Converter={StaticResource MeshLeaf}}"
+                                               ToolTip="{Binding}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock x:Name="MeshListNote" FontSize="10" Opacity="0.7" TextWrapping="Wrap"
+                                   Margin="0,3,0,0" Visibility="Collapsed"
+                                   Text="No linked objects known yet — press 'Load target textures' to build this shader's map." />
+
+                        <TextBlock Text="Custom mesh (preview only)" FontWeight="Bold" Margin="0,10,0,2" />
+                        <TextBlock FontSize="10" Opacity="0.7" TextWrapping="Wrap" Margin="0,0,0,4"
+                                   Text="Previews a mesh from disk instead of a game object. Nothing about it is baked, shipped or imported into the game — it only changes what you are looking at." />
+                        <DockPanel>
+                            <Button x:Name="CustomMeshClear" DockPanel.Dock="Right" Content="Clear" FontSize="10"
+                                    Padding="6,1" Margin="4,0,0,0" Click="OnClearCustomMesh" IsEnabled="False"
+                                    ToolTip="Back to the game object picked above." />
+                            <Button x:Name="CustomMeshPick" DockPanel.Dock="Right" Content="Choose…" FontSize="10"
+                                    Padding="6,1" Click="OnPickCustomMesh" />
+                            <TextBlock x:Name="CustomMeshName" Text="(none)" FontSize="10" Opacity="0.75"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </DockPanel>
+                    </StackPanel>
+
+                    <TextBlock DockPanel.Dock="Top" x:Name="PropertiesHeader" Text="Properties"
+                               Margin="6,10,6,2" FontWeight="Bold" />
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="PropertiesPanel" Margin="6" />
+                    </ScrollViewer>
+                </DockPanel>
+            </Grid>
         </Grid>
 
-        <DockPanel Grid.Row="3" Background="#FF1E1E1E">
+        <GridSplitter Grid.Row="4" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                      Background="#FF3F3F46" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" />
+
+        <DockPanel Grid.Row="5" Background="#FF1E1E1E">
             <TextBlock DockPanel.Dock="Top" Text="Output" Margin="6,4,6,2" FontWeight="Bold" />
             <TextBox x:Name="LogBox" IsReadOnly="True" AcceptsReturn="True" BorderThickness="0"
                      FontFamily="Consolas" FontSize="11" VerticalScrollBarVisibility="Auto" />

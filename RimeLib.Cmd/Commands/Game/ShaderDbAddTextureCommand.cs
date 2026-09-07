@@ -86,6 +86,11 @@ namespace RimeLib.Cmd.Commands.Game
             if (s_Databases == null) { p_Writer.WriteLine("No databases."); return false; }
 
             string s_Needle = Shader!.ToLowerInvariant();
+
+            // A FRESH-NAMED entry (a clone for a custom variation) re-parses under a synthetic name, because
+            // its real name exists in no mounted partition — only its key survives. Matching that key's
+            // synthetic form lets chained surgery keep addressing the clone by the name the caller knows.
+            string s_Synthetic = $"__unresolved_0x{RimeLib.Frostbite.Utils.HashQuickLowerCase(Shader!):x8}";
             // Solutions share ShaderConstant instances (they reference the database's constant array by index),
             // so collect the DISTINCT constants across all matched solutions and patch each exactly once.
             var s_Seen = new HashSet<object>();
@@ -99,7 +104,9 @@ namespace RimeLib.Cmd.Commands.Game
 
                 foreach (var s_ShKey in s_Shaders.Keys)
                 {
-                    if (!(s_ShKey?.ToString() ?? "").ToLowerInvariant().Contains(s_Needle)) continue;
+                    var s_KeyName = s_ShKey?.ToString() ?? "";
+                    if (!s_KeyName.ToLowerInvariant().Contains(s_Needle) &&
+                        !s_KeyName.Equals(s_Synthetic, StringComparison.OrdinalIgnoreCase)) continue;
                     var s_Info = s_Shaders[s_ShKey];
                     var s_Sols = s_Info?.GetType().GetProperty("Solutions")?.GetValue(s_Info) as Array;
                     if (s_Sols == null) continue;

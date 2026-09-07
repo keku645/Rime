@@ -16,6 +16,9 @@ public class GridCanvas : Control
     protected double m_ScaleLevel = 1.0;
     protected double m_ScaleRate = 0.075;
 
+    /// <summary>User multiplier on the wheel-zoom step (Settings). 1 = historical speed.</summary>
+    public static double ZoomSpeed { get; set; } = 1.0;
+
     protected double m_MinorUnits = 10;
     protected double m_MajorUnits = 100;
 
@@ -44,7 +47,7 @@ public class GridCanvas : Control
         var s_MousePos = s_Matrix.Inverse.Transform(p_Args.GetPosition(this));
 
         var s_Percent = (m_Scale - m_ScaleLevel * 0.5) / (m_ScaleLevel * 2 - m_ScaleLevel * 0.5);
-        var s_Rate = (1 - s_Percent) * (m_ScaleRate * 0.5) + s_Percent * (m_ScaleRate * 2);
+        var s_Rate = ((1 - s_Percent) * (m_ScaleRate * 0.5) + s_Percent * (m_ScaleRate * 2)) * ZoomSpeed;
 
         if (p_Args.Delta < 0)
         {
