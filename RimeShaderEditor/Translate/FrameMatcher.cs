@@ -179,7 +179,61 @@ public static class FrameMatcher
             return null;
         }
 
+        KeepWhatAuthoredCodeReads(p_Instructions, s_Definitions, s_Match);
         return s_Match;
+    }
+
+    /// <summary>
+    /// ⛔ AN INSTRUCTION IS FRAME ONLY IF NOTHING BUT THE FRAME READS IT. The root re-emits the frame's maths,
+    /// so a frame instruction is dropped from the translation — and an AUTHORED instruction that reads its value
+    /// is then left reading a register nobody wrote ("read before it was written; using 0") or, worse, a STALE
+    /// one, silently. Both on the F-35B's `f35b_main` (2026-09-22): its view vector feeds the frame's N·V AND an
+    /// authored rim term (`dp3 v2, V` × Scalar → the specular), and one `mul r0.xz, r0.xxyx, r0.xxyx` squares
+    /// the fresnel in x (frame) and the rim in z (authored) — the rim read the normal's z left in r0.z. Such an
+    /// instruction goes back to the authored side, and so, in turn, does whatever it reads.
+    /// ⛔ EXCEPT THE WORLD NORMAL: GraphBuilder republishes it through a TangentToWorld node when authored code
+    /// reads it (the weapons' own fresnel does). Un-framing it too rewrote six approved weapon graphs — the same
+    /// value, spelled out as nodes — for nothing.
+    /// </summary>
+    private static void KeepWhatAuthoredCodeReads(List<AsmInstruction> p_Instructions, Definitions p_Definitions,
+        FrameMatch p_Match)
+    {
+        for (var s_Changed = true; s_Changed;)
+        {
+            s_Changed = false;
+            for (var i = 0; i < p_Instructions.Count; i++)
+            {
+                if (p_Match.FrameInstructions.Contains(i))
+                    continue;
+
+                foreach (var s_Source in p_Instructions[i].Sources)
+                {
+                    if (s_Source.Kind != OperandKind.Temp)
+                        continue;
+
+                    foreach (var s_Component in ComponentsRead(p_Instructions[i], s_Source))
+                    {
+                        var s_At = p_Definitions.Before(i, "r", s_Source.Index, s_Component);
+                        if (s_At >= 0 && s_At != p_Match.WorldNormalAt && p_Match.FrameInstructions.Remove(s_At))
+                            s_Changed = true;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>The components of a source an instruction really reads: the dot's width, or the write mask's lanes.</summary>
+    private static IEnumerable<int> ComponentsRead(AsmInstruction p_Instruction, AsmOperand p_Source)
+    {
+        IEnumerable<int> s_Slots = p_Instruction.Opcode switch
+        {
+            "dp2" => new[] { 0, 1 },
+            "dp3" => new[] { 0, 1, 2 },
+            "dp4" => new[] { 0, 1, 2, 3 },
+            _ => p_Instruction.Destination?.WriteMask is { Length: > 0 } s_Mask ? s_Mask : new[] { 0, 1, 2, 3 },
+        };
+
+        return s_Slots.Select(p_S => Component(p_Source, p_S)).Distinct();
     }
 
     /// <summary>

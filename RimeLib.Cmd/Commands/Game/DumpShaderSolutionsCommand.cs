@@ -1,9 +1,11 @@
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using RimeLib;
 using RimeLib.Cmd.Attributes;
 using RimeLib.Cmd.Contexts;
+using RimeLib.Mesh.Frostbite;
 using RimeLib.Shader;
 
 namespace RimeLib.Cmd.Commands.Game
@@ -66,6 +68,10 @@ namespace RimeLib.Cmd.Commands.Game
                                        $"solutions={(s_Sols?.Length ?? 0)}");
                     if (s_Sols == null) continue;
 
+                    // The vertex declarations this shader can draw: one line per distinct decl hash with its
+                    // elements, so a mesh's MESHDECL (dump_mesh_sections) can be checked against them.
+                    var s_Decls = new SortedDictionary<uint, string>();
+
                     foreach (var s_Sol in s_Sols)
                     {
                         var s_HashObj = s_Sol!.GetType().GetProperty("StateHash")?.GetValue(s_Sol);
@@ -77,7 +83,36 @@ namespace RimeLib.Cmd.Commands.Game
                             $"boolPerm={Get("BoolPermutation")} mode={Get("Mode")} " +
                             $"objLight={Get("ObjectLighting")} decl=0x{Get("GeometryDeclarationHash"):X8} " +
                             $"inst={Get("InstancingMethod")} flags={s_Flags} stateHash=0x{s_HashObj:X}");
+
+                        if (Get("GeometryDeclarationHash") is uint s_DeclHash && !s_Decls.ContainsKey(s_DeclHash))
+                        {
+                            var s_Desc = Get("GeometryDeclarationDesc") as GeometryDeclarationDesc;
+
+                            // The D3D11 input layout the runtime creates for this solution lives in its VERTEX
+                            // permutation (semantic name/index, DXGI format, byte offset), independent of the
+                            // declaration: a solution re-labelled to another declaration keeps these offsets.
+                            var s_Vertex = s_Sol.GetType().GetProperty("VertexPermutation")?.GetValue(s_Sol);
+                            var s_Elements = s_Vertex?.GetType().GetProperty("Elements")?.GetValue(s_Vertex) as System.Array;
+                            var s_Layout = s_Elements == null ? "(no vertex permutation)" : string.Join(",", s_Elements.Cast<object>().Select(e =>
+                            {
+                                // SharpDX's InputElement exposes FIELDS, not properties.
+                                var t = e.GetType();
+                                object? F(string n) => t.GetField(n)?.GetValue(e) ?? t.GetProperty(n)?.GetValue(e);
+                                return $"{F("SemanticName")}{F("SemanticIndex")}:{F("Format")}@{F("AlignedByteOffset")}";
+                            }));
+
+                            s_Decls[s_DeclHash] = (s_Desc == null
+                                ? "(declaration not in this shaderdb)"
+                                : string.Join(",", s_Desc.Elements
+                                    .Where(e => e.Usage != fb.VertexElementUsage.VertexElementUsage_Unknown)
+                                    .Select(e => $"{e.Usage}:{e.Format}@{e.Offset}")) +
+                                  $" stride={string.Join("/", s_Desc.Streams.Select(s => s.Stride))}") +
+                                $" | VS input layout: {s_Layout}";
+                        }
                     }
+
+                    foreach (var (s_DeclHash, s_Elements) in s_Decls)
+                        p_Writer.WriteLine($"  SHSOL-DECL: {s_ShName} decl=0x{s_DeclHash:X8} elements={s_Elements}");
                 }
             }
 

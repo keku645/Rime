@@ -86,8 +86,13 @@ namespace RimeLib.Content.Frostbite2_0.Building
             using var s_ChunkReader = p_Chunk.GetReader();
 
             // TODO: Eventually replace this with a more "proper" workaround
-            if (p_Id.HasCompressionFlag())
-                ((s_ChunkReader.BaseStream as RimeReader)?.BaseStream as RimeReader)?.CopyTo(p_SbWriter);
+            // The compressed path unwraps two reader layers, which only exist for a chunk taken from a
+            // mounted object. For one read straight off disk both casts are null and NOTHING got written
+            // -- a silent empty .sb whose toc still listed the chunk. Fall back to a plain copy.
+            var s_Inner = (s_ChunkReader.BaseStream as RimeReader)?.BaseStream as RimeReader;
+
+            if (p_Id.HasCompressionFlag() && s_Inner != null)
+                s_Inner.CopyTo(p_SbWriter);
             else
                 s_ChunkReader.CopyTo(p_SbWriter);
 

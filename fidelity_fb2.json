@@ -5561,7 +5561,7 @@
   "MeshMaterialVariation": {
    "flags": 53,
    "align": 4,
-   "size": 72,
+   "size": 28,
    "ssize": 0,
    "fields": {
     "Shader": {
@@ -5574,7 +5574,7 @@
   "SurfaceShaderInstanceDataStruct": {
    "flags": 41,
    "align": 4,
-   "size": 64,
+   "size": 20,
    "ssize": 0,
    "fields": {
     "Shader": {
@@ -5584,22 +5584,22 @@
     },
     "BoolParameters": {
      "flags": 65,
-     "offset": 48,
+     "offset": 4,
      "soff": 4
     },
     "VectorParameters": {
      "flags": 65,
-     "offset": 52,
+     "offset": 8,
      "soff": 8
     },
     "VectorArrayParameters": {
      "flags": 65,
-     "offset": 56,
+     "offset": 12,
      "soff": 12
     },
     "TextureParameters": {
      "flags": 65,
-     "offset": 60,
+     "offset": 16,
      "soff": 16
     }
    }
@@ -5706,7 +5706,7 @@
   "TextureShaderParameter": {
    "flags": 41,
    "align": 4,
-   "size": 52,
+   "size": 8,
    "ssize": 0,
    "fields": {
     "ParameterName": {
@@ -5733,6 +5733,1724 @@
      "soff": 48
     }
    }
+  },
+  "MeshMaterial": {
+   "flags": 53,
+   "align": 4,
+   "size": 32,
+   "ssize": 0,
+   "fields": {
+    "ShaderInstance": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 16
+    },
+    "Shader": {
+     "flags": 41,
+     "offset": 12,
+     "soff": 20
+    }
+   }
+  },
+  "MeshAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 40,
+   "ssize": 0,
+   "fields": {
+    "LodGroup": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 48
+    },
+    "LodScale": {
+     "flags": 49469,
+     "offset": 16,
+     "soff": 52
+    },
+    "CullScale": {
+     "flags": 49469,
+     "offset": 20,
+     "soff": 56
+    },
+    "StreamingEnable": {
+     "flags": 49325,
+     "offset": 24,
+     "soff": 73
+    },
+    "OccluderMeshEnable": {
+     "flags": 49325,
+     "offset": 25,
+     "soff": 75
+    },
+    "OccluderHighPriority": {
+     "flags": 49325,
+     "offset": 26,
+     "soff": 72
+    },
+    "DestructionMaterialEnable": {
+     "flags": 49325,
+     "offset": 27,
+     "soff": 74
+    },
+    "EnlightenType": {
+     "flags": 137,
+     "offset": 28,
+     "soff": 64
+    },
+    "Materials": {
+     "flags": 65,
+     "offset": 32,
+     "soff": 68
+    },
+    "NameHash": {
+     "flags": 49421,
+     "offset": 36,
+     "soff": 60
+    }
+   }
+  },
+  "EnlightenType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "RigidMeshAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 40,
+   "ssize": 0,
+   "fields": {}
+  },
+  "StaticModelEntityData": {
+   "flags": 53,
+   "align": 16,
+   "size": 160,
+   "ssize": 0,
+   "fields": {
+    "PartLinks": {
+     "flags": 65,
+     "offset": 112,
+     "soff": 144
+    },
+    "Mesh": {
+     "flags": 53,
+     "offset": 116,
+     "soff": 148
+    },
+    "BoneCount": {
+     "flags": 49421,
+     "offset": 120,
+     "soff": 152
+    },
+    "BasePoseTransforms": {
+     "flags": 65,
+     "offset": 124,
+     "soff": 156
+    },
+    "ExcludeFromNearbyObjectDestruction": {
+     "flags": 49325,
+     "offset": 128,
+     "soff": 180
+    },
+    "PhysicsPartInfos": {
+     "flags": 65,
+     "offset": 132,
+     "soff": 176
+    },
+    "NetworkInfo": {
+     "flags": 41,
+     "offset": 136,
+     "soff": 160
+    },
+    "AnimatePhysics": {
+     "flags": 49325,
+     "offset": 152,
+     "soff": 181
+    },
+    "Visible": {
+     "flags": 49325,
+     "offset": 153,
+     "soff": 182
+    }
+   }
+  },
+  "PhysicsPartInfo": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "PartComponentIndex": {
+     "flags": 49421,
+     "offset": 0,
+     "soff": 0
+    },
+    "HealthStateIndex": {
+     "flags": 49421,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "StaticModelNetworkInfo": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "PartNetworkIdRanges": {
+     "flags": 65,
+     "offset": 0,
+     "soff": 0
+    },
+    "NetworkIdCount": {
+     "flags": 49421,
+     "offset": 4,
+     "soff": 4
+    },
+    "ChildNetworkInfos": {
+     "flags": 65,
+     "offset": 8,
+     "soff": 8
+    },
+    "ChildNetworkIdCount": {
+     "flags": 49421,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "IndexRange": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "First": {
+     "flags": 49421,
+     "offset": 0,
+     "soff": 0
+    },
+    "Last": {
+     "flags": 49421,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "ChildStaticModelNetworkInfo": {
+   "flags": 41,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "NetworkRange": {
+     "flags": 41,
+     "offset": 0,
+     "soff": 0
+    },
+    "ParentPartComponentIndex": {
+     "flags": 49421,
+     "offset": 8,
+     "soff": 8
+    },
+    "ParentHealthStateIndex": {
+     "flags": 49421,
+     "offset": 12,
+     "soff": 12
+    },
+    "InstanceIndex": {
+     "flags": 49421,
+     "offset": 16,
+     "soff": 16
+    }
+   }
+  },
+  "CompositeMeshAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 40,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UINodeData": {
+   "flags": 53,
+   "align": 4,
+   "size": 24,
+   "ssize": 0,
+   "fields": {
+    "Name": {
+     "flags": 16509,
+     "offset": 8,
+     "soff": 16
+    },
+    "IsRootNode": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 24
+    },
+    "ParentGraph": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 20
+    },
+    "ParentIsScreen": {
+     "flags": 49325,
+     "offset": 20,
+     "soff": 25
+    }
+   }
+  },
+  "ActionNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 52,
+   "ssize": 0,
+   "fields": {
+    "ActionKey": {
+     "flags": 49405,
+     "offset": 24,
+     "soff": 40
+    },
+    "Params": {
+     "flags": 65,
+     "offset": 28,
+     "soff": 44
+    },
+    "AppendIncomingParams": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 64
+    },
+    "ActionAsset": {
+     "flags": 53,
+     "offset": 36,
+     "soff": 48
+    },
+    "In": {
+     "flags": 53,
+     "offset": 40,
+     "soff": 52
+    },
+    "DataInputs": {
+     "flags": 65,
+     "offset": 44,
+     "soff": 60
+    },
+    "Out": {
+     "flags": 53,
+     "offset": 48,
+     "soff": 56
+    }
+   }
+  },
+  "ComparisonLogicNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 52,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Outputs": {
+     "flags": 65,
+     "offset": 28,
+     "soff": 44
+    },
+    "DataSourceInfo": {
+     "flags": 41,
+     "offset": 32,
+     "soff": 48
+    },
+    "SkipFractionals": {
+     "flags": 49325,
+     "offset": 48,
+     "soff": 68
+    }
+   }
+  },
+  "UIDataSourceInfo": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "DataName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "DataCategory": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    },
+    "DataKey": {
+     "flags": 49405,
+     "offset": 8,
+     "soff": 8
+    },
+    "UseDirectAccess": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 12
+    },
+    "UpdateOnInitialize": {
+     "flags": 49325,
+     "offset": 13,
+     "soff": 13
+    }
+   }
+  },
+  "DataGetNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Out": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "DataSource": {
+     "flags": 41,
+     "offset": 32,
+     "soff": 48
+    }
+   }
+  },
+  "DataSetNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 60,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Out": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "Param": {
+     "flags": 16509,
+     "offset": 32,
+     "soff": 48
+    },
+    "SetToEmptyString": {
+     "flags": 49325,
+     "offset": 36,
+     "soff": 72
+    },
+    "DataSource": {
+     "flags": 41,
+     "offset": 40,
+     "soff": 52
+    },
+    "ForceUpdate": {
+     "flags": 49325,
+     "offset": 56,
+     "soff": 73
+    }
+   }
+  },
+  "InstanceInputNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {
+    "Out": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    }
+   }
+  },
+  "InstanceOutputNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 36,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Id": {
+     "flags": 49405,
+     "offset": 28,
+     "soff": 44
+    },
+    "DestroyGraph": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 48
+    }
+   }
+  },
+  "UIDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIButtonDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "ButtonsDatasource": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    },
+    "DefaultButtonSet": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 36
+    },
+    "Visibility": {
+     "flags": 41,
+     "offset": 28,
+     "soff": 40
+    },
+    "InvertVisible": {
+     "flags": 49325,
+     "offset": 44,
+     "soff": 60
+    },
+    "Visible": {
+     "flags": 49325,
+     "offset": 45,
+     "soff": 61
+    },
+    "InputOnRelease": {
+     "flags": 49325,
+     "offset": 46,
+     "soff": 62
+    }
+   }
+  },
+  "UIButtonSet": {
+   "flags": 41,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {
+    "Buttons": {
+     "flags": 65,
+     "offset": 0,
+     "soff": 0
+    }
+   }
+  },
+  "UIButton": {
+   "flags": 41,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "ButtonLabel": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "ButtonId": {
+     "flags": 16509,
+     "offset": 4,
+     "soff": 4
+    },
+    "IsPremium": {
+     "flags": 49325,
+     "offset": 8,
+     "soff": 8
+    }
+   }
+  },
+  "UIDynamicDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Bindings": {
+     "flags": 65,
+     "offset": 8,
+     "soff": 16
+    },
+    "Refresh": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 20
+    }
+   }
+  },
+  "UINodeConnection": {
+   "flags": 53,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {
+    "SourceNode": {
+     "flags": 53,
+     "offset": 8,
+     "soff": 16
+    },
+    "TargetNode": {
+     "flags": 53,
+     "offset": 12,
+     "soff": 20
+    },
+    "SourcePort": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 24
+    },
+    "TargetPort": {
+     "flags": 53,
+     "offset": 20,
+     "soff": 28
+    },
+    "NumScreensToPop": {
+     "flags": 49405,
+     "offset": 24,
+     "soff": 32
+    }
+   }
+  },
+  "UINodePort": {
+   "flags": 53,
+   "align": 4,
+   "size": 24,
+   "ssize": 0,
+   "fields": {
+    "Name": {
+     "flags": 16509,
+     "offset": 8,
+     "soff": 16
+    },
+    "InstanceName": {
+     "flags": 16509,
+     "offset": 12,
+     "soff": 20
+    },
+    "Query": {
+     "flags": 137,
+     "offset": 16,
+     "soff": 24
+    },
+    "AllowManualRemove": {
+     "flags": 49325,
+     "offset": 20,
+     "soff": 28
+    }
+   }
+  },
+  "UIWidgetEventID": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIPageHeaderBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 72,
+   "ssize": 0,
+   "fields": {
+    "Header": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    },
+    "SubHeader": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 36
+    },
+    "Icon": {
+     "flags": 41,
+     "offset": 40,
+     "soff": 56
+    },
+    "StaticHeader": {
+     "flags": 16509,
+     "offset": 56,
+     "soff": 76
+    },
+    "StaticSubHeader": {
+     "flags": 16509,
+     "offset": 60,
+     "soff": 80
+    },
+    "StaticIcon": {
+     "flags": 16509,
+     "offset": 64,
+     "soff": 84
+    },
+    "LevelSpecificHeaders": {
+     "flags": 65,
+     "offset": 68,
+     "soff": 88
+    }
+   }
+  },
+  "UILevelSpecificPageHeader": {
+   "flags": 41,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {
+    "LevelNameSID": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "Header": {
+     "flags": 16509,
+     "offset": 4,
+     "soff": 4
+    },
+    "SubHeader": {
+     "flags": 16509,
+     "offset": 8,
+     "soff": 8
+    }
+   }
+  },
+  "UIGraphAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 44,
+   "ssize": 0,
+   "fields": {
+    "Nodes": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 48
+    },
+    "GlobalNode": {
+     "flags": 53,
+     "offset": 16,
+     "soff": 52
+    },
+    "Connections": {
+     "flags": 65,
+     "offset": 20,
+     "soff": 56
+    },
+    "AudioEventMappings": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 60
+    },
+    "BundleAssetName": {
+     "flags": 16509,
+     "offset": 28,
+     "soff": 64
+    },
+    "ProtectScreens": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 73
+    },
+    "Modal": {
+     "flags": 49325,
+     "offset": 33,
+     "soff": 72
+    },
+    "EventList": {
+     "flags": 65,
+     "offset": 36,
+     "soff": 68
+    },
+    "IsWin32UIGraphAsset": {
+     "flags": 49325,
+     "offset": 40,
+     "soff": 74
+    },
+    "IsXenonUIGraphAsset": {
+     "flags": 49325,
+     "offset": 41,
+     "soff": 75
+    },
+    "IsPs3UIGraphAsset": {
+     "flags": 49325,
+     "offset": 42,
+     "soff": 76
+    }
+   }
+  },
+  "UIScreenAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 44,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UITextDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "StaticText": {
+     "flags": 16509,
+     "offset": 8,
+     "soff": 16
+    },
+    "TextData": {
+     "flags": 41,
+     "offset": 12,
+     "soff": 20
+    },
+    "Visibility": {
+     "flags": 41,
+     "offset": 28,
+     "soff": 40
+    },
+    "Refresh": {
+     "flags": 49325,
+     "offset": 44,
+     "soff": 60
+    },
+    "OverrideDirectAccess": {
+     "flags": 49325,
+     "offset": 45,
+     "soff": 61
+    }
+   }
+  },
+  "WidgetNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 68,
+   "ssize": 0,
+   "fields": {
+    "WidgetAsset": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "FocusIndex": {
+     "flags": 49405,
+     "offset": 28,
+     "soff": 44
+    },
+    "AlwaysInFocus": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 80
+    },
+    "VerticalAlign": {
+     "flags": 137,
+     "offset": 36,
+     "soff": 52
+    },
+    "HorisontalAlign": {
+     "flags": 137,
+     "offset": 40,
+     "soff": 56
+    },
+    "ZDepthLevel": {
+     "flags": 49405,
+     "offset": 44,
+     "soff": 48
+    },
+    "DataBinding": {
+     "flags": 53,
+     "offset": 48,
+     "soff": 60
+    },
+    "InstanceName": {
+     "flags": 16509,
+     "offset": 52,
+     "soff": 68
+    },
+    "WidgetProperties": {
+     "flags": 65,
+     "offset": 56,
+     "soff": 64
+    },
+    "Outputs": {
+     "flags": 65,
+     "offset": 60,
+     "soff": 76
+    },
+    "Inputs": {
+     "flags": 65,
+     "offset": 64,
+     "soff": 72
+    }
+   }
+  },
+  "WidgetVerticalAlignment": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "WidgetHorisontalAlignment": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIWidgetProperty": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "Name": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "Value": {
+     "flags": 16509,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "BinaryLogicNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 52,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "True": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "False": {
+     "flags": 53,
+     "offset": 32,
+     "soff": 48
+    },
+    "DataSourceInfo": {
+     "flags": 41,
+     "offset": 36,
+     "soff": 52
+    }
+   }
+  },
+  "StateNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 52,
+   "ssize": 0,
+   "fields": {
+    "Screen": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "In": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "Show": {
+     "flags": 53,
+     "offset": 32,
+     "soff": 48
+    },
+    "Hide": {
+     "flags": 53,
+     "offset": 36,
+     "soff": 52
+    },
+    "Inputs": {
+     "flags": 65,
+     "offset": 40,
+     "soff": 56
+    },
+    "Outputs": {
+     "flags": 65,
+     "offset": 44,
+     "soff": 60
+    },
+    "RenderToTexture": {
+     "flags": 49325,
+     "offset": 48,
+     "soff": 64
+    }
+   }
+  },
+  "DialogNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 64,
+   "ssize": 0,
+   "fields": {
+    "DialogTitle": {
+     "flags": 16509,
+     "offset": 52,
+     "soff": 68
+    },
+    "DialogText": {
+     "flags": 16509,
+     "offset": 56,
+     "soff": 72
+    },
+    "Buttons": {
+     "flags": 65,
+     "offset": 60,
+     "soff": 76
+    }
+   }
+  },
+  "UIPopupButton": {
+   "flags": 41,
+   "align": 4,
+   "size": 8,
+   "ssize": 0,
+   "fields": {
+    "InputConcept": {
+     "flags": 137,
+     "offset": 0,
+     "soff": 0
+    },
+    "Label": {
+     "flags": 16509,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "UIInputAction": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIInputEventNodePort": {
+   "flags": 53,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {
+    "InputEventType": {
+     "flags": 137,
+     "offset": 24,
+     "soff": 32
+    }
+   }
+  },
+  "RefreshNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Out": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "DataSource": {
+     "flags": 41,
+     "offset": 32,
+     "soff": 48
+    }
+   }
+  },
+  "UIListDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 112,
+   "ssize": 0,
+   "fields": {
+    "ListIndex": {
+     "flags": 49405,
+     "offset": 8,
+     "soff": 16
+    },
+    "ListQuery": {
+     "flags": 41,
+     "offset": 12,
+     "soff": 20
+    },
+    "StaticItems": {
+     "flags": 65,
+     "offset": 28,
+     "soff": 40
+    },
+    "SendIndexWithEvent": {
+     "flags": 49325,
+     "offset": 32,
+     "soff": 113
+    },
+    "DefaultHighlightedRow": {
+     "flags": 41,
+     "offset": 36,
+     "soff": 48
+    },
+    "RowType": {
+     "flags": 137,
+     "offset": 56,
+     "soff": 72
+    },
+    "NavigationType": {
+     "flags": 137,
+     "offset": 60,
+     "soff": 76
+    },
+    "NavigationTypeSource": {
+     "flags": 41,
+     "offset": 64,
+     "soff": 80
+    },
+    "ClearListAtNavigationEvent": {
+     "flags": 49325,
+     "offset": 80,
+     "soff": 112
+    },
+    "UnFocusMode": {
+     "flags": 137,
+     "offset": 84,
+     "soff": 104
+    },
+    "EmptyRowType": {
+     "flags": 137,
+     "offset": 88,
+     "soff": 44
+    },
+    "RowSpacing": {
+     "flags": 49405,
+     "offset": 92,
+     "soff": 100
+    },
+    "UseScrollBar": {
+     "flags": 49325,
+     "offset": 96,
+     "soff": 120
+    },
+    "ScreenRotationEnabled": {
+     "flags": 49325,
+     "offset": 97,
+     "soff": 114
+    },
+    "Use3DSelection": {
+     "flags": 49325,
+     "offset": 98,
+     "soff": 115
+    },
+    "FireHighlightOnMouseOut": {
+     "flags": 49325,
+     "offset": 99,
+     "soff": 116
+    },
+    "DataIncludesButtonLayout": {
+     "flags": 49325,
+     "offset": 100,
+     "soff": 117
+    },
+    "Visible": {
+     "flags": 49325,
+     "offset": 101,
+     "soff": 118
+    },
+    "SpinnerEnabled": {
+     "flags": 49325,
+     "offset": 102,
+     "soff": 119
+    },
+    "DisabledRows": {
+     "flags": 16509,
+     "offset": 104,
+     "soff": 108
+    },
+    "HighLightOnUpdate": {
+     "flags": 49325,
+     "offset": 108,
+     "soff": 121
+    },
+    "KeepScrollOffset": {
+     "flags": 49325,
+     "offset": 109,
+     "soff": 122
+    }
+   }
+  },
+  "StaticListItem": {
+   "flags": 41,
+   "align": 4,
+   "size": 44,
+   "ssize": 0,
+   "fields": {
+    "ItemName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "AppendPlatformToSID": {
+     "flags": 49325,
+     "offset": 4,
+     "soff": 44
+    },
+    "DynamicDisable": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 4
+    },
+    "DynamicNewContent": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 24
+    },
+    "ExcludeInRetail": {
+     "flags": 49325,
+     "offset": 40,
+     "soff": 45
+    }
+   }
+  },
+  "DefaultSelectionItem": {
+   "flags": 41,
+   "align": 4,
+   "size": 20,
+   "ssize": 0,
+   "fields": {
+    "DefaultSelectionQuery": {
+     "flags": 41,
+     "offset": 0,
+     "soff": 0
+    },
+    "DefaultSelectionIndex": {
+     "flags": 49405,
+     "offset": 16,
+     "soff": 20
+    }
+   }
+  },
+  "UIListRowType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIListNavigationType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIListUnFocusMode": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIListEmptyRowType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIBarDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 60,
+   "ssize": 0,
+   "fields": {
+    "Visibility": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    },
+    "Value": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 36
+    },
+    "Color": {
+     "flags": 41,
+     "offset": 40,
+     "soff": 56
+    },
+    "Refresh": {
+     "flags": 49325,
+     "offset": 56,
+     "soff": 76
+    }
+   }
+  },
+  "UICompassDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 88,
+   "ssize": 0,
+   "fields": {
+    "Heading": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    },
+    "Objectives": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 36
+    },
+    "Visibility": {
+     "flags": 41,
+     "offset": 40,
+     "soff": 56
+    },
+    "ShowAirRadar": {
+     "flags": 41,
+     "offset": 56,
+     "soff": 76
+    },
+    "RadarSweepDegree": {
+     "flags": 41,
+     "offset": 72,
+     "soff": 96
+    }
+   }
+  },
+  "UIHUDMessageBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 44,
+   "ssize": 0,
+   "fields": {
+    "MessageQuery": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    },
+    "VisibilityQuery": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 36
+    },
+    "NumberOfRows": {
+     "flags": 49405,
+     "offset": 40,
+     "soff": 56
+    }
+   }
+  },
+  "UIWidgetPathBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 40,
+   "ssize": 0,
+   "fields": {
+    "WidgetPathQuery": {
+     "flags": 41,
+     "offset": 8,
+     "soff": 16
+    },
+    "Visibility": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 36
+    }
+   }
+  },
+  "SplitterNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 32,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Outputs": {
+     "flags": 65,
+     "offset": 28,
+     "soff": 44
+    }
+   }
+  },
+  "UIImageDataBinding": {
+   "flags": 53,
+   "align": 4,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "StaticImageUrl": {
+     "flags": 16509,
+     "offset": 8,
+     "soff": 16
+    },
+    "ImageData": {
+     "flags": 41,
+     "offset": 12,
+     "soff": 20
+    },
+    "Visibility": {
+     "flags": 41,
+     "offset": 28,
+     "soff": 40
+    },
+    "Visible": {
+     "flags": 49325,
+     "offset": 44,
+     "soff": 60
+    }
+   }
+  },
+  "JumpNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 36,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "TargetNode": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "TargetPort": {
+     "flags": 53,
+     "offset": 32,
+     "soff": 48
+    }
+   }
+  },
+  "DataIncrementNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 60,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Out": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "Max": {
+     "flags": 49469,
+     "offset": 32,
+     "soff": 48
+    },
+    "Min": {
+     "flags": 49469,
+     "offset": 36,
+     "soff": 52
+    },
+    "IncrementSize": {
+     "flags": 49469,
+     "offset": 40,
+     "soff": 56
+    },
+    "DataSource": {
+     "flags": 41,
+     "offset": 44,
+     "soff": 60
+    }
+   }
+  },
+  "DataStepNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 68,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Out": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "Steps": {
+     "flags": 65,
+     "offset": 32,
+     "soff": 48
+    },
+    "CurrentStepDataSource": {
+     "flags": 41,
+     "offset": 36,
+     "soff": 52
+    },
+    "DataSource": {
+     "flags": 41,
+     "offset": 52,
+     "soff": 72
+    }
+   }
+  },
+  "DataToggleNode": {
+   "flags": 53,
+   "align": 4,
+   "size": 48,
+   "ssize": 0,
+   "fields": {
+    "In": {
+     "flags": 53,
+     "offset": 24,
+     "soff": 40
+    },
+    "Out": {
+     "flags": 53,
+     "offset": 28,
+     "soff": 44
+    },
+    "DataSource": {
+     "flags": 41,
+     "offset": 32,
+     "soff": 48
+    }
+   }
+  },
+  "OperandLogicNode": {
+   "flags": 53,
+   "align": 8,
+   "size": 88,
+   "ssize": 0,
+   "fields": {
+    "LeftDataSourceInfo": {
+     "flags": 41,
+     "offset": 24,
+     "soff": 40
+    },
+    "Operator": {
+     "flags": 137,
+     "offset": 40,
+     "soff": 60
+    },
+    "RightDataSourceInfo": {
+     "flags": 41,
+     "offset": 44,
+     "soff": 64
+    },
+    "RightLiteralOperand": {
+     "flags": 49485,
+     "offset": 64,
+     "soff": 88
+    },
+    "In": {
+     "flags": 53,
+     "offset": 72,
+     "soff": 96
+    },
+    "True": {
+     "flags": 53,
+     "offset": 76,
+     "soff": 100
+    },
+    "False": {
+     "flags": 53,
+     "offset": 80,
+     "soff": 104
+    }
+   }
+  },
+  "UILogicOperator": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 12,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UIWidgetAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "WidgetEvents": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 92
+    }
+   }
+  },
+  "WidgetEventQueryPair": {
+   "flags": 41,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "Name": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "Query": {
+     "flags": 137,
+     "offset": 4,
+     "soff": 4
+    },
+    "InstanceName": {
+     "flags": 16509,
+     "offset": 8,
+     "soff": 8
+    },
+    "IsOutput": {
+     "flags": 49325,
+     "offset": 12,
+     "soff": 12
+    }
+   }
+  },
+  "UIAudioEventAsset": {
+   "flags": 53,
+   "align": 4,
+   "size": 16,
+   "ssize": 0,
+   "fields": {
+    "AudioEventMappings": {
+     "flags": 65,
+     "offset": 12,
+     "soff": 48
+    }
+   }
+  },
+  "UIAudioEventMapping": {
+   "flags": 41,
+   "align": 4,
+   "size": 56,
+   "ssize": 0,
+   "fields": {
+    "EventName": {
+     "flags": 16509,
+     "offset": 0,
+     "soff": 0
+    },
+    "SoundAsset": {
+     "flags": 53,
+     "offset": 4,
+     "soff": 4
+    }
+   }
+  },
+  "UIComponentData": {
+   "flags": 53,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {
+    "ShortName": {
+     "flags": 16509,
+     "offset": 12,
+     "soff": 48
+    },
+    "DataSources": {
+     "flags": 65,
+     "offset": 16,
+     "soff": 52
+    },
+    "UpdatesPerSecond": {
+     "flags": 49405,
+     "offset": 20,
+     "soff": 60
+    },
+    "UpdateType": {
+     "flags": 137,
+     "offset": 24,
+     "soff": 56
+    }
+   }
+  },
+  "UIUpdateType": {
+   "flags": 137,
+   "align": 4,
+   "size": 4,
+   "ssize": 0,
+   "fields": {}
+  },
+  "UICustomizationCompData": {
+   "flags": 53,
+   "align": 16,
+   "size": 96,
+   "ssize": 0,
+   "fields": {
+    "SoldierOffset": {
+     "flags": 53289,
+     "offset": 32,
+     "soff": 64
+    },
+    "SoldierRotation": {
+     "flags": 53289,
+     "offset": 48,
+     "soff": 80
+    },
+    "VehicleRotation": {
+     "flags": 53289,
+     "offset": 64,
+     "soff": 96
+    },
+    "NetworkThrottleTimer": {
+     "flags": 49469,
+     "offset": 80,
+     "soff": 112
+    }
+   }
+  },
+  "UIKitCompData": {
+   "flags": 53,
+   "align": 4,
+   "size": 28,
+   "ssize": 0,
+   "fields": {}
   }
  },
  "arrayMembers": {
@@ -5758,7 +7476,20 @@
   "struct:VectorShaderParameter": 41,
   "struct:VectorArrayShaderParameter": 41,
   "struct:Vec4": 53289,
-  "struct:TextureShaderParameter": 41
+  "struct:TextureShaderParameter": 41,
+  "struct:LinearTransform": 53289,
+  "struct:PhysicsPartInfo": 41,
+  "struct:IndexRange": 41,
+  "struct:ChildStaticModelNetworkInfo": 41,
+  "prim:7": 16509,
+  "struct:UIButton": 41,
+  "struct:UIDataSourceInfo": 41,
+  "struct:UILevelSpecificPageHeader": 41,
+  "struct:UIWidgetProperty": 41,
+  "struct:UIPopupButton": 41,
+  "struct:StaticListItem": 41,
+  "struct:WidgetEventQueryPair": 41,
+  "struct:UIAudioEventMapping": 41
  },
  "primitives": {
   "7": 16509,
@@ -5767,6 +7498,7 @@
   "10": 49325,
   "15": 49405,
   "11": 49341,
-  "14": 49389
+  "14": 49389,
+  "20": 49485
  }
 }

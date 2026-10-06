@@ -1,3 +1,4 @@
+using System;
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
@@ -63,8 +64,12 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<ShaderDbFunctionsCommand>();
             RegisterCommand<DumpShaderBindingsCommand>();
             RegisterCommand<ShaderDbAddTextureCommand>();
+            RegisterCommand<ShaderDbAddExternalTextureCommand>();
+            RegisterCommand<ShaderDbSetExternalValueCommand>();
+            RegisterCommand<ShaderDbCopySamplersCommand>();
             RegisterCommand<ShaderDbCloneEntryCommand>();
             RegisterCommand<ShaderDbSetFlagsCommand>();
+            RegisterCommand<ShaderDbVertexMeshPosCommand>();
             RegisterCommand<ShaderDbMergeCommand>();
             RegisterCommand<ShaderDbSliceCommand>();
             RegisterCommand<DumpHeightfieldCommand>();
@@ -91,6 +96,9 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<ListSbBundlesCommand>();
             RegisterCommand<DumpResourceWithChunksCommand>();
             RegisterCommand<DumpSwfJsonCommand>();
+            RegisterCommand<RimeLib.Cmd.Commands.Common.GfxStageListCommand>();
+            RegisterCommand<RimeLib.Cmd.Commands.Common.GfxStageEditCommand>();
+            RegisterCommand<UiBuildModCommand>();
             RegisterCommand<DumpPartitionCommand>();
             RegisterCommand<DumpPartitionByGuidCommand>();
             RegisterCommand<HashMountedPayloadsCommand>();
@@ -113,6 +121,8 @@ namespace RimeLib.Cmd.Contexts
             if (EngineInterfaceRegistry.IsSupported<ITextureConverter>(s_EngineType))
             {
                 RegisterCommand<DumpTextureCommand>();
+                RegisterCommand<DumpChunkVariantsCommand>();
+                RegisterCommand<DumpPartitionVariantsCommand>();
             }
 
             if (EngineInterfaceRegistry.IsSupported<ITerrainDecalsConverter>(s_EngineType))
@@ -124,7 +134,16 @@ namespace RimeLib.Cmd.Contexts
             {
                 RegisterCommand<DumpMeshCommand>();
                 RegisterCommand<DumpMeshSectionsCommand>();
+                RegisterCommand<VehiclePartCensusCommand>();
+                RegisterCommand<DumpMeshLodChunksCommand>();
+                RegisterCommand<DumpWeaponPoseCommand>();
+                RegisterCommand<DumpWeaponCameraCommand>();
+                RegisterCommand<DumpArmsPoseCommand>();
+                RegisterCommand<ListAnimBankCommand>();
+                RegisterCommand<DumpAnimFrameCommand>();
+                RegisterCommand<DumpWeaponPartPosesCommand>();
                 RegisterCommand<MeshRoundtripCommand>();
+                RegisterCommand<MeshRenameCommand>();
 
                 if (EngineInterfaceRegistry.IsSupported<IToolKit>(s_EngineType) && EngineInterfaceRegistry.IsSupported<IPartitionConverter>(s_EngineType))
                 {
@@ -287,7 +306,26 @@ namespace RimeLib.Cmd.Contexts
             p_Writer.WriteLine($"[mesh_roundtrip] {p_Name}: {s_Original.Length} bytes | Type={s_Layout.MeshType} Flags={s_Layout.Flags} LODs={s_Layout.LodCount} subsets={s_Layout.TotalSubsetCount}");
             p_Writer.WriteLine($"  Name='{s_Layout.Name.Object}' ShortName='{s_Layout.ShortName.Object}' NameHash=0x{s_Layout.NameHash:X8} Padding=0x{s_Layout.Padding:X8}");
             for (var i = 0; i < 5; ++i)
-                p_Writer.WriteLine($"  LOD[{i}] BaseAddress=0x{s_Layout.Lods[i].BaseAddress:X} present={s_Layout.Lods[i].Object != null}");
+            {
+                p_Writer.WriteLine($"  LOD[{i}] BaseAddress=0x{s_Layout.Lods[i].BaseAddress:X} present={s_Layout.Lods[i].Object != null}" +
+                                   (s_Layout.Lods[i].Object is { } s_LodInfo
+                                       ? $" flags={s_LodInfo.Flags} chunk={s_LodInfo.DataChunkId} (resolve_missing_chunks adds a LOD's chunk only with IsBaseLod set)"
+                                       : ""));
+
+                // Which MATERIAL each subset of this LOD draws with, and its vertex declaration: a variation that only
+                // repoints the material the base LOD uses leaves the lower LODs (often another preset) as shipped.
+                if (s_Layout.Lods[i].Object is { } s_LodSubsets)
+                {
+                    var s_Lines = new List<string>();
+                    for (var s_S = 0; s_S < s_LodSubsets.Subsets.Get.Length; ++s_S)
+                    {
+                        var s_Subset = s_LodSubsets.Subsets.Get[s_S];
+                        s_Lines.Add($"subset {s_S}: material {s_Subset.MaterialIndex} decl=0x{s_Subset.GeometryDeclarationDesc.Hash:X8} verts={s_Subset.VertexCount}");
+                    }
+
+                    p_Writer.WriteLine($"  LOD[{i}] SUBSETS: {string.Join(" | ", s_Lines)}");
+                }
+            }
 
             // Re-serialize just the header and compare to original[0..headerLen].
             byte[] s_Rewritten;
@@ -330,6 +368,29 @@ namespace RimeLib.Cmd.Contexts
                 for (var s_J = 0; s_J < s_LodBytes.Length; ++s_J)
                 {
                     if (s_Off + s_J >= s_Original.Length || s_Original[s_Off + s_J] != s_LodBytes[s_J]) { s_LodDiff = s_J; break; }
+                }
+
+                // A skinned mesh's bone tables, read raw from the resource header (no data chunk needed): the skeleton bone index each
+                // mesh bone slot maps to, and the bone short-name hashes. A StaticModelEntity's basePoseTransforms run in THIS order
+                // (one per mesh bone), not the skeleton's.
+                if (s_Layout.MeshType == fb.MeshType.MeshType_Skinned && s_Lod.PartCount > 0)
+                {
+                    string PeekWords(ulong p_Address, int p_Words)
+                    {
+                        if (p_Address == 0 || (long) p_Address + p_Words * 4L > s_Original.Length) return "(none)";
+                        var s_Words = new List<string>();
+                        for (var k = 0; k < p_Words; k++) s_Words.Add(BitConverter.ToUInt32(s_Original, (int) p_Address + k * 4).ToString());
+                        return string.Join(",", s_Words);
+                    }
+                    string PeekHex(ulong p_Address, int p_Words)
+                    {
+                        if (p_Address == 0 || (long) p_Address + p_Words * 4L > s_Original.Length) return "(none)";
+                        var s_Words = new List<string>();
+                        for (var k = 0; k < p_Words; k++) s_Words.Add($"0x{BitConverter.ToUInt32(s_Original, (int) p_Address + k * 4):X8}");
+                        return string.Join(",", s_Words);
+                    }
+                    var s_Bones = (int) System.Math.Min(64, s_Lod.PartCount);
+                    p_Writer.WriteLine($"  LOD[{s_I}] BONES: partCount={s_Lod.PartCount} boneIndexArray=[{PeekWords(s_Lod.BoneIndexArrayPartBoundingBoxes.BaseAddress, s_Bones)}] boneShortNameHashes=[{PeekHex(s_Lod.BoneShortNameArrayPartTransforms.BaseAddress, s_Bones)}]");
                 }
 
                 if (s_LodDiff < 0)
@@ -749,8 +810,137 @@ namespace RimeLib.Cmd.Contexts
         /// subsets (its usemtl Material_N groups are numbered by that walk). The shader comes from the
         /// mesh partition's own MeshMaterial instances — the same resolution the MVDB tooling uses.
         /// </summary>
+        /// <summary>
+        /// The model-space pose of a skeleton's bones, one 3x4 row-vector transform per bone (right, up,
+        /// forward, translation), read from its SkeletonAsset. Null when the partition is not mounted or
+        /// holds no skeleton.
+        /// </summary>
+        private (string Name, List<float[]> Bones)? LoadSkeletonPose(string p_Name, TextWriter p_Writer) =>
+            LoadSkeletonPose(p_Name, p_Writer, out _);
+
+        /// <summary>
+        /// A pose FILE (dump_weapon_pose's output) as the per-bone transforms the dump applies: the file's
+        /// transform for every bone it names, the identity for the rest, in the order of the skeleton the
+        /// file names. Null when the file or its skeleton cannot be read.
+        /// </summary>
+        private (string Name, List<float[]> Bones)? LoadPoseFile(string p_Path, TextWriter p_Writer)
+        {
+            WeaponPose.PoseFile s_File;
+            try
+            {
+                s_File = WeaponPose.Read(p_Path);
+            }
+            catch (Exception s_Exception)
+            {
+                p_Writer.WriteLine($"MESHPOSE: pose file '{p_Path}' unreadable ({s_Exception.Message}) — vertices stay as stored.");
+                return null;
+            }
+
+            if (LoadSkeletonPose(s_File.Skeleton, p_Writer, out var s_Names) is not { } s_Rest)
+                return null;
+
+            var s_Bones = new List<float[]>();
+            var s_Applied = 0;
+            for (var i = 0; i < s_Rest.Bones.Count; i++)
+            {
+                if (i < s_Names.Count && s_File.Bones.TryGetValue(s_Names[i], out var s_Transform) && s_Transform.Length == 12)
+                {
+                    s_Bones.Add(s_Transform);
+                    s_Applied++;
+                }
+                else
+                {
+                    s_Bones.Add(new float[] { 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0 });
+                }
+            }
+
+            p_Writer.WriteLine($"MESHPOSE: pose file {Path.GetFileName(p_Path)} (bank {s_File.Bank}, '{s_File.Anim}'): " +
+                               $"{s_Applied} of {s_Bones.Count} bone(s) posed, the rest stay.");
+            return (p_Path, s_Bones);
+        }
+
+        private (string Name, List<float[]> Bones)? LoadSkeletonPose(string p_Name, TextWriter p_Writer, out List<string> p_BoneNames)
+        {
+            p_BoneNames = new List<string>();
+            if (!m_Mounter.TryGetPartition(p_Name, out var s_Mounted))
+            {
+                p_Writer.WriteLine($"MESHPOSE: skeleton '{p_Name}' is not mounted — vertices stay in bone space.");
+                return null;
+            }
+
+            try
+            {
+                var s_Converter = EngineInterfaceRegistry.Create<IPartitionConverter>(m_Mounter.GetEngineType());
+                if (s_Converter.FromPartitionObject(p_Name, s_Mounted.FirstVariant)
+                        is not RimeLib.Serialization.Frostbite2_0.Ebx.DatabasePartition s_Partition)
+                    return null;
+
+                var s_Skeleton = s_Partition.InstanceMap.Values.OfType<fb.SkeletonAsset>().FirstOrDefault();
+                if (s_Skeleton == null)
+                {
+                    p_Writer.WriteLine($"MESHPOSE: '{p_Name}' holds no SkeletonAsset — vertices stay in bone space.");
+                    return null;
+                }
+
+                var s_Bones = new List<float[]>();
+                foreach (var s_Pose in s_Skeleton.ModelPose)
+                    s_Bones.Add(new[]
+                    {
+                        s_Pose.right.x, s_Pose.right.y, s_Pose.right.z,
+                        s_Pose.up.x, s_Pose.up.y, s_Pose.up.z,
+                        s_Pose.forward.x, s_Pose.forward.y, s_Pose.forward.z,
+                        s_Pose.trans.x, s_Pose.trans.y, s_Pose.trans.z,
+                    });
+
+                p_BoneNames = s_Skeleton.BoneNames.ToList();
+                p_Writer.WriteLine($"MESHPOSE: skeleton={s_Skeleton.Name} bones={s_Bones.Count} " +
+                                   $"({string.Join(",", s_Skeleton.BoneNames)})");
+                return (p_Name, s_Bones);
+            }
+            catch (Exception s_Exception)
+            {
+                p_Writer.WriteLine($"MESHPOSE: skeleton '{p_Name}' unreadable ({s_Exception.Message}) — vertices stay in bone space.");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Writes, per LOD-0 subset of a mesh, its shader and its geometry, as the sectioned binary the
+        /// preview and the sticker composer read ("RSM4": per section a shader name, a material name, the
+        /// category, the double-sided flag, then position+uv per vertex and relative indices).
+        ///
+        /// A skinned weapon comes out "disassembled" — the feed cover floating over the receiver, the
+        /// magazine hanging below the grip (keku, 2026-09-11, with pictures of the M240 and the AS VAL).
+        /// MEASURED: its vertices are stored in model space with every animated part sitting around the
+        /// REST position of its bone in the shared weapon skeleton (animations/skeletons/weapon/weaponske01,
+        /// 25 translation-only bones, one for every hand-held weapon); the game assembles the parts with the
+        /// weapon's own animation package (animations/antanimations/&lt;weapon&gt;), and posing with the rest
+        /// skeleton only doubles the offsets. The dump therefore stays as the game stores it, and the bone
+        /// palettes and per-vertex bone indices are read so that a POSE FILE (dump_weapon_pose: the idle pose of
+        /// the weapon's own animation package, composed on that skeleton) assembles it — each vertex blended
+        /// through the transforms of its bones. The RSM4 stamp marks dumps made by this version; consumers
+        /// re-dump anything older.
+        /// </summary>
+        /// A COMPOSITE object (every vehicle body) comes out disassembled for a different reason, and no
+        /// skeleton can fix it: there is none. Its geometry is split into PARTS, each modelled around its own
+        /// origin, and the placement of each part lives in the mesh layout itself — the three fields after
+        /// PartCount are a union read by mesh type (the same trio Frosty's MeshSet reader calls
+        /// bonePartOffset01/02/03): for a skinned mesh they are the bone index array and the bone short-name
+        /// hashes, for a composite one they are a bounding box per part, a TRANSFORM per part, and, per
+        /// section, a 24-byte bitfield naming the parts that section touches. A vertex says which part it
+        /// belongs to in its BoneIndices element (UByte4, and no weights at all), so p_Parts assembles the
+        /// object by running every vertex through the transform of its own part.
+        /// <param name="p_Skeleton">
+        /// A skeleton partition whose ModelPose assembles the mesh, or null to leave the vertices as stored.
+        /// </param>
+        /// <param name="p_Parts">
+        /// True assembles a COMPOSITE mesh with its own part transforms. Opt-in on purpose: the weapons
+        /// taught that transforming vertices that are already placed doubles the offset, so a caller asks for
+        /// it and checks the result with a picture.
+        /// </param>
         internal int DumpMeshSections(string p_Name, FileInfo p_Destination, TextWriter p_Writer,
-            string? p_ShaderDb = null)
+            string? p_ShaderDb = null, string? p_Skeleton = null, bool p_Parts = false, int p_UvSet = 0,
+            IReadOnlyCollection<string>? p_Swap = null)
         {
             // Per-shader double-sided flags, read from the level's shaderdb when one is named: DoubleSided
             // is bit 1 of each SOLUTION's Flags (measured on the glass preset's RE), and it is consistent
@@ -878,11 +1068,150 @@ namespace RimeLib.Cmd.Contexts
                             s_SubsetIndices.Add((s_SubsetIndex, (int) s_Category));
 
                 using var s_Out = new BinaryWriter(File.Create(p_Destination.FullName));
-                s_Out.Write(System.Text.Encoding.ASCII.GetBytes("RSM3"));
+                // RSM5 carries BOTH texture coordinate sets per vertex (RSM4 carried one). A vehicle body
+                // preset samples its diffuse with one and its normal map with the other, so a dump that
+                // keeps a single set cannot draw it whichever one it keeps — the consumer needs both and
+                // decides per shader, the way the game's vertex shader does.
+                // RSM6 adds the part index per vertex (see the write below); RSM5 added the second UV set.
+                // RSM7 adds a THIRD uv slot per vertex (the jets' TexCoord2, or empty), and the slots are
+                // written in the order the section's shader hands them over (MESHUV `written=`).
+                s_Out.Write(System.Text.Encoding.ASCII.GetBytes("RSM7"));
                 var s_CountPosition = s_Out.BaseStream.Position;
                 s_Out.Write(0);
 
                 using var s_VertexReader = new RimeReader(new MemoryStream(s_VertexData));
+
+                // What the layout says about its bones — or about its PARTS: the count and the two tables,
+                // read raw at their pointers. Which of the two meanings applies is the mesh's TYPE, so the
+                // type is printed first; a mesh that says nothing about itself is how a whole family (the
+                // vehicles) went unnoticed while this line only came out for skinned meshes.
+                var s_LodType = s_MeshLayout.Type;
+                var s_Skinned = s_MeshSet.MeshType == fb.MeshType.MeshType_Skinned;
+                var s_Composite = s_LodType == fb.MeshType.MeshType_Composite ||
+                                  s_MeshSet.MeshType == fb.MeshType.MeshType_Composite;
+
+                string Peek(ulong p_Address, int p_Words)
+                {
+                    if (p_Address == 0 || (long) p_Address + p_Words * 4L > s_Reader.Length)
+                        return "(none)";
+
+                    s_Reader.Seek((long) p_Address, SeekOrigin.Begin);
+                    var s_Words = new List<string>();
+                    for (var i = 0; i < p_Words; i++)
+                    {
+                        var s_Word = s_Reader.ReadUInt32();
+                        s_Words.Add(s_Word < 0x10000 ? s_Word.ToString() : $"0x{s_Word:X8}/{BitConverter.ToSingle(BitConverter.GetBytes(s_Word), 0):0.###}");
+                    }
+
+                    return string.Join(",", s_Words);
+                }
+
+                p_Writer.WriteLine($"MESHLAYOUT: type={s_MeshSet.MeshType}/{s_LodType} partCount={s_MeshLayout.PartCount} " +
+                                   $"boneIndexArrayPartBoxes@{s_MeshLayout.BoneIndexArrayPartBoundingBoxes.BaseAddress}=[{Peek(s_MeshLayout.BoneIndexArrayPartBoundingBoxes.BaseAddress, (int) System.Math.Min(64, System.Math.Max(s_MeshLayout.PartCount, 1)))}] " +
+                                   $"boneShortNamesPartTransforms@{s_MeshLayout.BoneShortNameArrayPartTransforms.BaseAddress}=[{Peek(s_MeshLayout.BoneShortNameArrayPartTransforms.BaseAddress, (int) System.Math.Min(64, System.Math.Max(s_MeshLayout.PartCount, 1)))}] " +
+                                   $"subsetPartIndices@{s_MeshLayout.SubsetPartIndices} data@{s_MeshLayout.Data} auxOffset={s_MeshLayout.AuxVertexIndexDataOffset} " +
+                                   $"edgeSize={s_MeshLayout.EdgePartitionBufferSize} setFlags={s_MeshSet.Flags} lodFlags={s_MeshLayout.Flags}");
+
+                // The parts of a composite mesh, decoded through that union: a box and a transform per part,
+                // and the parts each section rides. A float3 in a resource is padded to 16 bytes, so a box is
+                // 32 bytes and a transform (right, up, forward, trans) is 64.
+                var s_PartTransforms = new List<float[]>();
+                var s_SubsetParts = new System.Collections.Generic.Dictionary<int, List<int>>();
+                if (s_Composite && s_MeshLayout.PartCount > 0)
+                {
+                    float[] ReadPaddedVector3()
+                    {
+                        var s_X = s_Reader.ReadSingle();
+                        var s_Y = s_Reader.ReadSingle();
+                        var s_Z = s_Reader.ReadSingle();
+                        s_Reader.ReadSingle();
+                        return new[] { s_X, s_Y, s_Z };
+                    }
+
+                    var s_Boxes = new List<float[]>();
+                    var s_BoxAddress = s_MeshLayout.BoneIndexArrayPartBoundingBoxes.BaseAddress;
+                    if (s_BoxAddress != 0 && (long) s_BoxAddress + s_MeshLayout.PartCount * 32L <= s_Reader.Length)
+                    {
+                        s_Reader.Seek((long) s_BoxAddress, SeekOrigin.Begin);
+                        for (var i = 0; i < s_MeshLayout.PartCount; i++)
+                        {
+                            var s_Min = ReadPaddedVector3();
+                            var s_Max = ReadPaddedVector3();
+                            s_Boxes.Add(new[] { s_Min[0], s_Min[1], s_Min[2], s_Max[0], s_Max[1], s_Max[2] });
+                        }
+                    }
+
+                    var s_TransformAddress = s_MeshLayout.BoneShortNameArrayPartTransforms.BaseAddress;
+                    if (s_TransformAddress != 0 && (long) s_TransformAddress + s_MeshLayout.PartCount * 64L <= s_Reader.Length)
+                    {
+                        s_Reader.Seek((long) s_TransformAddress, SeekOrigin.Begin);
+                        for (var i = 0; i < s_MeshLayout.PartCount; i++)
+                        {
+                            var s_Right = ReadPaddedVector3();
+                            var s_Up = ReadPaddedVector3();
+                            var s_Forward = ReadPaddedVector3();
+                            var s_Trans = ReadPaddedVector3();
+                            s_PartTransforms.Add(new[]
+                            {
+                                s_Right[0], s_Right[1], s_Right[2],
+                                s_Up[0], s_Up[1], s_Up[2],
+                                s_Forward[0], s_Forward[1], s_Forward[2],
+                                s_Trans[0], s_Trans[1], s_Trans[2],
+                            });
+                        }
+                    }
+
+                    // Per section, 24 bytes = one bit per part, low bit first (Frosty reads the same 0x18).
+                    var s_SubsetCount = s_MeshLayout.Subsets.Get.Length;
+                    if (s_MeshLayout.SubsetPartIndices != 0 &&
+                        (long) s_MeshLayout.SubsetPartIndices + s_SubsetCount * 24L <= s_Reader.Length)
+                    {
+                        s_Reader.Seek((long) s_MeshLayout.SubsetPartIndices, SeekOrigin.Begin);
+                        for (var s_S = 0; s_S < s_SubsetCount; s_S++)
+                        {
+                            var s_Parts = new List<int>();
+                            for (var i = 0; i < 24; i++)
+                            {
+                                var s_Byte = s_Reader.ReadUByte();
+                                for (var j = 0; j < 8; j++)
+                                    if ((s_Byte & (1 << j)) != 0)
+                                        s_Parts.Add(i * 8 + j);
+                            }
+
+                            s_SubsetParts[s_S] = s_Parts;
+                        }
+                    }
+
+                    for (var i = 0; i < s_MeshLayout.PartCount; i++)
+                        p_Writer.WriteLine($"MESHPART: part={i} " +
+                                           (i < s_Boxes.Count
+                                               ? $"box=({s_Boxes[i][0]:0.###},{s_Boxes[i][1]:0.###},{s_Boxes[i][2]:0.###})-({s_Boxes[i][3]:0.###},{s_Boxes[i][4]:0.###},{s_Boxes[i][5]:0.###}) "
+                                               : "box=(none) ") +
+                                           (i < s_PartTransforms.Count
+                                               ? $"right=({s_PartTransforms[i][0]:0.###},{s_PartTransforms[i][1]:0.###},{s_PartTransforms[i][2]:0.###}) " +
+                                                 $"up=({s_PartTransforms[i][3]:0.###},{s_PartTransforms[i][4]:0.###},{s_PartTransforms[i][5]:0.###}) " +
+                                                 $"forward=({s_PartTransforms[i][6]:0.###},{s_PartTransforms[i][7]:0.###},{s_PartTransforms[i][8]:0.###}) " +
+                                                 $"trans=({s_PartTransforms[i][9]:0.###},{s_PartTransforms[i][10]:0.###},{s_PartTransforms[i][11]:0.###})"
+                                               : "transform=(none)"));
+                }
+
+                // The pose to assemble a skinned mesh with, ONLY when a skeleton is named. ⛔ MEASURED
+                // (2026-09-11): the vertices of a weapon already sit in model space around each bone's REST
+                // position of the shared weapon skeleton (the feed cover of the M240 at y 0.12-0.16 over a
+                // receiver ending at 0.09); posing them with that same rest pose DOUBLES every offset. The
+                // pose that assembles a weapon in the game is the one its own animation package drives, so
+                // until that pose is available a dump stays as the game stores it, and a caller who has a
+                // skeleton carrying the assembled pose names it.
+                // A pose FILE (dump_weapon_pose) carries the assembled pose per bone in the mesh's own space; a
+                // skeleton NAME applies its raw ModelPose (see above for why that alone is not the answer).
+                (string Name, List<float[]> Bones)? s_Pose = null;
+                if (s_Skinned && p_Skeleton != null)
+                    s_Pose = p_Skeleton.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+                        ? LoadPoseFile(p_Skeleton, p_Writer)
+                        : LoadSkeletonPose(p_Skeleton, p_Writer);
+
+                var s_PosedVertices = 0;
+                var s_UnposedVertices = 0;
 
                 foreach (var (s_SubsetIndex, s_SubsetCategory) in s_SubsetIndices)
                 {
@@ -890,42 +1219,245 @@ namespace RimeLib.Cmd.Contexts
                     var s_MaterialIndex = (int) s_Subset.MaterialIndex;
                     var s_Shader = s_ShadersByIndex.TryGetValue(s_MaterialIndex, out var s_Found) ? s_Found : "";
 
-                    // Decode ONLY position and the first UV per vertex; the preview computes normals and
-                    // tangents itself. Formats are read by width — halves through the same conversion the
-                    // exporter uses.
+                    // Decode position, the first UV and — for posing — the bone indices and weights per
+                    // vertex; the preview computes normals and tangents itself. Formats are read by width —
+                    // halves through the same conversion the exporter uses.
                     var s_Positions = new float[s_Subset.VertexCount * 3];
                     var s_Uvs = new float[s_Subset.VertexCount * 2];
+
+                    // ⛔ A VEHICLE DECLARES TWO UV SETS, and which one carries the unique unwrap is not a
+                    // given: the body presets come in a `vehiclepreset_mud` flavour (two sets) and a
+                    // `vehiclepreset1uvset_mud` one (a single set), so the second set is what the family is
+                    // named after. Both are read and both are measured (MESHUV below); p_UvSet says which
+                    // one is written, because "the art does not follow the panels" is exactly what reading
+                    // the wrong one looks like.
+                    var s_Uvs1 = new float[s_Subset.VertexCount * 2];
+
+                    // ⭐ AND A THIRD ONE. The jets' declaration (0x4544C182 on the F/A-18F) adds TexCoord2 after
+                    // the bone indices, and their presets hand the pixel shader (set 1, set 2) as its pair and
+                    // set 0 on another interpolator — measured in the game's own vertex shaders, 2026-09-22.
+                    // Read whenever the declaration has it; written as the dump's third slot (RSM7).
+                    var s_Uvs2 = new float[s_Subset.VertexCount * 2];
+                    var s_HasThirdElement = false;
+                    var s_BoneIds = new int[s_Subset.VertexCount * 4];
+                    var s_BoneWeights = new float[s_Subset.VertexCount * 4];
+                    var s_HasBoneIds = false;
+                    var s_HasBoneWeights = false;
                     var s_Declaration = s_Subset.GeometryDeclarationDesc;
 
                     // A shader can only draw the vertex declarations it has a compiled solution for, so the
-                    // layout is what decides whether a given preset is usable on this mesh at all.
+                    // layout is what decides whether a given preset is usable on this mesh at all. The hash
+                    // is the one the shaderdb keys its solutions by (dump_shader_solutions prints decl=).
                     p_Writer.WriteLine($"MESHDECL: subset={s_SubsetIndex} material={s_MaterialIndex} " +
-                                       $"stride={s_Subset.VertexStride} shader={s_Shader} elements=" +
+                                       $"stride={s_Subset.VertexStride} shader={s_Shader} decl=0x{s_Declaration.Hash:X8} elements=" +
                                        string.Join(",", s_Declaration.Elements
                                            .Where(e => e.Usage != fb.VertexElementUsage.VertexElementUsage_Unknown)
-                                           .Select(e => $"{e.Usage}:{e.Format}@{e.Offset}")));
+                                           .Select(e => $"{e.Usage}:{e.Format}@{e.Offset}/s{e.StreamIndex}")));
+
+                    // ⛔ THE STREAMS, because a vertex is not always ONE interleaved block. A declaration can
+                    // split its elements into several streams, and a stream's vertices are stored one after
+                    // another — all of stream 0 for every vertex, then all of stream 1 — with the element
+                    // offsets running CUMULATIVELY across them. Reading everything at one stride from one base
+                    // (what this dumper did) only works while there is a single stream.
+                    p_Writer.WriteLine($"MESHSTREAMS: subset={s_SubsetIndex} count={s_Declaration.Streams.Count} " +
+                                       string.Join(",", s_Declaration.Streams.Select((p_S, p_I) => $"s{p_I}:stride={p_S.Stride}/{p_S.Classification}")));
+
+                    // The subset's bone palette: a vertex's bone index is an index INTO THIS, not into the
+                    // skeleton. Read straight from the layout at the pointer the subset carries.
+                    var s_Palette = new int[s_Subset.BoneCount];
+                    if (s_Subset.BoneCount > 0 && s_Subset.BoneIndices.BaseAddress != 0 &&
+                        (long) s_Subset.BoneIndices.BaseAddress + s_Subset.BoneCount * 2L <= s_Reader.Length)
+                    {
+                        s_Reader.Seek((long) s_Subset.BoneIndices.BaseAddress, SeekOrigin.Begin);
+                        for (var i = 0; i < s_Subset.BoneCount; i++)
+                            s_Palette[i] = s_Reader.ReadUInt16();
+                    }
+
+                    // Where a vertex element lives, stream-aware (this is Frostbite's own layout, and the
+                    // line Frosty's exporter uses): the streams are stored ONE AFTER ANOTHER — every vertex
+                    // of stream 0, then every vertex of stream 1 — and an element's offset runs cumulatively
+                    // across them, so the offset inside its own stream is Offset minus the strides before it.
+                    // With a single stream this is exactly the old base + index * stride + offset.
+                    long AddressOf(RimeLib.Mesh.Frostbite.GeometryDeclarationDesc.Element p_Element, int p_Vertex)
+                    {
+                        long s_Before = 0;
+                        for (var i = 0; i < p_Element.StreamIndex && i < s_Declaration.Streams.Count; i++)
+                            s_Before += s_Declaration.Streams[i].Stride;
+
+                        var s_Stride = p_Element.StreamIndex < s_Declaration.Streams.Count &&
+                                       s_Declaration.Streams[p_Element.StreamIndex].Stride > 0
+                            ? s_Declaration.Streams[p_Element.StreamIndex].Stride
+                            : s_Subset.VertexStride;
+
+                        return s_Subset.VertexOffset + s_Before * s_Subset.VertexCount +
+                               (long) p_Vertex * s_Stride + (p_Element.Offset - s_Before);
+                    }
 
                     for (var s_VertexIndex = 0; s_VertexIndex < s_Subset.VertexCount; s_VertexIndex++)
                     {
-                        var s_VertexBase = s_Subset.VertexOffset + (long) s_VertexIndex * s_Subset.VertexStride;
                         foreach (var s_Element in s_Declaration.Elements)
                         {
                             var s_IsPosition = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_Pos;
                             var s_IsUv = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_TexCoord0;
-                            if (!s_IsPosition && !s_IsUv)
+                            var s_IsUv1 = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_TexCoord1;
+                            var s_IsUv2 = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_TexCoord2;
+                            var s_IsBoneIds = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_BoneIndices;
+                            var s_IsBoneWeights = s_Element.Usage == fb.VertexElementUsage.VertexElementUsage_BoneWeights;
+                            if (!s_IsPosition && !s_IsUv && !s_IsUv1 && !s_IsUv2 && !s_IsBoneIds && !s_IsBoneWeights)
                                 continue;
 
-                            s_VertexReader.Seek(s_VertexBase + s_Element.Offset, SeekOrigin.Begin);
+                            s_VertexReader.Seek(AddressOf(s_Element, s_VertexIndex), SeekOrigin.Begin);
+
+                            if (s_IsBoneIds || s_IsBoneWeights)
+                            {
+                                // UByte4 indices and UByte4N weights are what every weapon declares; any
+                                // other width is read as bytes too, which is what the engine's own decode
+                                // of those formats amounts to.
+                                for (var c = 0; c < 4; c++)
+                                {
+                                    var s_Byte = s_VertexReader.ReadUByte();
+                                    if (s_IsBoneIds)
+                                        s_BoneIds[s_VertexIndex * 4 + c] = s_Byte;
+                                    else
+                                        s_BoneWeights[s_VertexIndex * 4 + c] = s_Byte / 255f;
+                                }
+
+                                s_HasBoneIds |= s_IsBoneIds;
+                                s_HasBoneWeights |= s_IsBoneWeights;
+                                continue;
+                            }
+
                             var s_Components = ReadVertexElement(s_VertexReader, s_Element.Format);
 
                             if (s_IsPosition)
                                 for (var c = 0; c < 3 && c < s_Components.Length; c++)
                                     s_Positions[s_VertexIndex * 3 + c] = s_Components[c];
+                            else if (s_IsUv2)
+                            {
+                                s_HasThirdElement = true;
+                                for (var c = 0; c < 2 && c < s_Components.Length; c++)
+                                    s_Uvs2[s_VertexIndex * 2 + c] = s_Components[c];
+                            }
+                            else if (s_IsUv1)
+                                for (var c = 0; c < 2 && c < s_Components.Length; c++)
+                                    s_Uvs1[s_VertexIndex * 2 + c] = s_Components[c];
                             else
                                 for (var c = 0; c < 2 && c < s_Components.Length; c++)
                                     s_Uvs[s_VertexIndex * 2 + c] = s_Components[c];
                         }
                     }
+
+                    // Assemble a COMPOSITE object: every vertex rides the part it names in BoneIndices
+                    // (through the subset's palette when it has one), and a part is placed by its own
+                    // transform. A vertex naming a part the layout does not have stays where it is and is
+                    // counted, so a wrong reading shows up as a number and not as a picture that is nearly
+                    // right. The parts each subset touches are printed even when nothing is applied, because
+                    // that is the measurement that says whether this reading is the right one at all.
+                    // ⛔ MEASURED, and it is the opposite of the skinned rule: the byte a vertex carries is the
+                    // part index ITSELF, not an index into the subset's list. The subset's list and the
+                    // bitfield agree exactly (LAV-25 subset 1: palette [21,26,28,47,49] = declared
+                    // [21,26,28,47,49]), and reading the byte through that list answered −1 for every single
+                    // vertex — the values are 21, 26, 28… straight away. A skinned mesh keeps its palette.
+                    var s_UsedParts = new SortedSet<int>();
+                    if (s_Composite)
+                    {
+                        if (s_HasBoneIds)
+                            for (var s_VertexIndex = 0; s_VertexIndex < s_Subset.VertexCount; s_VertexIndex++)
+                            {
+                                var s_Part = s_BoneIds[s_VertexIndex * 4];
+                                s_UsedParts.Add(s_Part);
+
+                                if (!p_Parts)
+                                    continue;
+
+                                if (s_Part < 0 || s_Part >= s_PartTransforms.Count)
+                                {
+                                    s_UnposedVertices++;
+                                    continue;
+                                }
+
+                                var m = s_PartTransforms[s_Part];
+                                var s_Px = s_Positions[s_VertexIndex * 3];
+                                var s_Py = s_Positions[s_VertexIndex * 3 + 1];
+                                var s_Pz = s_Positions[s_VertexIndex * 3 + 2];
+                                s_Positions[s_VertexIndex * 3] = s_Px * m[0] + s_Py * m[3] + s_Pz * m[6] + m[9];
+                                s_Positions[s_VertexIndex * 3 + 1] = s_Px * m[1] + s_Py * m[4] + s_Pz * m[7] + m[10];
+                                s_Positions[s_VertexIndex * 3 + 2] = s_Px * m[2] + s_Py * m[5] + s_Pz * m[8] + m[11];
+                                s_PosedVertices++;
+                            }
+
+                        // The check that says whether this reading is right: every part a VERTEX names must be
+                        // one of the parts the SECTION declares. Those two come from opposite ends of the
+                        // resource (a byte in the vertex stream against a bitfield in the layout), so an
+                        // agreement is not a coincidence — and a disagreement names itself instead of
+                        // arriving as a mesh that looks nearly right.
+                        var s_Declared = s_SubsetParts.TryGetValue(s_SubsetIndex, out var s_Bits)
+                            ? s_Bits
+                            : new List<int>();
+                        var s_Outside = s_UsedParts.Where(p_P => !s_Declared.Contains(p_P)).ToList();
+                        p_Writer.WriteLine($"MESHPARTS: subset={s_SubsetIndex} bonesPerVertex={s_Subset.BonesPerVertex} " +
+                                           $"palette=[{string.Join(",", s_Palette)}] " +
+                                           $"declared=[{(s_Declared.Count > 0 ? string.Join(",", s_Declared) : "(none)")}] " +
+                                           $"usedByVertices=[{string.Join(",", s_UsedParts)}] " +
+                                           $"outsideDeclared=[{string.Join(",", s_Outside)}]");
+                    }
+
+                    // Assemble: every vertex through the model-space pose of its bones. A vertex whose
+                    // weights are all zero rides its first bone whole; one naming a bone the skeleton does not
+                    // have stays where it is and is counted, so a wrong skeleton reads as a number, not as
+                    // a picture that is almost right.
+                    var s_UsedBones = new SortedSet<int>();
+                    if (s_Pose != null && s_HasBoneIds)
+                    {
+                        var s_Bones = s_Pose.Value.Bones;
+                        for (var s_VertexIndex = 0; s_VertexIndex < s_Subset.VertexCount; s_VertexIndex++)
+                        {
+                            float s_X = 0, s_Y = 0, s_Z = 0, s_Total = 0;
+                            var s_Px = s_Positions[s_VertexIndex * 3];
+                            var s_Py = s_Positions[s_VertexIndex * 3 + 1];
+                            var s_Pz = s_Positions[s_VertexIndex * 3 + 2];
+                            var s_Valid = true;
+
+                            for (var c = 0; c < 4; c++)
+                            {
+                                var s_Weight = s_HasBoneWeights ? s_BoneWeights[s_VertexIndex * 4 + c] : c == 0 ? 1f : 0f;
+                                if (s_Weight <= 0f)
+                                    continue;
+
+                                var s_Local = s_BoneIds[s_VertexIndex * 4 + c];
+                                var s_Bone = s_Palette.Length > 0
+                                    ? s_Local < s_Palette.Length ? s_Palette[s_Local] : -1
+                                    : s_Local;
+                                if (s_Bone < 0 || s_Bone >= s_Bones.Count)
+                                {
+                                    s_Valid = false;
+                                    break;
+                                }
+
+                                s_UsedBones.Add(s_Bone);
+                                var m = s_Bones[s_Bone];
+                                s_X += s_Weight * (s_Px * m[0] + s_Py * m[3] + s_Pz * m[6] + m[9]);
+                                s_Y += s_Weight * (s_Px * m[1] + s_Py * m[4] + s_Pz * m[7] + m[10]);
+                                s_Z += s_Weight * (s_Px * m[2] + s_Py * m[5] + s_Pz * m[8] + m[11]);
+                                s_Total += s_Weight;
+                            }
+
+                            if (!s_Valid || s_Total <= 0f)
+                            {
+                                s_UnposedVertices++;
+                                continue;
+                            }
+
+                            s_Positions[s_VertexIndex * 3] = s_X / s_Total;
+                            s_Positions[s_VertexIndex * 3 + 1] = s_Y / s_Total;
+                            s_Positions[s_VertexIndex * 3 + 2] = s_Z / s_Total;
+                            s_PosedVertices++;
+                        }
+                    }
+
+                    if (s_Skinned)
+                        p_Writer.WriteLine($"MESHBONES: subset={s_SubsetIndex} bonesPerVertex={s_Subset.BonesPerVertex} " +
+                                           $"palette=[{string.Join(",", s_Palette)}] used=[{string.Join(",", s_UsedBones)}]");
 
                     // Subset indices are 16-bit and RELATIVE to the subset's own vertex window.
                     var s_Indices = new int[s_Subset.PrimitiveCount * 3];
@@ -935,6 +1467,157 @@ namespace RimeLib.Cmd.Contexts
                         s_Indices[i] = BitConverter.ToUInt16(s_IndexData, (int) s_Offset);
                     }
 
+                    // What each UV set actually spans. A unique unwrap lives inside [0,1]; a set that runs
+                    // to ±7 is a TILED one, and telling them apart by looking is the whole question here.
+                    void Span(float[] p_Set, out float p_MinU, out float p_MinV, out float p_MaxU, out float p_MaxV)
+                    {
+                        p_MinU = p_MinV = float.MaxValue;
+                        p_MaxU = p_MaxV = float.MinValue;
+                        for (var i = 0; i < s_Subset.VertexCount; i++)
+                        {
+                            p_MinU = System.Math.Min(p_MinU, p_Set[i * 2]);
+                            p_MaxU = System.Math.Max(p_MaxU, p_Set[i * 2]);
+                            p_MinV = System.Math.Min(p_MinV, p_Set[i * 2 + 1]);
+                            p_MaxV = System.Math.Max(p_MaxV, p_Set[i * 2 + 1]);
+                        }
+                    }
+
+                    // The per-subset UV ratios the layout carries (float[6]) — Frostbite's own way of saying
+                    // "these packed coordinates are a FRACTION of the real ones"; nothing here has ever used
+                    // them, so they are printed before being trusted.
+                    var s_Ratios = new List<string>();
+                    for (var i = 0; i < s_Subset.TexCoordRatios.Count; i++)
+                        s_Ratios.Add(s_Subset.TexCoordRatios[i].ToString("0.####"));
+
+                    Span(s_Uvs, out var s_U0, out var s_V0, out var s_U1, out var s_V1);
+                    Span(s_Uvs1, out var s_U2, out var s_V2, out var s_U3, out var s_V3);
+                    Span(s_Uvs2, out var s_U4, out var s_V4, out var s_U5, out var s_V5);
+
+                    var s_HasSecond = false;
+                    for (var i = 0; i < s_Uvs1.Length && !s_HasSecond; i++)
+                        s_HasSecond = s_Uvs1[i] != 0f;
+
+                    var s_HasThird = false;
+                    for (var i = 0; s_HasThirdElement && i < s_Uvs2.Length && !s_HasThird; i++)
+                        s_HasThird = s_Uvs2[i] != 0f;
+
+                    // The order a caller asked for THIS shader, by identity: `<shader>` is the plain swap (1:0),
+                    // `<shader>=a:b:c` the three slots, and `<shader>@0x<decl>=a:b:c` binds one declaration of
+                    // it (the exact form wins over the shader-wide one). Null when the shader is not listed.
+                    static int[]? UvOrderOf(string p_Shader, uint p_Declaration, IReadOnlyCollection<string>? p_Entries)
+                    {
+                        if (p_Entries == null || p_Shader.Length == 0)
+                            return null;
+
+                        int[]? s_Found = null;
+                        foreach (var s_Entry in p_Entries)
+                        {
+                            var s_Equals = s_Entry.IndexOf('=');
+                            var s_Key = (s_Equals < 0 ? s_Entry : s_Entry[..s_Equals]).Trim();
+                            var s_At = s_Key.IndexOf('@');
+                            var s_Name = s_At < 0 ? s_Key : s_Key[..s_At];
+                            if (!p_Shader.Equals(s_Name, StringComparison.OrdinalIgnoreCase))
+                                continue;
+
+                            var s_Exact = s_At >= 0;
+                            if (s_Exact)
+                            {
+                                var s_Hex = s_Key[(s_At + 1)..];
+                                if (s_Hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                                    s_Hex = s_Hex[2..];
+                                if (!uint.TryParse(s_Hex, System.Globalization.NumberStyles.HexNumber, null, out var s_Decl) ||
+                                    s_Decl != p_Declaration)
+                                    continue;
+                            }
+
+                            var s_Order = s_Equals < 0
+                                ? new[] { 1, 0 }
+                                : s_Entry[(s_Equals + 1)..]
+                                    .Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                    .Select(p_S => int.TryParse(p_S, out var s_Set) ? s_Set : -1)
+                                    .ToArray();
+                            if (s_Order.Length == 0)
+                                s_Order = new[] { 1, 0 };
+
+                            if (s_Exact)
+                                return s_Order;
+                            s_Found ??= s_Order;
+                        }
+
+                        return s_Found;
+                    }
+
+                    // ⭐ THE PAIR IS SWAPPED FOR THE SECTIONS WHOSE SHADER SWAPS IT, AND THAT IS MEASURED IN
+                    // THE GAME'S OWN VERTEX SHADER. For the LAV-25's declaration, `vehiclepreset_mud` does
+                    // `mov o8.xyzw, v3.zwxy` — the input holds both sets as one float4 (the two Half2 at 24
+                    // and 28, read as R16G16B16A16@24) and the shader hands them over SWAPPED, so ITS .xy is
+                    // the SECOND set. The lights, the slat cage and the kits do `mov o.xy, v3.xyxx`: no swap.
+                    // The caller names those shaders — it derives them from the translated graphs, where a
+                    // shader that swaps is one that reads TWO HALVES of the same interpolator — because a
+                    // preview draws every section with ONE vertex shader and cannot decide this per section.
+                    // ⛔ By IDENTITY (the full resource name), never by last segment: the BTR-90's
+                    // `vehicles/xpack01/shaders/vehiclepreset_mud` reads ONE set (`mov o4.xy, v3.xyxx`, its
+                    // declaration keeps TexCoord1 behind the bone indices) while `vehicles/shaders/
+                    // vehiclepreset_mud` swaps the pair. An EndsWith("/vehiclepreset_mud") put the swap on
+                    // the BTR — on a section whose second set is all zeros (2026-09-22).
+                    // ⭐ THE SETS ARE WRITTEN IN THE ORDER THE SHADER'S OWN VERTEX SHADER HANDS THEM TO ITS
+                    // PIXEL SHADER, three slots: the pair's .xy, the pair's .zw and the set of a second uv
+                    // interpolator where the shader reads one. Measured per shader in the game's bytecode
+                    // (the caller derives the list from the vertex shaders the translation leaves on disk):
+                    //   vehicles/shaders/vehiclepreset_mud    `mov o8.xyzw, v3.zwxy`                      → 1,0
+                    //   vehicles/shaders/vehiclepreset_jet    `o4.xy ← v4.zw · o4.zw ← v5.xy · o5.xy ← v4.xy` → 1,2,0
+                    //   vehicles/shaders/vehiclepreset_lights `mov o5.xy, v3.xyxx`                       → 0
+                    // A preview draws every section with ONE vertex shader per pixel shader and cannot decide
+                    // this per section, so the order travels in the DATA. A set the section has not got falls
+                    // back to the lowest one still unused (1,2,0 on a two-set section keeps its pair whole as
+                    // 1,0); the third slot may stay empty.
+                    var s_Order = UvOrderOf(s_Shader, s_Declaration.Hash, p_Swap);
+                    var s_Available = new[] { true, s_HasSecond, s_HasThird };
+                    var s_Sets = new[] { s_Uvs, s_Uvs1, s_Uvs2 };
+                    var s_Slots = new[] { -1, -1, -1 };
+                    string s_WrittenLabel;
+                    if (s_Order != null)
+                    {
+                        var s_Used = new HashSet<int>();
+                        for (var s_Slot = 0; s_Slot < 3; s_Slot++)
+                        {
+                            var s_Want = s_Slot < s_Order.Length ? s_Order[s_Slot] : -1;
+                            if (s_Want < 0 || s_Want > 2 || !s_Available[s_Want] || s_Used.Contains(s_Want))
+                                s_Want = s_Slot < 2
+                                    ? Enumerable.Range(0, 3).Where(i => s_Available[i] && !s_Used.Contains(i)).DefaultIfEmpty(-1).First()
+                                    : -1;
+                            if (s_Want >= 0)
+                                s_Used.Add(s_Want);
+                            s_Slots[s_Slot] = s_Want;
+                        }
+
+                        s_WrittenLabel = "order:" + string.Join(",", s_Slots.Select(i => i < 0 ? "-" : i.ToString()));
+                    }
+                    else
+                    {
+                        // ⛔ WHICH SET THE DIFFUSE USES IS A MEASUREMENT, AND ON A VEHICLE IT IS THE SECOND ONE.
+                        // Measured on the LAV-25 by drawing the wheel's triangles over the atlas: read as
+                        // TexCoord0 they land on hull plates (and partly on the EMPTY background of the atlas);
+                        // read as TexCoord1 they land exactly on the tyre. The first set is what the NORMAL map
+                        // uses — the same atlas has the wheel's hub drawn in `_n` right where TexCoord0 pointed,
+                        // and the preset's graph samples the normal with the OTHER half of the interpolator.
+                        // A section whose second set is all zeros (the lights here, and everything a
+                        // `…1uvset…` shader draws) has only one, and that one is the first.
+                        var s_First = p_UvSet == 1 || (p_UvSet < 0 && s_HasSecond);
+                        s_Slots = new[] { s_First ? 1 : 0, s_First ? 0 : 1, s_HasThird ? 2 : -1 };
+                        s_WrittenLabel = p_UvSet < 0 ? (s_HasSecond ? "auto:1" : "auto:0") : p_UvSet.ToString();
+                    }
+
+                    p_Writer.WriteLine($"MESHUV: subset={s_SubsetIndex} written={s_WrittenLabel} " +
+                                       $"uv0=({s_U0:0.###},{s_V0:0.###})-({s_U1:0.###},{s_V1:0.###}) " +
+                                       $"uv1=({s_U2:0.###},{s_V2:0.###})-({s_U3:0.###},{s_V3:0.###}) " +
+                                       (s_HasThirdElement ? $"uv2=({s_U4:0.###},{s_V4:0.###})-({s_U5:0.###},{s_V5:0.###}) " : "") +
+                                       $"texCoordRatios=[{string.Join(",", s_Ratios)}]");
+
+                    var s_Empty = new float[s_Subset.VertexCount * 2];
+                    var s_UvWritten = s_Slots[0] >= 0 ? s_Sets[s_Slots[0]] : s_Uvs;
+                    var s_UvOther = s_Slots[1] >= 0 ? s_Sets[s_Slots[1]] : s_Empty;
+                    var s_UvExtra = s_Slots[2] >= 0 ? s_Sets[s_Slots[2]] : s_Empty;
                     var s_ShaderBytes = System.Text.Encoding.UTF8.GetBytes(s_Shader);
                     var s_MaterialBytes = System.Text.Encoding.UTF8.GetBytes(s_Subset.MaterialName.Object ?? "");
                     s_Out.Write(s_ShaderBytes.Length);
@@ -949,16 +1632,38 @@ namespace RimeLib.Cmd.Contexts
                         s_Out.Write(s_Positions[i * 3]);
                         s_Out.Write(s_Positions[i * 3 + 1]);
                         s_Out.Write(s_Positions[i * 3 + 2]);
-                        s_Out.Write(s_Uvs[i * 2]);
-                        s_Out.Write(s_Uvs[i * 2 + 1]);
+                        s_Out.Write(s_UvWritten[i * 2]);
+                        s_Out.Write(s_UvWritten[i * 2 + 1]);
+                        s_Out.Write(s_UvOther[i * 2]);
+                        s_Out.Write(s_UvOther[i * 2 + 1]);
+                        s_Out.Write(s_UvExtra[i * 2]);
+                        s_Out.Write(s_UvExtra[i * 2 + 1]);
                     }
 
                     s_Out.Write(s_Indices.Length);
                     foreach (var s_Index in s_Indices)
                         s_Out.Write(s_Index);
 
+                    // RSM6: the PART each vertex rides, kept after the assembly has already moved it.
+                    //
+                    // ⛔ WHY IT HAS TO TRAVEL: a composite's section is one draw but several OBJECTS — the
+                    // Sprut-SD's kit section is stowage AND the reactive-armour blocks, and the game equips
+                    // the armour as an unlock while the stowage is always there. Once assembled, nothing in
+                    // the dump says which triangle is which: the only thing that does is this byte, and it
+                    // is read and thrown away here. A consumer can now split a section the way the game
+                    // does. -1 for a mesh with no parts (every weapon), so the layout stays uniform.
+                    for (var i = 0; i < s_Subset.VertexCount; i++)
+                        s_Out.Write(s_Composite && s_HasBoneIds ? s_BoneIds[i * 4] : -1);
+
                     s_Count++;
                 }
+
+                if (s_Skinned)
+                    p_Writer.WriteLine($"MESHPOSE: posed={s_PosedVertices} unposed={s_UnposedVertices} " +
+                                       $"skeleton={(s_Pose?.Name ?? "(none)")}");
+                else if (s_Composite)
+                    p_Writer.WriteLine($"MESHASSEMBLY: parts={s_PartTransforms.Count} applied={p_Parts} " +
+                                       $"placed={s_PosedVertices} left={s_UnposedVertices}");
 
                 s_Out.Seek((int) s_CountPosition, SeekOrigin.Begin);
                 s_Out.Write(s_Count);

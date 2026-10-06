@@ -23,7 +23,11 @@ internal static class TextureUtils
         { TextureFormat.TextureFormat_RGB888, new DDSPixelFormat(DDSFormatFlags.Rgb, 24, 0x00ff0000, 0x0000ff00, 0x000000ff) },
         { TextureFormat.TextureFormat_ARGB1555, new DDSPixelFormat(DDSFormatFlags.Rgba, 16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000) },
         { TextureFormat.TextureFormat_ARGB4444, new DDSPixelFormat(DDSFormatFlags.Rgba, 16, 0xF000, 0x0F00, 0x00F0, 0x000F) },
-        { TextureFormat.TextureFormat_ARGB8888, new DDSPixelFormat(DDSFormatFlags.Rgba, 32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000 ) },
+        // ⛔ The bytes are R,G,B,A in memory (the engine binds this format as R8G8B8A8, which is also what
+        // TextureConverter maps it to on the way in). The masks used to say B,G,R,A, so every dump of this format
+        // came out with red and blue swapped: the F-35B's fuselage mask (`us_f35b_fslg_m`, whose R is the paint
+        // its shader reads) decoded with R = a dirt mask, and the jet drew near black (2026-09-22).
+        { TextureFormat.TextureFormat_ARGB8888, new DDSPixelFormat(DDSFormatFlags.Rgba, 32, 0xFF, 0xFF00, 0xFF0000, 0xFF000000 ) },
         /*
         { TextureFormat.TextureFormat_L8, new DDSPixelFormat(DDSFormatFlags.Luminance, 8, 0xFF) },
         { TextureFormat.TextureFormat_L16, new DDSPixelFormat("DX10") { Flags = DDSFormatFlags.FourCC } },

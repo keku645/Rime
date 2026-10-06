@@ -1,9 +1,60 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace RimeShaderEditor.Graph;
+
+/// <summary>
+/// One sticker on one weapon, in the weapon's own texture space: the centre of the sticker at (U, V) with
+/// V=0 the top row of the texture, its width as a fraction of the texture's width (the height follows the
+/// picture's own aspect), and a rotation in degrees about its centre. Placement is per MESH because each
+/// weapon has its own unwrap — a spot on the M416's receiver is a different (U, V) on the AK's. The
+/// first- and third-person models of a weapon share the diffuse, so one placement dresses both.
+/// </summary>
+public class StickerPlacement
+{
+    /// <summary>The weapon mesh the sticker sits on (the first-person body mesh the studio previews).</summary>
+    public string Mesh { get; set; } = "";
+
+    /// <summary>The picture: a file in the sticker library (PNG with alpha, or any image WPF decodes).</summary>
+    public string Image { get; set; } = "";
+
+    public double U { get; set; }
+    public double V { get; set; }
+
+    /// <summary>Width as a fraction of the texture width (0.1 = a tenth of the unwrap across).</summary>
+    public double Width { get; set; } = 0.1;
+
+    /// <summary>
+    /// Height as a fraction of the texture height, or 0 to follow the picture's own aspect. Set by a corner
+    /// drag (keku: a corner sizes the two sides on their own; Shift keeps the shape) — a sticker can be
+    /// stretched to counter a weapon's own stretched unwrap.
+    /// </summary>
+    public double Height { get; set; }
+
+    /// <summary>Degrees about the sticker's centre, counter-clockwise as seen from outside the surface.</summary>
+    public double Rotation { get; set; }
+
+    /// <summary>Horizontally flipped.</summary>
+    public bool Mirror { get; set; }
+
+    /// <summary>
+    /// How far the sticker projects above and below the surface it sits on, as a fraction of its larger
+    /// side; 0 = the default (a half). Raised, it climbs onto a part standing further proud beside it;
+    /// lowered, it stays off a part behind the one it sits on.
+    /// </summary>
+    public double Reach { get; set; }
+
+    /// <summary>
+    /// Where on the body the centre sits, in the mesh's own units (x, y, z) — set when placed or dragged.
+    /// Tells apart the halves of a weapon whose unwrap lays two parts over the same patch of texture; null
+    /// (an older placement) = the first part of the body that covers the coordinate.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double[]? Anchor { get; set; }
+}
 
 public class GraphNode
 {
@@ -82,6 +133,15 @@ public class ShaderGraph
     public string TargetShader { get; set; } = "";
 
     /// <summary>
+    /// True for the SCAFFOLD a failed translation leaves on the canvas (a root plus the slot map's textures,
+    /// SampleGraphs.ScaffoldFor): never a translation, so no caching path may keep it — twice a stub reached
+    /// the graph cache on a size/pin guess while a real 15-node translation was refused by the same guess
+    /// (2026-09-22). Not saved: a graph loaded from disk is what it is.
+    /// </summary>
+    [JsonIgnore]
+    public bool IsScaffold { get; set; }
+
+    /// <summary>
     /// Fingerprint (FNV-1a of the emitted HLSL) of this graph AS TRANSLATED from the game, stamped by the
     /// translate step. It is what lets a variation bake decide honestly whether the user changed the shader's
     /// LOGIC (current emission hashes differently -> the variation needs its own cloned shader) or only its
@@ -89,6 +149,14 @@ public class ShaderGraph
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? TranslatedHlslHash { get; set; }
+
+    /// <summary>
+    /// The pixel permutation this graph was translated from ("ShaderRenderPath_Dx11_sol19_ps.dxbc"), stamped by the translate step: what
+    /// tells a cached translation made before the permutation rule changed for its shader (MainWindow.RetireStaleTranslation —
+    /// characterroot_xp4, 2026-09-28) from one made after. Absent in older files / hand-made graphs.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? TranslatedFrom { get; set; }
 
     /// <summary>
     /// When set, the bake creates a brand-new object VARIATION under this asset name (full path, sibling of
@@ -118,6 +186,259 @@ public class ShaderGraph
     /// user's pick is the only reliable answer to "which object is this variation for".
     /// </summary>
     public string? BakeMesh { get; set; }
+
+    /// <summary>
+    /// For a camo document: the game's own camo this one starts from (a key such as "atacs"), or null for
+    /// the weapon as shipped. It is the document's, so it comes back with its tab; the studio maps it to the
+    /// texture and the material values it stands for. Never a replacement of that camo in the game — a base.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? NativeCamo { get; set; }
+
+    /// <summary>
+    /// For a camo document: WHAT IT WAS BEING LOOKED AT ON when it was saved — a weapon's mesh, or an
+    /// ATTACHMENT's mesh, which is enough to bring both back (the studio knows which weapon an attachment
+    /// hangs from). Opening the file picks it again, so the file reopens on the piece it was authored on
+    /// instead of a graph floating with no art (keku, 2026-09-20: "cuando lo abra debe abrirse directamente
+    /// el grafo + attachment que sea… solo abre el grafo sin texturas y no abre ni el arma ni el accesorio").
+    /// Null for a document saved outside camo mode, or one saved before this existed.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PreviewMesh { get; set; }
+
+    /// <summary>
+    /// The WEAPON that was picked when this was saved, beside <see cref="PreviewMesh"/>.
+    ///
+    /// ⛔ IT CANNOT BE DERIVED FROM THE ATTACHMENT, and assuming so was wrong (measured 2026-09-20): a
+    /// suppressor, a rail or a Kobra is the SAME mesh on dozens of weapons, so asking "whose is this mesh"
+    /// answers with the first weapon that offers it — the file would reopen on someone else's gun. The pair
+    /// is what identifies the view.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PreviewWeapon { get; set; }
+
+    /// <summary>
+    /// For a camo document: the stickers placed on the weapons, in each weapon's own texture space (see
+    /// <see cref="StickerPlacement"/>). They are the document's — a tab carries its own, undo covers them —
+    /// and the bake composes them, per weapon, into the layer the sticker texture node samples. Null = none.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<StickerPlacement>? Stickers { get; set; }
+
+    /// <summary>
+    /// For a camo document: per mesh (weapon or accessory), the MATERIAL IDs — the game's own index into the
+    /// mesh's material list — that keep their shipped look instead of taking the camo (keku, 2026-09-18: an
+    /// object carries several materials and shaders; the user chooses by ID which ones the camo goes on).
+    /// Only materials wearing a weapon preset can be listed here: the others (glass, glow, HUD, tape) never
+    /// take the camo anyway. Null = every preset material of every mesh takes it.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, List<int>>? MaterialsOff { get; set; }
+
+    /// <summary>Whether a material ID of a mesh keeps its shipped look under this camo.</summary>
+    public bool IsMaterialOff(string p_Mesh, int p_MaterialId) =>
+        MaterialsOff != null && MaterialsOff.TryGetValue(p_Mesh, out var s_Ids) && s_Ids.Contains(p_MaterialId);
+
+    /// <summary>
+    /// For a camo document: the graphs of the OTHER materials of its objects the user edited (glass, glow,
+    /// the HUD, a preset material kept off the camo…), keyed by <see cref="MaterialKey"/> ("mesh|id"). Each is
+    /// a full graph aimed at the shader that material wears; it is saved with the camo, comes back with it,
+    /// previews live on that material and ships at the bake as that material's own shader (keku,
+    /// 2026-09-18: the edits must persist across material IDs, be saved, and be baked). Null = none edited.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, ShaderGraph>? MaterialGraphs { get; set; }
+
+    /// <summary>
+    /// For a camo document AS SHIPPED (<see cref="NativeCamo"/> null): the game's own graph of what the subject wears as shipped — the one
+    /// the canvas shows in that look — as the user EDITED it (keku, 2026-09-25: *"el as shipped realmente es como si fuera ABU o cualquier
+    /// otro camo, la diferencia es que es el original"*). Null while it is the game's, untouched.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ShaderGraph? ShippedGraph { get; set; }
+
+    /// <summary>
+    /// ⭐ WHAT ONE ACCESSORY WEARS, when the weapon's numbers are wrong for it (keku's knob, 2026-09-19): the
+    /// constants an accessory overrides for itself, keyed "&lt;weapon folder&gt;/&lt;attachment&gt;" in lower case.
+    /// An accessory takes its host weapon's wear and tiling by default -- which is what the game's own
+    /// third-person variations carry -- but a scope's specular is not a rifle body's: measured over the 259
+    /// accessory materials, 83 set WearPower to 0, and the 3P preset's
+    /// 0.6·(1−min((spec·WearAmount)^WearPower, 1)) then weighs the camo at exactly zero. Anything set here wins
+    /// over the weapon's and over the camo's own numbers, for the preview and for the bake alike. Null = none.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, Dictionary<string, string>>? AccessoryValues { get; set; }
+
+    /// <summary>
+    /// The key one accessory's numbers are kept under: the attachment's short name WITHOUT its weapon's prefix
+    /// ("U_L85A2_Acog" and "U_M240_Acog" are both "acog"), because what makes a scope need its own wear is the
+    /// specular of ITS mesh, and that mesh is the same one on every weapon that offers it. One setting, every
+    /// weapon -- which is also the only way this survives a camo baked over the whole arsenal.
+    /// </summary>
+    public static string AccessoryKey(string p_Weapon, string p_Tag)
+    {
+        var s_Tag = p_Tag.ToLowerInvariant();
+        var s_Weapon = p_Weapon.ToLowerInvariant();
+
+        if (s_Weapon.Length > 0 && s_Tag.StartsWith(s_Weapon + "_", StringComparison.Ordinal))
+            s_Tag = s_Tag[(s_Weapon.Length + 1)..];
+
+        return s_Tag;
+    }
+
+    /// <summary>The numbers that accessory overrides, or an empty set.</summary>
+    public IReadOnlyDictionary<string, string> AccessoryValuesOf(string p_Weapon, string p_Tag) =>
+        AccessoryValues != null && AccessoryValues.TryGetValue(AccessoryKey(p_Weapon, p_Tag), out var s_Values)
+            ? s_Values
+            : new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Keeps (or, with an empty text, drops) one constant of one accessory; an emptied set is dropped.</summary>
+    public void SetAccessoryValue(string p_Weapon, string p_Tag, string p_Constant, string? p_Text)
+    {
+        var s_Key = AccessoryKey(p_Weapon, p_Tag);
+        AccessoryValues ??= new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
+
+        if (!AccessoryValues.TryGetValue(s_Key, out var s_Values))
+        {
+            s_Values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            AccessoryValues[s_Key] = s_Values;
+        }
+
+        if (string.IsNullOrWhiteSpace(p_Text))
+            s_Values.Remove(p_Constant);
+        else
+            s_Values[p_Constant] = p_Text.Trim();
+
+        if (s_Values.Count == 0)
+            AccessoryValues.Remove(s_Key);
+
+        if (AccessoryValues.Count == 0)
+            AccessoryValues = null;
+    }
+
+    /// <summary>The key a material's graph is kept under: the mesh path (lower case) and the game's material ID.</summary>
+    public static string MaterialKey(string p_Mesh, int p_MaterialId) => $"{p_Mesh.ToLowerInvariant()}|{p_MaterialId}";
+
+    /// <summary>Splits a material key back into its mesh and ID; false for anything else.</summary>
+    public static bool TryParseMaterialKey(string p_Key, out string p_Mesh, out int p_MaterialId)
+    {
+        p_Mesh = "";
+        p_MaterialId = -1;
+        var s_Bar = p_Key.LastIndexOf('|');
+        if (s_Bar <= 0 || !int.TryParse(p_Key[(s_Bar + 1)..], out p_MaterialId))
+            return false;
+
+        p_Mesh = p_Key[..s_Bar];
+        return true;
+    }
+
+    public ShaderGraph? MaterialGraphOf(string p_Mesh, int p_MaterialId) =>
+        MaterialGraphs != null && MaterialGraphs.TryGetValue(MaterialKey(p_Mesh, p_MaterialId), out var s_Graph) ? s_Graph : null;
+
+    /// <summary>Keeps (or, with null, drops) the graph of one material; an emptied dictionary is dropped.</summary>
+    public void SetMaterialGraph(string p_Mesh, int p_MaterialId, ShaderGraph? p_Graph)
+    {
+        var s_Key = MaterialKey(p_Mesh, p_MaterialId);
+        if (p_Graph != null)
+        {
+            MaterialGraphs ??= new Dictionary<string, ShaderGraph>(StringComparer.OrdinalIgnoreCase);
+            MaterialGraphs[s_Key] = p_Graph;
+            return;
+        }
+
+        if (MaterialGraphs == null)
+            return;
+
+        MaterialGraphs.Remove(s_Key);
+        if (MaterialGraphs.Count == 0)
+            MaterialGraphs = null;
+    }
+
+    /// <summary>Turns the camo on or off for one material ID of a mesh; an emptied list is dropped.</summary>
+    public void SetMaterialOff(string p_Mesh, int p_MaterialId, bool p_Off)
+    {
+        if (p_Off)
+        {
+            MaterialsOff ??= new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+            if (!MaterialsOff.TryGetValue(p_Mesh, out var s_Ids))
+                MaterialsOff[p_Mesh] = s_Ids = new List<int>();
+
+            if (!s_Ids.Contains(p_MaterialId))
+                s_Ids.Add(p_MaterialId);
+
+            return;
+        }
+
+        if (MaterialsOff == null || !MaterialsOff.TryGetValue(p_Mesh, out var s_Listed))
+            return;
+
+        s_Listed.Remove(p_MaterialId);
+        if (s_Listed.Count == 0)
+            MaterialsOff.Remove(p_Mesh);
+
+        if (MaterialsOff.Count == 0)
+            MaterialsOff = null;
+    }
+
+    /// <summary>
+    /// The texture register the sticker layer is sampled from — the register of the texture node the sticker
+    /// mode added to this graph. Null until stickers were first used on the graph. The bake binds each
+    /// weapon's composed layer to a material parameter at this register; the preview pushes the same layer
+    /// there, so what is looked at is what ships.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? StickerRegister { get; set; }
+
+    /// <summary>
+    /// Side, in texels, of the square layer the stickers of one weapon are composed into (the weapons'
+    /// own textures are 2048²; a layer of half that keeps a package small and a sticker still sharp).
+    /// Null = the default, 1024.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? StickerLayerSize { get; set; }
+
+    /// <summary>
+    /// For a camo document: the animated GIF its animated sticker placements play (one GIF per camo — its
+    /// frame sheet is a texture of the package, sampled at StickerRegister + 3; each weapon's coordinate
+    /// maps, x and y, at StickerRegister + 1 and + 2). Null = no animated sticker. See <see cref="GifAtlas"/>.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? StickerAnimation { get; set; }
+
+    /// <summary>
+    /// Whether the animated sticker ignores the GIF's alpha channel: its transparent pixels are drawn as
+    /// opaque black, so the sticker is the whole frame rectangle (keku, 2026-09-12). The sheet is rebuilt
+    /// from the GIF when this changes; false = the GIF's own transparency.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool StickerAnimationOpaque { get; set; }
+
+    /// <summary>
+    /// The register of the stickers' MAP: red = which half of a mirrored unwrap each sticker was painted on,
+    /// green = the animated sticker's y, alpha = its x (see StickerLayer.PackMaps). Null without a sticker register.
+    /// </summary>
+    [JsonIgnore] public int? StickerSideRegister => StickerRegister + 1;
+
+    /// <summary>The register of the animated sticker's frame sheet, or null without a sticker register.</summary>
+    [JsonIgnore] public int? StickerSheetRegister => StickerRegister + 2;
+
+    /// <summary>
+    /// The largest layer a package ships: the weapons' own texture size. A 2048² layer is 5.6 MB of DXT5
+    /// per weapon in the package (1024² is 1.4 MB). ⛔ 2026-09-11: a client crash at the first draw of a
+    /// 2048² layer (the material's Sticker parameter bound to NOTHING) was first pinned on the size — WRONG:
+    /// the same package at 1024² crashed too, and a sister package with a 1024² layer loaded. The package
+    /// had no pattern, and the mod's loader only registered the generated-texture bundle for packages WITH
+    /// one; the loader now keys on the stickers flag as well. The size was never the cause.
+    /// </summary>
+    public const int MaxStickerLayerSide = 2048;
+
+    /// <summary>The layer side to compose at: the document's choice or the default, never above the shipped maximum.</summary>
+    [JsonIgnore] public int StickerLayerSide => StickerLayerSize is > 0 and <= MaxStickerLayerSide ? StickerLayerSize.Value : Math.Min(1024, MaxStickerLayerSide);
+
+    /// <summary>The stickers placed on one mesh, in placement order (later ones draw on top).</summary>
+    public IEnumerable<StickerPlacement> StickersOn(string p_Mesh) =>
+        (Stickers ?? new List<StickerPlacement>()).Where(p_S =>
+            p_S.Mesh.Equals(p_Mesh, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// The contract family this graph's explicit interpolator indices were TRANSLATED under, stamped by the

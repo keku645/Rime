@@ -1,0 +1,11 @@
+mount_game "E:\GAMES\Battlefield 3" Frostbite2_0 true
+build_sb Win32/ebxcheck/rt Frostbite2_0 "C:\Users\keku\AppData\Local\Temp\claude\C--Users-keku\b4760d96-3caa-4077-a593-f143ca5af672\scratchpad\ebxcheck\sb" true
+build_bundle win32/ebxcheck/rtv
+add_json_partition "Weapons/M416/M416_CAMO2_KAMYSH4_RT" "C:\Users\keku\AppData\Local\Temp\claude\C--Users-keku\b4760d96-3caa-4077-a593-f143ca5af672\scratchpad\ebxcheck\kamysh4_rt.json"
+build
+build
+select_game 1
+mount_standalone_sb rtq "C:\Users\keku\AppData\Local\Temp\claude\C--Users-keku\b4760d96-3caa-4077-a593-f143ca5af672\scratchpad\ebxcheck\sb\Win32\ebxcheck\rt.sb" true
+dump_partition "weapons/m416/m416_camo2_kamysh4_rt" "C:\Users\keku\AppData\Local\Temp\claude\C--Users-keku\b4760d96-3caa-4077-a593-f143ca5af672\scratchpad\ebxcheck\kamysh4_rt.bin"
+dump_partition_json "weapons/m416/m416_camo2_kamysh4_rt" "C:\Users\keku\AppData\Local\Temp\claude\C--Users-keku\b4760d96-3caa-4077-a593-f143ca5af672\scratchpad\ebxcheck\kamysh4_rt_readback.json" Indented
+exit

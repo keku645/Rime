@@ -29,8 +29,15 @@ public static class DataContainerTypeRegistry
 
     private static void RefreshTypes()
     {
+        // an assembly of the host application whose types cannot all load (a missing package) must not stop the scan
+        static IEnumerable<Type> LoadableTypes(Assembly a)
+        {
+            try { return a.GetTypes(); }
+            catch (ReflectionTypeLoadException e) { return e.Types.Where(t => t != null)!; }
+            catch { return Array.Empty<Type>(); }
+        }
         var s_GuidTypes = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes())
+            .SelectMany(LoadableTypes)
             .Where(t => t.GetCustomAttribute<ContainerTypeAttribute>() != null);
         
         Type? s_FoundInterface = null;

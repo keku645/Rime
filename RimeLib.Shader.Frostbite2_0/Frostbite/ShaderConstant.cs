@@ -227,6 +227,411 @@ public class ShaderConstant : IFbSerializable
         return $"raw tail-append: texture block relocated to +{s_TailOff}, {s_TexCount}+1 entries, record {s_Old.Length} -> {s_Out.Length} B";
     }
 
+    /// <summary>
+    /// Adds an EXTERNAL texture parameter (ExternalTextureConstant: a material parameter, bound per material
+    /// instance by NAME — the way Diffuse, Camo and Specular reach a weapon preset) to this constant record at
+    /// a pixel register. The handle is the engine's own id of the name (hashQuickLowerCase, measured on the
+    /// weapon presets: Camo = 2087764101). Same surgery as <see cref="AddTextureConstant"/>: the authored
+    /// writer when it proves fidelity, otherwise the external-texture block (old entries + the new one) is
+    /// appended at the record's tail and only that block's offset + count in the header are patched.
+    /// A register the record already binds externally is REPLACED in place (name + handle); a name already
+    /// bound at another register is refused. Returns a report line ("ERROR: ..." on failure).
+    /// </summary>
+    public string AddExternalTextureConstant(ushort p_Register, byte p_TextureType, string p_Name, uint p_Handle,
+        bool p_Required = false)
+    {
+        const int c_EntrySize = 0x28; // 0x20 name + u32 Handle + u16 Index + u8 TextureType + u8 Required
+        const int c_NameSize = 0x20;
+
+        var s_NameBytes = Encoding.UTF8.GetBytes(p_Name);
+        if (s_NameBytes.Length >= c_NameSize)
+            return "ERROR: external texture name too long (31 bytes at most)";
+
+        for (var i = 0; i < ExternalTextures.Length; i++)
+        {
+            var s_Existing = ExternalTextures[i];
+            if (s_Existing.Index != p_Register &&
+                string.Equals(s_Existing.Name, p_Name, StringComparison.OrdinalIgnoreCase))
+                return $"ERROR: external texture '{p_Name}' is already bound at t{s_Existing.Index}";
+
+            if (s_Existing.Index != p_Register)
+                continue;
+
+            var s_Previous = s_Existing.Name;
+            ExternalTextures[i] = new ExternalTextureConstant
+            {
+                Name = p_Name, Handle = p_Handle, Index = p_Register,
+                TextureType = (TextureType) p_TextureType, Required = p_Required,
+            };
+
+            if (RawBytes != null)
+            {
+                var s_BlockOff = (long) BitConverter.ToUInt64(RawBytes, 28) - 4;
+                var s_EntryOff = (int) s_BlockOff + i * c_EntrySize;
+                if (s_BlockOff < 53 || s_EntryOff + c_EntrySize > RawBytes.Length ||
+                    BitConverter.ToUInt16(RawBytes, s_EntryOff + 0x24) != p_Register)
+                    return "ERROR: external texture block layout mismatch on in-place replace";
+
+                Array.Clear(RawBytes, s_EntryOff, c_NameSize);
+                Array.Copy(s_NameBytes, 0, RawBytes, s_EntryOff, s_NameBytes.Length);
+                BitConverter.GetBytes(p_Handle).CopyTo(RawBytes, s_EntryOff + 0x20);
+                RawBytes[s_EntryOff + 0x26] = p_TextureType;
+                RawBytes[s_EntryOff + 0x27] = (byte) (p_Required ? 1 : 0);
+            }
+
+            return $"replaced external t{p_Register}: '{s_Previous}' -> '{p_Name}' (in place)";
+        }
+
+        var s_New = new ExternalTextureConstant
+        {
+            Name = p_Name, Handle = p_Handle, Index = p_Register,
+            TextureType = (TextureType) p_TextureType, Required = p_Required,
+        };
+
+        var s_Model = new ExternalTextureConstant[ExternalTextures.Length + 1];
+        Array.Copy(ExternalTextures, s_Model, ExternalTextures.Length);
+        s_Model[ExternalTextures.Length] = s_New;
+
+        if (RawBytes == null)
+        {
+            ExternalTextures = s_Model;
+            return "authored constant: external texture appended to the model";
+        }
+
+        // Fidelity probe: does the authored writer reproduce this record byte-identically?
+        byte[] s_Authored;
+        var s_Saved = RawBytes;
+        RawBytes = null;
+        using (var s_Ms = new MemoryStream())
+        {
+            using (var s_W = new RimeWriter(s_Ms, Endianness.LittleEndian, false))
+            {
+                s_W.Write((uint) 0);
+                Serialize(s_W);
+            }
+            s_Authored = s_Ms.ToArray();
+        }
+        RawBytes = s_Saved;
+
+        if (s_Authored.Length - 4 == RawBytes.Length && s_Authored.AsSpan(4).SequenceEqual(RawBytes))
+        {
+            ExternalTextures = s_Model;
+            RawBytes = null;
+            return "authored writer verified byte-identical -> external texture appended, record re-authored";
+        }
+
+        // Tail-append surgery on the raw record: block offset [3] @28 (size-field-relative), count @51.
+        var s_Old = RawBytes;
+        if (s_Old.Length < 53)
+            return "ERROR: record too small to be a ShaderConstant";
+
+        int s_ExtCount = s_Old[51];
+        var s_ExtOff = (long) BitConverter.ToUInt64(s_Old, 28) - 4;
+        if (s_ExtCount != ExternalTextures.Length)
+            return $"ERROR: header external texture count {s_ExtCount} != parsed {ExternalTextures.Length}";
+        if (s_ExtCount > 0 && (s_ExtOff < 53 || s_ExtOff + (long) s_ExtCount * c_EntrySize > s_Old.Length))
+            return "ERROR: external texture block out of bounds (unexpected layout)";
+        if (s_ExtCount > 0 && BitConverter.ToUInt16(s_Old, (int) s_ExtOff + 0x24) != ExternalTextures[0].Index)
+            return "ERROR: external texture block sanity check failed (entry layout mismatch)";
+
+        var s_Out = new byte[s_Old.Length + (s_ExtCount + 1) * c_EntrySize];
+        Array.Copy(s_Old, s_Out, s_Old.Length);
+
+        var s_TailOff = s_Old.Length;
+        if (s_ExtCount > 0)
+            Array.Copy(s_Old, (int) s_ExtOff, s_Out, s_TailOff, s_ExtCount * c_EntrySize);
+
+        var s_E = s_TailOff + s_ExtCount * c_EntrySize;
+        Array.Copy(s_NameBytes, 0, s_Out, s_E, s_NameBytes.Length);
+        BitConverter.GetBytes(p_Handle).CopyTo(s_Out, s_E + 0x20);
+        BitConverter.GetBytes(p_Register).CopyTo(s_Out, s_E + 0x24);
+        s_Out[s_E + 0x26] = p_TextureType;
+        s_Out[s_E + 0x27] = (byte) (p_Required ? 1 : 0);
+
+        BitConverter.GetBytes((ulong) (s_TailOff + 4)).CopyTo(s_Out, 28);
+        s_Out[51] = (byte) (s_ExtCount + 1);
+
+        RawBytes = s_Out;
+        ExternalTextures = s_Model;
+        return $"raw tail-append: external texture block relocated to +{s_TailOff}, {s_ExtCount}+1 entries, record {s_Old.Length} -> {s_Out.Length} B";
+    }
+
+    /// <summary>
+    /// Puts an EXTERNAL VALUE parameter (ExternalValueConstant: a float4 the engine fills per draw BY NAME from the
+    /// entity's ShaderParameterBlock — the way ScopeOcc reaches a weapon preset from the weapon's
+    /// ShaderParameterComponentData) at a pixel register of this constant record. The handle is the engine's id of
+    /// the name (hashQuickLowerCase, the same id the external textures carry).
+    /// A register the record already binds externally is RENAMED in place (name, handle and default; the entry's
+    /// Size/ArraySize/Required are kept). A new register goes through the authored writer when it proves fidelity,
+    /// otherwise the external-value block (old entries + the new one) is appended at the record's tail and only that
+    /// block's offset + count in the header are patched — the surgery of <see cref="AddExternalTextureConstant"/>;
+    /// ConstantCount grows to cover the register. A register inside the literal value constants, or a name already
+    /// bound at another register, is refused. Returns a report line ("ERROR: ..." on failure).
+    /// </summary>
+    public string SetExternalValueConstant(ushort p_Register, string p_Name, uint p_Handle, float p_DefaultX,
+        float p_DefaultY, float p_DefaultZ, float p_DefaultW)
+    {
+        const int c_EntrySize = 0x3C; // 0x20 name | u32 Handle | u16 Index | u16 ArraySize | u8 Size | u8 Required | 2 pad | 4 * f32
+        const int c_NameSize = 0x20;
+        var s_Default = new Vec4 { x = p_DefaultX, y = p_DefaultY, z = p_DefaultZ, w = p_DefaultW };
+
+        var s_NameBytes = Encoding.UTF8.GetBytes(p_Name);
+        if (s_NameBytes.Length >= c_NameSize)
+            return "ERROR: external value name too long (31 bytes at most)";
+
+        if (ValueConstants.Length > 0 && p_Register >= ValueConstantsStart &&
+            p_Register < ValueConstantsStart + ValueConstants.Length)
+            return $"ERROR: c{p_Register} holds a literal value constant (c{ValueConstantsStart}..c{ValueConstantsStart + ValueConstants.Length - 1})";
+
+        for (var i = 0; i < ExternalValues.Length; i++)
+        {
+            var s_Existing = ExternalValues[i];
+            if (s_Existing.Index != p_Register &&
+                string.Equals(s_Existing.Name, p_Name, StringComparison.OrdinalIgnoreCase))
+                return $"ERROR: external value '{p_Name}' is already bound at c{s_Existing.Index}";
+
+            if (s_Existing.Index != p_Register)
+                continue;
+
+            var s_Previous = s_Existing.Name;
+            s_Existing.Name = p_Name;
+            s_Existing.Handle = p_Handle;
+            s_Existing.DefaultValue = s_Default;
+
+            if (RawBytes != null)
+            {
+                var s_BlockOff = (long) BitConverter.ToUInt64(RawBytes, 20) - 4;
+                var s_EntryOff = (int) s_BlockOff + i * c_EntrySize;
+                if (s_BlockOff < 53 || s_EntryOff + c_EntrySize > RawBytes.Length ||
+                    BitConverter.ToUInt16(RawBytes, s_EntryOff + 0x24) != p_Register)
+                    return "ERROR: external value block layout mismatch on in-place rename";
+
+                Array.Clear(RawBytes, s_EntryOff, c_NameSize);
+                Array.Copy(s_NameBytes, 0, RawBytes, s_EntryOff, s_NameBytes.Length);
+                BitConverter.GetBytes(p_Handle).CopyTo(RawBytes, s_EntryOff + 0x20);
+                WriteVec4(RawBytes, s_EntryOff + 0x2C, s_Default);
+            }
+
+            return $"renamed external c{p_Register}: '{s_Previous}' -> '{p_Name}' (in place)";
+        }
+
+        // A new register: a single float4 — Size is the number of components the engine writes, so FOUR whatever the record's
+        // first external holds (⛔ modelled on it, the emblem slot's layers came out size 3 — DiffuseDarkening is a float3 — and
+        // their w, a layer's opacity and half height, would never be written; readback 2026-09-29). ArraySize from that one.
+        var s_Template = ExternalValues.Length > 0 ? ExternalValues[0] : null;
+        var s_New = new ExternalValueConstant
+        {
+            Name = p_Name, Handle = p_Handle, Index = p_Register, DefaultValue = s_Default,
+            ArraySize = s_Template?.ArraySize ?? 1, Size = 4, Required = false,
+        };
+
+        var s_Model = new ExternalValueConstant[ExternalValues.Length + 1];
+        Array.Copy(ExternalValues, s_Model, ExternalValues.Length);
+        s_Model[ExternalValues.Length] = s_New;
+        // ⛔ The Index is ONE-based and the count is the highest Index (measured 2026-09-29 on WeaponPresetShadowFP: a table of
+        // 12 externals holds Index 1..12 for the bytecode's elements c0..c11 and counts 12; one with a 4-register $Globals block
+        // before them holds 5..16 and counts 16) — the append of 2026-09-29 16:25 counted one too many (register + 1).
+        var s_Count = (ushort) System.Math.Max(ConstantCount, p_Register);
+
+        if (RawBytes == null)
+        {
+            ExternalValues = s_Model;
+            ConstantCount = s_Count;
+            return "authored constant: external value appended to the model";
+        }
+
+        // Fidelity probe: does the authored writer reproduce this record byte-identically?
+        byte[] s_Authored;
+        var s_Saved = RawBytes;
+        RawBytes = null;
+        using (var s_Ms = new MemoryStream())
+        {
+            using (var s_W = new RimeWriter(s_Ms, Endianness.LittleEndian, false))
+            {
+                s_W.Write((uint) 0);
+                Serialize(s_W);
+            }
+            s_Authored = s_Ms.ToArray();
+        }
+        RawBytes = s_Saved;
+
+        if (s_Authored.Length - 4 == RawBytes.Length && s_Authored.AsSpan(4).SequenceEqual(RawBytes))
+        {
+            ExternalValues = s_Model;
+            ConstantCount = s_Count;
+            RawBytes = null;
+            return $"authored writer verified byte-identical -> external value appended, record re-authored, {ConstantCount} constants";
+        }
+
+        // Tail-append surgery on the raw record: block offset [2] @20 (size-field-relative), count @50,
+        // ConstantCount @44.
+        var s_Old = RawBytes;
+        if (s_Old.Length < 53)
+            return "ERROR: record too small to be a ShaderConstant";
+
+        int s_ExtCount = s_Old[50];
+        var s_ExtOff = (long) BitConverter.ToUInt64(s_Old, 20) - 4;
+        if (s_ExtCount != ExternalValues.Length)
+            return $"ERROR: header external value count {s_ExtCount} != parsed {ExternalValues.Length}";
+        if (s_ExtCount > 0 && (s_ExtOff < 53 || s_ExtOff + (long) s_ExtCount * c_EntrySize > s_Old.Length))
+            return "ERROR: external value block out of bounds (unexpected layout)";
+        if (s_ExtCount > 0 && BitConverter.ToUInt16(s_Old, (int) s_ExtOff + 0x24) != ExternalValues[0].Index)
+            return "ERROR: external value block sanity check failed (entry layout mismatch)";
+
+        // The block already ends the record (an earlier append put it there): it grows by the one entry in place. Otherwise it is
+        // relocated to the tail once, the old copy left where it was (unreferenced) — eighty appends relocating it every time left
+        // ~250 KB of dead copies per record.
+        var s_AtTail = s_ExtCount > 0 && s_ExtOff + (long) s_ExtCount * c_EntrySize == s_Old.Length;
+        var s_Out = new byte[s_Old.Length + (s_AtTail ? 1 : s_ExtCount + 1) * c_EntrySize];
+        Array.Copy(s_Old, s_Out, s_Old.Length);
+
+        var s_TailOff = s_AtTail ? (int) s_ExtOff : s_Old.Length;
+        if (s_ExtCount > 0 && !s_AtTail)
+            Array.Copy(s_Old, (int) s_ExtOff, s_Out, s_TailOff, s_ExtCount * c_EntrySize);
+
+        var s_E = s_TailOff + s_ExtCount * c_EntrySize;
+        Array.Copy(s_NameBytes, 0, s_Out, s_E, s_NameBytes.Length);
+        BitConverter.GetBytes(p_Handle).CopyTo(s_Out, s_E + 0x20);
+        BitConverter.GetBytes(p_Register).CopyTo(s_Out, s_E + 0x24);
+        BitConverter.GetBytes(s_New.ArraySize).CopyTo(s_Out, s_E + 0x26);
+        s_Out[s_E + 0x28] = s_New.Size;
+        s_Out[s_E + 0x29] = 0;
+        WriteVec4(s_Out, s_E + 0x2C, s_Default);
+
+        BitConverter.GetBytes((ulong) (s_TailOff + 4)).CopyTo(s_Out, 20);
+        s_Out[50] = (byte) (s_ExtCount + 1);
+        BitConverter.GetBytes(s_Count).CopyTo(s_Out, 44);
+
+        RawBytes = s_Out;
+        ExternalValues = s_Model;
+        ConstantCount = s_Count;
+        return $"raw tail-append: external value block {(s_AtTail ? "grown in place" : "relocated")} at +{s_TailOff}, {s_ExtCount}+1 entries, " +
+               $"{s_Count} constants, record {s_Old.Length} -> {s_Out.Length} B";
+    }
+
+    private static void WriteVec4(byte[] p_Buffer, int p_Offset, Vec4 p_Value)
+    {
+        BitConverter.GetBytes(p_Value.x).CopyTo(p_Buffer, p_Offset);
+        BitConverter.GetBytes(p_Value.y).CopyTo(p_Buffer, p_Offset + 4);
+        BitConverter.GetBytes(p_Value.z).CopyTo(p_Buffer, p_Offset + 8);
+        BitConverter.GetBytes(p_Value.w).CopyTo(p_Buffer, p_Offset + 12);
+    }
+
+    /// <summary>
+    /// Puts a SAMPLER STATE on this constant record at its register. Addressing and filtering are state of the
+    /// shader kept HERE, not in the bytecode: a pixel stage that reads a texture through sN gets whatever this
+    /// record says for N (the decals of a vehicle preset clamp, its camo repeats). A register the record already
+    /// holds is overwritten in place (kept when identical); a new one goes through the authored writer when it
+    /// proves fidelity, otherwise the sampler block (old entries + the new one) is appended at the record's tail
+    /// and only that block's offset + count in the header are patched — the surgery of
+    /// <see cref="AddExternalTextureConstant"/>. Returns a report line ("ERROR: ..." on failure).
+    /// </summary>
+    public string SetSamplerState(SamplerState p_State)
+    {
+        const int c_EntrySize = 0x40; // u32 Index + i32 Filter + 3*i32 Address + f32 Bias + i32 Aniso + i32 Cmp + 4*f32 Border + 2*f32 Lod + 8 pad
+        var s_New = SamplerBytes(p_State);
+
+        for (var i = 0; i < Samplers.Length; i++)
+        {
+            if (Samplers[i].Index != p_State.Index)
+                continue;
+
+            if (SamplerBytes(Samplers[i]).AsSpan().SequenceEqual(s_New))
+                return $"s{p_State.Index} already {DescribeSampler(p_State)}: kept";
+
+            var s_Previous = DescribeSampler(Samplers[i]);
+            if (RawBytes != null)
+            {
+                var s_BlockOff = (long) BitConverter.ToUInt64(RawBytes, 36) - 4;
+                var s_EntryOff = (int) s_BlockOff + i * c_EntrySize;
+                if (s_BlockOff < 53 || s_EntryOff + c_EntrySize > RawBytes.Length ||
+                    BitConverter.ToUInt32(RawBytes, s_EntryOff) != p_State.Index)
+                    return "ERROR: sampler block layout mismatch on in-place replace";
+
+                Array.Copy(s_New, 0, RawBytes, s_EntryOff, c_EntrySize);
+            }
+
+            Samplers[i] = p_State;
+            return $"replaced s{p_State.Index}: {s_Previous} -> {DescribeSampler(p_State)} (in place)";
+        }
+
+        var s_Model = new SamplerState[Samplers.Length + 1];
+        Array.Copy(Samplers, s_Model, Samplers.Length);
+        s_Model[Samplers.Length] = p_State;
+
+        if (RawBytes == null)
+        {
+            Samplers = s_Model;
+            return $"authored constant: s{p_State.Index} {DescribeSampler(p_State)} appended to the model";
+        }
+
+        // Fidelity probe: does the authored writer reproduce this record byte-identically?
+        byte[] s_Authored;
+        var s_Saved = RawBytes;
+        RawBytes = null;
+        using (var s_Ms = new MemoryStream())
+        {
+            using (var s_W = new RimeWriter(s_Ms, Endianness.LittleEndian, false))
+            {
+                s_W.Write((uint) 0);
+                Serialize(s_W);
+            }
+            s_Authored = s_Ms.ToArray();
+        }
+        RawBytes = s_Saved;
+
+        if (s_Authored.Length - 4 == RawBytes.Length && s_Authored.AsSpan(4).SequenceEqual(RawBytes))
+        {
+            Samplers = s_Model;
+            RawBytes = null;
+            return $"authored writer verified byte-identical -> s{p_State.Index} {DescribeSampler(p_State)} appended, record re-authored";
+        }
+
+        // Tail-append surgery on the raw record: block offset [4] @36 (size-field-relative), count @52.
+        var s_Old = RawBytes;
+        if (s_Old.Length < 53)
+            return "ERROR: record too small to be a ShaderConstant";
+
+        int s_Count = s_Old[52];
+        var s_Off = (long) BitConverter.ToUInt64(s_Old, 36) - 4;
+        if (s_Count != Samplers.Length)
+            return $"ERROR: header sampler count {s_Count} != parsed {Samplers.Length}";
+        if (s_Count > 0 && (s_Off < 53 || s_Off + (long) s_Count * c_EntrySize > s_Old.Length))
+            return "ERROR: sampler block out of bounds (unexpected layout)";
+        if (s_Count > 0 && BitConverter.ToUInt32(s_Old, (int) s_Off) != Samplers[0].Index)
+            return "ERROR: sampler block sanity check failed (entry layout mismatch)";
+
+        var s_Out = new byte[s_Old.Length + (s_Count + 1) * c_EntrySize];
+        Array.Copy(s_Old, s_Out, s_Old.Length);
+
+        var s_TailOff = s_Old.Length;
+        if (s_Count > 0)
+            Array.Copy(s_Old, (int) s_Off, s_Out, s_TailOff, s_Count * c_EntrySize);
+
+        Array.Copy(s_New, 0, s_Out, s_TailOff + s_Count * c_EntrySize, c_EntrySize);
+
+        BitConverter.GetBytes((ulong) (s_TailOff + 4)).CopyTo(s_Out, 36);
+        s_Out[52] = (byte) (s_Count + 1);
+
+        RawBytes = s_Out;
+        Samplers = s_Model;
+        return $"raw tail-append: s{p_State.Index} {DescribeSampler(p_State)}, sampler block relocated to +{s_TailOff}, " +
+               $"{s_Count}+1 entries, record {s_Old.Length} -> {s_Out.Length} B";
+    }
+
+    /// <summary>A sampler state as the 64 bytes the record stores (see <see cref="SamplerState.Serialize"/>).</summary>
+    public static byte[] SamplerBytes(SamplerState p_State)
+    {
+        using var s_Ms = new MemoryStream();
+        using (var s_W = new RimeWriter(s_Ms, Endianness.LittleEndian, false))
+            p_State.Serialize(s_W);
+        return s_Ms.ToArray();
+    }
+
+    /// <summary>"Clamp/Clamp/Wrap MinMagMipLinear aniso 1", the way the dumps print a sampler.</summary>
+    public static string DescribeSampler(SamplerState p_State) =>
+        $"{p_State.Desc.AddressU}/{p_State.Desc.AddressV}/{p_State.Desc.AddressW} {p_State.Desc.Filter} aniso {p_State.Desc.MaximumAnisotropy}";
+
     public void Deserialize(RimeReader p_Reader)
     {
         var s_StartPosition = p_Reader.Position - 4; //4 bytes allready used...

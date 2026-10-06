@@ -35,6 +35,17 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                                        "'Default' is not a valid pool group -> black texture).", Optional = true)]
         public string? GroupDonor { get; set; }
 
+        // A UI texture is never bound directly: fb::UIScaleformTextureStreamingManager pulls it through
+        // m_onDemandTextures, and every vanilla UI texture ships flags 9 = Streaming|OnDemandLoaded.
+        // Generated without the bit, the resource is found by name and the image still never appears.
+        [CommandArgument(Description = "Whether the texture is loaded on demand. UI textures REQUIRE this (vanilla UI headers carry Streaming|OnDemandLoaded). Defaults to 'false'.", Optional = true)]
+        public bool OnDemandLoaded { get; set; } = false;
+
+        // Same texture, generated twice, one chunk: the header resource must ship from a NONCAS bundle and
+        // the pixel chunk from a CAS one, so the two builds have to agree on the chunk's guid.
+        [CommandArgument(Description = "Fixed streaming chunk guid (else random). Use to SPLIT the delivery: header resource in a NONCAS bundle, pixel chunk in a CAS one.", Optional = true)]
+        public string? ChunkId { get; set; }
+
         public override bool Execute(ref ExecutionContext p_Context, TextWriter p_Writer)
         {
             if (!FilePath!.Exists)
@@ -50,6 +61,8 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                 SrgbGamma = SrgbGamma,
                 Streaming = Streaming,
                 IsNormalMap = NormalMap,
+                OnDemandLoaded = OnDemandLoaded,
+                ChunkId = ChunkId,
             };
 
             ((BundleBuildingContext) p_Context).AddDDSTexture(FilePath, s_Attributes, GroupDonor);

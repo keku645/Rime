@@ -86,3 +86,36 @@ Related bug this uncovered: `fb/EmitterTextureAtlasInfo.cs` was generated with i
 offsets (MinUv@0, MaxUv@8, TextureName@16) instead of the primary ones (TextureName@0, MinUv@4,
 MaxUv@12) — the engine memory-maps EBX, so the partition loaded fine and every native read of it was
 garbage, while VU-Lua reflection still showed correct-looking values.
+
+## UI flow-graph oracles (`audit_flow.py`, `audit_orphans.py`, `audit_widgets.py`)
+
+Independent counts over the UI editor's cache (`partitions/ui_flow_*.json` + `resources/ui_assets_*.bin`)
+that `RimeUIEditor.exe --graphaudit` reproduces through the editor's own model: 321 UI graphs (241
+`UIScreenAsset` + 80 `UIGraphAsset`), 4594 nodes, 20150 ports, 4504 connections, the direction of every
+port slot per node type (In/Show/Hide/Inputs receive, Out/True/False/Outputs fire), the 118 connection
+endpoints the game ships naming a port that sits in no slot of its node, the 4458 port instances nothing
+owns, `JumpNode.TargetPort` as a reference to another node's port, and the widget node ↔ stage clip match
+(1407 of 1408; `blackstartscreen/TextField_01` is the game's own exception). End Game (`ui/xp5/flow`) adds 5
+graphs the base folder never showed — the CTF HUD, its spawn ticket counter and 3 flow graphs: 36 nodes, 25
+connections, 1 dangling endpoint, 86 unused ports, 11 widgets — so the audit's totals are 326 / 4630 / 4529 /
+119 / 4448 / 1419; the scripts take `ui_xp*_flow_*` dumps along with `ui_flow_*`. Diagnostics only — the
+editor's checks live in C#.
+
+`audit_pairs.py` measures what connects to what: for every shipped connection, the source node type and
+slot → the target node type and slot (widget ports by their event query). It is the oracle behind the
+editor's "compatible" wiring (`PortCompat`, the widget catalogue's `wires` counts): 4387 connections with both
+ports on their nodes, no connection ever joins a node to itself, none lands on `DataInputs`, 2 name a
+`JumpNode.TargetPort` (a reference, dead data); the pairs the game wires most are
+`WidgetNode.Outputs → DataSetNode.In` (309), `WidgetNode.Outputs → WidgetNode.Inputs` (249) and
+`StateNode.Outputs → ActionNode.In` (232).
+
+## Widget settings from the widgets' own scripts (`ffdec_export_all.py`, `as_widget_settings.py`)
+
+`ffdec_export_all.py` exports the ActionScript of every `ui/assets` movie in the UI editor's cache with ffdec
+(one JVM per movie, ~6 min for 434). `as_widget_settings.py` then reads, per widget movie, the class its frame
+script registers (`Object.registerClass("Grid", Widget.Grid.Grid)` — the classes live in the two AS library
+movies, not in the widget), walks the `extends` chain, and collects: the WidgetProperties the code reads at
+initialise (`initData.<Name>`) with their declared defaults (`var p_animTime = 1;`) and how they are parsed
+(`== "true"` → bool, `Number()`/`parseInt` → number, `!= 0` → flag), and the data channels it accepts
+(`update<Name>Data` methods = a binding's DataName). Output `widget_settings.json` ships as
+`RimeUIEditor/Data/widget_settings.json` (388 widgets, 92 settings over 38 of them, 114 with channels).

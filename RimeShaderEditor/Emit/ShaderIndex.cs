@@ -106,7 +106,7 @@ public static class ShaderIndex
             if (s_Files.Count == 0)
                 continue;
 
-            var s_File = ChooseGBufferPermutation(s_Files, new List<string>());
+            var s_File = ChooseGBufferPermutation(s_Files, new List<string>(), s_Parts[1]);
 
             try
             {
@@ -136,7 +136,93 @@ public static class ShaderIndex
     /// the plainest shading of that material. On the oil drum that lands on the exact permutation whose graph was
     /// proven bit-exact against DICE's.
     /// </summary>
-    public static FileInfo ChooseGBufferPermutation(List<FileInfo> p_Candidates, List<string> p_Log)
+    public static FileInfo ChooseGBufferPermutation(List<FileInfo> p_Candidates, List<string> p_Log) =>
+        ChooseGBufferPermutation(p_Candidates, p_Log, null);
+
+    /// <summary>
+    /// The vertex declarations a shader's SUBJECTS draw with ("0x…", the one most of their sections draw with first), by shader name — the
+    /// host's own knowledge (the studio's cache logs); null or empty when unknown. See <see cref="ChooseGBufferPermutation(List{FileInfo}, List{string}, string?)"/>.
+    /// </summary>
+    public static Func<string, IReadOnlyList<string>>? SubjectDeclarations { get; set; }
+
+    /// <summary>
+    /// <see cref="ChooseGBufferPermutation(List{FileInfo}, List{string})"/>, for the shader named: when the host names the declaration its
+    /// SUBJECTS draw with (<see cref="SubjectDeclarations"/>, most-drawn first) and the plainest g-buffer permutation belongs to another one,
+    /// the plainest g-buffer permutation of the subjects' declaration instead (the extraction's sidecar, solutions.txt, says each
+    /// permutation's declaration). ⭐ MEASURED 2026-09-28 (keku: the US support's legs, "tiling que se pueda modificar"):
+    /// `characterroot_xp4`'s plainest is sol0, declaration 0xCE4574FD (skin and faces), which samples CamoTile at a FIXED point and never
+    /// reads CamoTileFactor — while its soldier sections draw with 0x56576EBB (22) and 0x5E57E699 (3), the cloth, whose plainest g-buffer
+    /// permutation (sol19) tiles CamoTile by the second uv set × CamoTileFactor and lays a cloth detail over it: every Aftermath soldier's
+    /// graph showed the camo as one flat colour. ⛔ The host names subjects only where it must (the studio: the Soldiers catalogue's
+    /// meshes) — the first version counted every cached mesh, kept sol0 (a weapon-cache mesh draws 0xCE4574FD with it) and moved 14
+    /// vehicle and prop shaders that were right. Without a sidecar, or with no subject named, the choice is exactly as before.
+    /// </summary>
+    public static FileInfo ChooseGBufferPermutation(List<FileInfo> p_Candidates, List<string> p_Log, string? p_Shader)
+    {
+        var s_Plainest = ChoosePlainestGBufferPermutation(p_Candidates, p_Log);
+        // (CAMO_PERMUTATION_OLD=1: the plainest always, as before — the way back)
+        if (p_Shader == null || Environment.GetEnvironmentVariable("CAMO_PERMUTATION_OLD") == "1" ||
+            SubjectDeclarations?.Invoke(p_Shader) is not { Count: > 0 } s_Theirs ||
+            DeclarationsOfPermutations(p_Candidates) is not { Count: > 0 } s_DeclarationOf ||
+            !s_DeclarationOf.TryGetValue(s_Plainest.Name, out var s_PlainestDeclaration) ||
+            s_Theirs[0].Equals(s_PlainestDeclaration, StringComparison.OrdinalIgnoreCase))
+            return s_Plainest;
+
+        foreach (var s_Declaration in s_Theirs)
+        {
+            var s_Own = p_Candidates.Where(p_F => s_DeclarationOf.TryGetValue(p_F.Name, out var s_Of) &&
+                                                  s_Of.Equals(s_Declaration, StringComparison.OrdinalIgnoreCase)).ToList();
+            var s_GBuffer = s_Own
+                .Select(p_F =>
+                {
+                    var s_Targets = 0;
+                    try { s_Targets = ShaderContract.Detect(File.ReadAllBytes(p_F.FullName)).RenderTargets; }
+                    catch { }
+
+                    return (File: p_F, Targets: s_Targets);
+                })
+                .Where(p_S => p_S.Targets >= 3)
+                .OrderByDescending(p_S => p_S.File.Name.Contains("Dx11", StringComparison.OrdinalIgnoreCase))
+                .ThenBy(p_S => p_S.File.Length)
+                .ThenBy(p_S => p_S.File.Name, StringComparer.Ordinal)
+                .ToList();
+            if (s_GBuffer.Count == 0)
+                continue;
+
+            var s_Chosen = s_GBuffer[0];
+            p_Log.Add($"⭐ {s_Plainest.Name} draws declaration {s_PlainestDeclaration}, not the one {p_Shader}'s subjects draw with " +
+                      $"({string.Join(", ", s_Theirs)}, most first); translating the plainest g-buffer permutation of {s_Declaration} instead, " +
+                      $"{s_Chosen.File.Name} ({s_Chosen.File.Length} B, {s_Chosen.Targets} targets).");
+            return s_Chosen.File;
+        }
+
+        return s_Plainest;
+    }
+
+    /// <summary>Each permutation file's vertex declaration ("0x…"), from the extraction's sidecar beside them (solutions.txt); empty without one.</summary>
+    private static Dictionary<string, string> DeclarationsOfPermutations(List<FileInfo> p_Candidates)
+    {
+        var s_Out = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var s_Sidecar = p_Candidates.Count > 0 ? Path.Combine(p_Candidates[0].DirectoryName ?? "", "solutions.txt") : "";
+        if (s_Sidecar.Length == 0 || !File.Exists(s_Sidecar))
+            return s_Out;
+
+        foreach (var s_Line in File.ReadLines(s_Sidecar))
+        {
+            var s_Space = s_Line.IndexOf(' ');
+            var s_At = s_Line.IndexOf(" decl=", StringComparison.Ordinal);
+            if (s_Space <= 0 || s_At < 0)
+                continue;
+
+            var s_End = s_Line.IndexOf(' ', s_At + 6);
+            var s_Declaration = s_End < 0 ? s_Line[(s_At + 6)..] : s_Line[(s_At + 6)..s_End];
+            s_Out[s_Line[..s_Space] + "_ps.dxbc"] = s_Declaration.ToUpperInvariant().Replace("0X", "0x");
+        }
+
+        return s_Out;
+    }
+
+    private static FileInfo ChoosePlainestGBufferPermutation(List<FileInfo> p_Candidates, List<string> p_Log)
     {
         var s_Scored = p_Candidates
             .Select(p_F =>

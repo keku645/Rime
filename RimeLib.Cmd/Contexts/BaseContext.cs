@@ -17,6 +17,8 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<SelectGameCommand>();
             RegisterCommand<BuildSbCommand>();
             RegisterCommand<RimeLib.Cmd.Commands.Game.MountExternalCatCommand>();
+            RegisterCommand<RimeLib.Cmd.Commands.Common.GfxStageListCommand>();
+            RegisterCommand<RimeLib.Cmd.Commands.Common.GfxStageEditCommand>();
         }
 
         public override string GetShortDescription()

@@ -153,6 +153,24 @@ namespace RimeLib.Cmd.Commands.Game
 
                     s_Matched++;
 
+                    // ⛔ WHICH MATERIAL OF THE MESH THIS IS, and without it these lines cannot be told apart:
+                    // ONE MESH CAN CARRY SEVERAL MATERIALS WEARING THE SAME SHADER (the LAV-25's hull and its
+                    // ATGM launchers are both vehiclepreset_mud), so a consumer keyed on (mesh, shader) folds
+                    // them into one and the last one read wins — the hull came out dressed in the launchers'
+                    // textures, which draws as a flat grey vehicle.
+                    //
+                    // The ID is the material's index in the MESH's OWN material list — the same number
+                    // dump_mesh_sections prints as material= — resolved through the MeshMaterial guid and
+                    // never assumed to be the entry's order.
+                    var s_MaterialId = -1;
+                    if (s_MeshPartition.InstanceMap.Values.OfType<MeshAsset>().FirstOrDefault() is { } s_MeshAsset)
+                        for (var i = 0; i < s_MeshAsset.Materials.Count; i++)
+                            if ((s_MeshAsset.Materials[i].InstanceId as DataContainerId.Guid)?.Id == s_InstanceGuid)
+                            {
+                                s_MaterialId = i;
+                                break;
+                            }
+
                     // A human-readable label for the variation: the variation asset's partition name when there
                     // is one, "(base)" for the unvaried master (hash 0 carries a null variation ref).
                     var s_VariationName = s_Material.MaterialVariation.IsNull()
@@ -165,13 +183,13 @@ namespace RimeLib.Cmd.Commands.Game
                     // One line per matched (entry, material) even when the material binds no texture
                     // parameters — a streamable-textured prop's entry is exactly that, and the MESH name is
                     // what a variation bake needs to copy the entry into its own database.
-                    Emit($"SHMATMESH: shader={s_ShaderName} mesh={s_MeshName} " +
+                    Emit($"SHMATMESH: shader={s_ShaderName} mesh={s_MeshName} material={s_MaterialId} " +
                          $"variation={s_Entry.VariationAssetNameHash} variationName={s_VariationName}");
 
                     void Dump(string p_Source, List<TextureShaderParameter> p_Parameters)
                     {
                         foreach (var s_Parameter in p_Parameters)
-                            Emit($"SHMATTEX: shader={s_ShaderName} mesh={s_MeshName} " +
+                            Emit($"SHMATTEX: shader={s_ShaderName} mesh={s_MeshName} material={s_MaterialId} " +
                                  $"variation={s_Entry.VariationAssetNameHash} " +
                                  $"variationName={s_VariationName} source={p_Source} " +
                                  $"param={s_Parameter.ParameterName} texture={TexName(s_Parameter.Value)}");
@@ -183,7 +201,7 @@ namespace RimeLib.Cmd.Commands.Game
                         {
                             var s_Value = s_Parameter.Value;
                             Emit(string.Create(CultureInfo.InvariantCulture,
-                                $"SHMATVEC: shader={s_ShaderName} mesh={s_MeshName} " +
+                                $"SHMATVEC: shader={s_ShaderName} mesh={s_MeshName} material={s_MaterialId} " +
                                 $"variation={s_Entry.VariationAssetNameHash} " +
                                 $"variationName={s_VariationName} source={p_Source} " +
                                 $"param={s_Parameter.ParameterName} " +

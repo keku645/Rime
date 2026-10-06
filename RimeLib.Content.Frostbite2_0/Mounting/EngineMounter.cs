@@ -575,7 +575,8 @@ namespace RimeLib.Content.Frostbite2_0.Mounting
                 if (!string.IsNullOrEmpty(p_AssetName))
                 {
                     s_Meta = new DbObject();
-                    s_Meta.AddElement(new DbObjectElement("h32", (int)RimeLib.Frostbite.Utils.HashQuick(p_AssetName)));
+                    // Lowercased, like the engine: h32 == fb::hashQuick of the LOWERCASE resource name.
+                    s_Meta.AddElement(new DbObjectElement("h32", (int)RimeLib.Frostbite.Utils.HashQuickLowerCase(p_AssetName)));
                     s_Meta.AddElement(new DbObjectElement("meta", new DbObject(), false));
                 }
                 p_Variant = new ChunkVariant(s_Cat, 0, (uint)s_Cat.GetCompressedSize(), 0, s_Meta,

@@ -68,9 +68,35 @@ namespace RimeLib.Animation.Frostbite2_0.EA.Compression.DCT
             return Vector4.Normalize(s_Vec);
         }
 
-        public void Parse(DctAnimationAsset p_Dct)
+        /// <summary>
+        /// One frame of a DCT animation as a value per DOF (channel) in stored order: quaternions first
+        /// (normalized), then vec3s, then float vectors. The same unpacking Parse prints, returned.
+        /// </summary>
+        public Vector4[] DecodeFrame(DctAnimationAsset p_Dct, ushort p_Frame)
         {
+            var s_Blocks = ReadBlocks(p_Dct, out var s_DofTable);
+            var s_Result = new Vector4[s_DofTable.Length];
+            var s_BlockIdx = p_Frame / 8;
 
+            for (var s_DofIdx = 0; s_DofIdx < s_DofTable.Length; s_DofIdx++)
+            {
+                var s_DataIdx = s_BlockIdx * s_DofTable.Length + s_DofIdx;
+
+                if (s_DataIdx >= s_Blocks.Count)
+                    break;
+
+                var s_Block = s_Blocks[s_DataIdx];
+                s_Result[s_DofIdx] = s_DofIdx < p_Dct.NumQuats
+                    ? UnpackQuat(p_Dct, s_Block, p_Frame)
+                    : UnpackVec(p_Dct, s_Block, p_Frame);
+            }
+
+            return s_Result;
+        }
+
+        /// <summary>The DOF table and every 8-key block of every channel (block-major), as Parse reads them.</summary>
+        private List<List<short>> ReadBlocks(DctAnimationAsset p_Dct, out DofTable[] p_DofTable)
+        {
             var s_DofCount = p_Dct.NumVec3 + p_Dct.NumQuats + p_Dct.NumFloatVec;
 
             var s_DofTable = new DofTable[s_DofCount];
@@ -160,6 +186,14 @@ namespace RimeLib.Animation.Frostbite2_0.EA.Compression.DCT
                     s_Blocks.Add(s_Block);
                 }
             }
+
+            p_DofTable = s_DofTable;
+            return s_Blocks;
+        }
+
+        public void Parse(DctAnimationAsset p_Dct)
+        {
+            var s_Blocks = ReadBlocks(p_Dct, out var s_DofTable);
 
             for (var s_Frame = 0; s_Frame < p_Dct.NumKeys; s_Frame++)
             {

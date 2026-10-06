@@ -78,6 +78,15 @@ public class GraphCanvas : GridCanvas
     public event EventHandler? SelectionChanged;
     public event EventHandler? GraphChanged;
 
+    /// <summary>Breaks the wire into a port — what ALT+click on a wire does, callable by a driver.</summary>
+    public void BreakWire(string p_ToNode, string p_ToPort)
+    {
+        PushUndo();
+        m_Graph.Disconnect(p_ToNode, p_ToPort);
+        GraphChanged?.Invoke(this, EventArgs.Empty);
+        InvalidateVisual();
+    }
+
     /// <summary>Raised by a right-CLICK (not a right-drag, which still pans); carries the world point.</summary>
     public event EventHandler<Point>? SearchRequested;
 
@@ -154,6 +163,7 @@ public class GraphCanvas : GridCanvas
             m_Primary = null;
             m_Dragging = null;
             m_WireFrom = null;
+            StopEdgePan();
             m_BandOrigin = null;
             m_SelectedGroup = null;
             m_GroupDragging = null;
@@ -224,6 +234,7 @@ public class GraphCanvas : GridCanvas
 
         m_Dragging = null;
         m_WireFrom = null;
+        StopEdgePan();
         m_BandOrigin = null;
 
         SelectionChanged?.Invoke(this, EventArgs.Empty);
@@ -307,6 +318,13 @@ public class GraphCanvas : GridCanvas
     }
 
     public void Refresh() => InvalidateVisual();
+
+    /// <summary>Selects one node alone — what a click on it does — so a driver can open its properties.</summary>
+    public void SelectNode(string p_Id)
+    {
+        SelectOnly(p_Id);
+        InvalidateVisual();
+    }
 
     private void SelectOnly(string p_Id)
     {
@@ -1105,7 +1123,7 @@ public class GraphCanvas : GridCanvas
             var s_Faint = new SolidColorBrush(Color.FromRgb(200, 200, 204));
             var s_Register = Text($"t{p_Node.GetParam("Register")}", 14, s_Pale);
             var s_Hint = Text("press", 9, s_Faint);
-            var s_Hint2 = Text("Load target textures", 9, s_Faint);
+            var s_Hint2 = Text("Reload from game", 9, s_Faint);
 
             var s_CentreY = s_Rect.Y + s_Rect.Height * 0.5;
             p_Context.DrawText(s_Register,
@@ -1250,12 +1268,7 @@ public class GraphCanvas : GridCanvas
             {
                 var s_Wire = HitWire(s_World);
                 if (s_Wire != null)
-                {
-                    PushUndo();
-                    m_Graph.Disconnect(s_Wire.ToNode, s_Wire.ToPort);
-                    GraphChanged?.Invoke(this, EventArgs.Empty);
-                    InvalidateVisual();
-                }
+                    BreakWire(s_Wire.ToNode, s_Wire.ToPort);
 
                 p_Args.Handled = true;
                 return;
@@ -1489,6 +1502,7 @@ public class GraphCanvas : GridCanvas
         if (m_WireFrom != null && p_Args.LeftButton == MouseButtonState.Pressed)
         {
             m_WireCursor = TransformPoint(p_Args.GetPosition(this));
+            UpdateEdgePan(p_Args.GetPosition(this));
             p_Args.Handled = true;
             InvalidateVisual();
             return;
@@ -1542,6 +1556,158 @@ public class GraphCanvas : GridCanvas
         }
 
         base.OnMouseMove(p_Args);
+    }
+
+    // ---- Auto-pan while a wire is being dragged (keku, 2026-09-21: "haz como en unreal engine y si arrastro un link
+    // de un nodo y llego al extremo de la ventana, que el canvas se mueva para poder llegar a nodos que no se ven,
+    // ahora mismo me veo forzado a hacer zoom out"). The wire is the only drag that has nowhere to go: a node can be
+    // dropped and picked up again, but a wire in flight must reach its port in ONE gesture, so the view has to come
+    // to it. The push grows with how far into the margin the cursor is, and holding past the edge keeps it at full
+    // speed: the position is POLLED on the tick, not taken from the last move event, which is what makes it keep
+    // scrolling while the cursor sits still against the edge.
+    private System.Windows.Threading.DispatcherTimer? m_EdgeTimer;
+
+    /// <summary>
+    /// Where the follow reads the cursor on each tick. Null = the real pointer, which is what makes it keep
+    /// scrolling while the cursor rests against the edge; a seam sets its own so the whole thing can be DRIVEN
+    /// without moving the user's pointer (the sign of the push is the part that is easy to get backwards, and
+    /// only a driven run shows it).
+    /// </summary>
+    public Func<Point>? CursorSource { get; set; }
+
+    /// <summary>The pan, in graph units: what a seam measures the follow with.</summary>
+    public Point ViewOffset => new(m_Offset.X, m_Offset.Y);
+
+    /// <summary>The loose end of the wire being dragged, in graph space; null when no wire is in flight.</summary>
+    public Point? WireEnd => m_WireFrom == null ? null : m_WireCursor;
+
+    /// <summary>Whether the view is following the cursor right now (a seam checks it stops with the drag).</summary>
+    public bool EdgePanRunning => m_EdgeTimer != null;
+
+    /// <summary>Starts a wire drag from the port at a graph-space point, as a press on that port does.</summary>
+    public bool DragWireFrom(Point p_World)
+    {
+        var s_Port = HitPort(p_World);
+
+        if (s_Port == null)
+            return false;
+
+        m_WireFrom = s_Port;
+        m_WireCursor = p_World;
+        InvalidateVisual();
+        return true;
+    }
+
+    /// <summary>
+    /// Starts a wire drag from a node's output port, by index — through the REAL hit test, so a seam that uses it
+    /// also proves the port is where the drawing puts it.
+    /// </summary>
+    public bool DragWireFromOutput(string p_NodeId, int p_Index = 0)
+    {
+        var s_Node = m_Graph.FindNode(p_NodeId);
+        return s_Node != null && DragWireFrom(OutputAnchor(s_Node, p_Index));
+    }
+
+    /// <summary>Ends the wire drag with nothing connected, as releasing over empty space does.</summary>
+    public void ClearWireDrag()
+    {
+        m_WireFrom = null;
+        StopEdgePan();
+        InvalidateVisual();
+    }
+
+    /// <summary>Takes the loose end to a point of the WINDOW, as a move with the button down does.</summary>
+    public void DragWireTo(Point p_Screen)
+    {
+        if (m_WireFrom == null)
+            return;
+
+        m_WireCursor = TransformPoint(p_Screen);
+        UpdateEdgePan(p_Screen);
+        InvalidateVisual();
+    }
+
+    /// <summary>How deep into the window's edge the cursor has to be for the view to start following, in pixels.</summary>
+    private const double c_EdgeMargin = 56;
+
+    /// <summary>Pixels per tick at the very edge (~60 ticks/s), with the ramp below it.</summary>
+    private const double c_EdgeSpeed = 16;
+
+    /// <summary>How much the view should move this tick for a cursor at that screen point (0,0 = not near an edge).</summary>
+    private Vector EdgePush(Point p_Screen)
+    {
+        if (ActualWidth <= c_EdgeMargin * 2 || ActualHeight <= c_EdgeMargin * 2)
+            return new Vector(0, 0);
+
+        // Past the edge counts as being AT the edge: dragging out of the window keeps it at full speed instead of
+        // stopping, which is where the gesture usually ends up when the target node is far away.
+        static double Push(double p_Pos, double p_Size)
+        {
+            if (p_Pos < c_EdgeMargin)
+                return -Math.Min(1.0, (c_EdgeMargin - p_Pos) / c_EdgeMargin) * c_EdgeSpeed;
+
+            if (p_Pos > p_Size - c_EdgeMargin)
+                return Math.Min(1.0, (p_Pos - (p_Size - c_EdgeMargin)) / c_EdgeMargin) * c_EdgeSpeed;
+
+            return 0;
+        }
+
+        return new Vector(Push(p_Screen.X, ActualWidth), Push(p_Screen.Y, ActualHeight));
+    }
+
+    /// <summary>Starts, keeps or stops the follow, from where the cursor is right now.</summary>
+    private void UpdateEdgePan(Point p_Screen)
+    {
+        if (EdgePush(p_Screen) == new Vector(0, 0))
+        {
+            StopEdgePan();
+            return;
+        }
+
+        if (m_EdgeTimer != null)
+            return;
+
+        m_EdgeTimer = new System.Windows.Threading.DispatcherTimer(System.Windows.Threading.DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(16),
+        };
+
+        m_EdgeTimer.Tick += (_, _) =>
+        {
+            // the drag ended (mouse up, Escape, focus lost): nothing left to follow. A driven run has no button
+            // down, so the button only speaks when the real pointer is the one being followed.
+            if (m_WireFrom == null || (CursorSource == null && Mouse.LeftButton != MouseButtonState.Pressed))
+            {
+                StopEdgePan();
+                return;
+            }
+
+            var s_Now = CursorSource == null ? Mouse.GetPosition(this) : CursorSource();
+            var s_Push = EdgePush(s_Now);
+
+            if (s_Push == new Vector(0, 0))
+            {
+                StopEdgePan();
+                return;
+            }
+
+            // m_Offset is in GRAPH units and screen = (world - offset) * scale, so a push in pixels is divided by
+            // the zoom: the view travels the same distance on screen whatever the graph is scaled to.
+            m_Offset.X += s_Push.X / Math.Max(m_Scale, 0.01);
+            m_Offset.Y += s_Push.Y / Math.Max(m_Scale, 0.01);
+
+            // the loose end stays under the cursor while the world slides beneath it
+            m_WireCursor = TransformPoint(s_Now);
+            InvalidateVisual();
+        };
+
+        m_EdgeTimer.Start();
+    }
+
+    private void StopEdgePan()
+    {
+        m_EdgeTimer?.Stop();
+        m_EdgeTimer = null;
     }
 
     private GraphConnection? m_HoverWire;
@@ -1655,6 +1821,7 @@ public class GraphCanvas : GridCanvas
                 }
 
                 m_WireFrom = null;
+                StopEdgePan();
                 Mouse.Capture(null);
                 GraphChanged?.Invoke(this, EventArgs.Empty);
                 p_Args.Handled = true;

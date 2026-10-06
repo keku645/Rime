@@ -22,6 +22,8 @@ public static class SampleGraphs
         {
             Name = Shorten(p_Target),
             TargetShader = p_Target,
+            // Stamped, so no caching path can mistake it for a translation (see ShaderGraph.IsScaffold).
+            IsScaffold = true,
         };
 
         var s_Root = new GraphNode { Kind = "StandardRoot", X = 320, Y = -40 };

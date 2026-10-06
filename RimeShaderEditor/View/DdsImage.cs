@@ -91,6 +91,61 @@ public static class DdsImage
         }
     }
 
+    /// <summary>
+    /// The header flag bit the dumper sets from the game's own per-texture gamma flag. It is not part of the
+    /// standard DDS flag set, which is why a plain "DXT1" file can still say how the game samples it.
+    /// </summary>
+    private const uint c_SrgbFlag = 0x40000000;
+
+    /// <summary>
+    /// Whether the game samples this texture through an sRGB view (stored values decoded to linear on read) or
+    /// as stored. Null when the file is not a readable DDS.
+    ///
+    /// ⛔ THIS BIT IS AN INPUT OF EVERY MASK THE SHADERS BUILD FROM A TEXTURE CHANNEL. The weapon presets'
+    /// wear mask is saturate((specular.g × WearAmount) ^ WearPower), and the weapons' specular maps carry the
+    /// flag: the game reads a stored 0.12 as 0.013, so WearAmount 10–30 leaves most of the body under the camo.
+    /// A view created without it reads the 0.12 as-is and the same numbers saturate the mask nearly everywhere —
+    /// "every camo looks worn at the game's own values". Measured over the cache: 477 flagged, 174 not, and NO
+    /// name rule separates them (a weapon's "_s" is flagged, a soldier's "_s" is not), so it is read per file.
+    /// </summary>
+    public static bool? IsSrgb(string p_Path)
+    {
+        try
+        {
+            using var s_Stream = File.OpenRead(p_Path);
+            var s_Header = new byte[12];
+            if (s_Stream.Read(s_Header, 0, s_Header.Length) != s_Header.Length ||
+                BitConverter.ToUInt32(s_Header, 0) != c_Magic)
+                return null;
+
+            return (BitConverter.ToUInt32(s_Header, 8) & c_SrgbFlag) != 0;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// How the preview must create the view of a cached texture: from the .dds beside its thumbnail when it is
+    /// there, otherwise guessed from the name (normal maps linear, everything else sRGB) and reported as a
+    /// guess so the caller can say so — the thumbnail PNG itself carries no flag.
+    /// </summary>
+    public static (bool Srgb, bool FromHeader) SrgbOf(string p_DdsPath, string p_AssetName)
+    {
+        if (IsSrgb(p_DdsPath) is { } s_Flag)
+            return (s_Flag, true);
+
+        return (!LooksLikeNormalMap(p_AssetName), false);
+    }
+
+    private static bool LooksLikeNormalMap(string p_Name)
+    {
+        var s_Stem = Path.GetFileNameWithoutExtension(p_Name).ToLowerInvariant();
+        return s_Stem.EndsWith("_n") || s_Stem.EndsWith("_nm") || s_Stem.EndsWith("_nrm") ||
+               s_Stem.Contains("normal");
+    }
+
     private static uint FourCc(string p_Code) =>
         (uint) (p_Code[0] | (p_Code[1] << 8) | (p_Code[2] << 16) | (p_Code[3] << 24));
 

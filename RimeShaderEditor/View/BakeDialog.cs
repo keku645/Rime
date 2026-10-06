@@ -261,7 +261,7 @@ public sealed class BakeDialog : Window
 
         if (!s_Any)
             s_List.Children.Add(Caption(
-                "No levels found. Check the BF3 path in the main window - the list is scanned from the install.",
+                "No levels found. Check the game folder in Settings - the list is scanned from the install.",
                 11, 0.9));
 
         var s_Scroll = new ScrollViewer

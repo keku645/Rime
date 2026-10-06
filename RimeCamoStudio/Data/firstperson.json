@@ -1,0 +1,1146 @@
+{
+  "Skeleton": "animations/skeletons/venice1pske01",
+  "WeaponSkeleton": "animations/skeletons/weapon/weaponske01",
+  "Meshes": {
+    "weapons/a91/a91_1p_mesh": {
+      "Eye": [
+        0.06612212,
+        0.09363101,
+        0.10700374
+      ],
+      "Look": [
+        -8.3248074E-07,
+        -0.016969154,
+        0.99985623
+      ],
+      "Up": [
+        1.3113006E-06,
+        0.9998561,
+        0.016968884
+      ],
+      "Bank": "animations/antanimations/a91",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/aek971/aek971_1p_mesh": {
+      "Eye": [
+        0.057985168,
+        0.10391788,
+        0.086379595
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/aek971",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/ak74m/ak74_1p_mesh": {
+      "Eye": [
+        0.06886829,
+        0.09629043,
+        0.0806897
+      ],
+      "Look": [
+        -0.025702238,
+        -0.018748343,
+        0.99949396
+      ],
+      "Up": [
+        0.009525605,
+        0.99977416,
+        0.018998435
+      ],
+      "Bank": "animations/antanimations/ak74",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/aks74u/aks74u_1p_mesh": {
+      "Eye": [
+        0.07728573,
+        0.09635445,
+        0.0727642
+      ],
+      "Look": [
+        -0.03452867,
+        -0.01849991,
+        0.9992326
+      ],
+      "Up": [
+        0.009365867,
+        0.9997788,
+        0.018833516
+      ],
+      "Bank": "animations/antanimations/ak74u",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/an94/an94_1p_mesh": {
+      "Eye": [
+        0.06619366,
+        0.117774166,
+        0.12566754
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/an94",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/asval/asval_1p_mesh": {
+      "Eye": [
+        0.055564027,
+        0.067459196,
+        0.12535055
+      ],
+      "Look": [
+        0.004865733,
+        0.018187247,
+        0.9998229
+      ],
+      "Up": [
+        -0.034942567,
+        0.999227,
+        -0.0180065
+      ],
+      "Bank": "animations/antanimations/asval",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/dao-12/dao-12_1p_mesh": {
+      "Eye": [
+        0.07193067,
+        0.11339414,
+        0.11423981
+      ],
+      "Look": [
+        -0.0040609227,
+        -0.0044038976,
+        0.99998224
+      ],
+      "Up": [
+        -7.218005E-05,
+        0.99999034,
+        0.004403512
+      ],
+      "Bank": "animations/antanimations/dao12",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/f2000/f2000_1p_mesh": {
+      "Eye": [
+        0.06679665,
+        0.12343314,
+        0.067175284
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/f2000",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/g36c/g36c_1p_mesh": {
+      "Eye": [
+        0.08241272,
+        0.11616495,
+        0.062149912
+      ],
+      "Look": [
+        -0.0074229524,
+        -0.017832816,
+        0.9998136
+      ],
+      "Up": [
+        -0.0001319638,
+        0.99984103,
+        0.017832221
+      ],
+      "Bank": "animations/antanimations/g36c",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/g3a3/g3a3_1p_mesh": {
+      "Eye": [
+        0.055242714,
+        0.11580899,
+        0.110390484
+      ],
+      "Look": [
+        0.02283937,
+        -0.013388933,
+        0.99964947
+      ],
+      "Up": [
+        2.7236474E-05,
+        0.9999102,
+        0.01339193
+      ],
+      "Bank": "animations/antanimations/g3",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/kh2002/kh2002_1p_mesh": {
+      "Eye": [
+        0.05935878,
+        0.08435669,
+        0.06167444
+      ],
+      "Look": [
+        -0.011324405,
+        -0.018740961,
+        0.9997605
+      ],
+      "Up": [
+        -0.00021189125,
+        0.9998246,
+        0.018739505
+      ],
+      "Bank": "animations/antanimations/kh2002",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m1014/m1014_1p_mesh": {
+      "Eye": [
+        0.065182395,
+        0.1712997,
+        0.16717531
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -5.9603586E-08,
+        1.0
+      ],
+      "Up": [
+        1.3709068E-06,
+        0.99999994,
+        8.940695E-08
+      ],
+      "Bank": "animations/antanimations/m1014",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m16a4/m16a4_1p_mesh": {
+      "Eye": [
+        0.056978624,
+        0.09391897,
+        0.13948171
+      ],
+      "Look": [
+        -0.0040425346,
+        0.0123552615,
+        0.9999156
+      ],
+      "Up": [
+        -0.0010001052,
+        0.9999231,
+        -0.012359461
+      ],
+      "Bank": "animations/antanimations/m16a2",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m240/m240_1p_mesh": {
+      "Eye": [
+        0.09078878,
+        0.108234346,
+        0.034901243
+      ],
+      "Look": [
+        -0.039252993,
+        -0.028942756,
+        0.99881023
+      ],
+      "Up": [
+        0.008926395,
+        0.9995304,
+        0.029314356
+      ],
+      "Bank": "animations/antanimations/m240",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m249/m249_1p_mesh": {
+      "Eye": [
+        0.107645504,
+        0.12515222,
+        -0.025311012
+      ],
+      "Look": [
+        0.0044603664,
+        0.00011390448,
+        0.99999017
+      ],
+      "Up": [
+        -2.3895507E-07,
+        0.99999994,
+        -0.00011387679
+      ],
+      "Bank": "animations/antanimations/fnminimi",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m27iar/m27iar_1p_mesh": {
+      "Eye": [
+        0.06895362,
+        0.09637597,
+        0.11993741
+      ],
+      "Look": [
+        0.009316686,
+        0.0003229294,
+        0.9999567
+      ],
+      "Up": [
+        -0.000763717,
+        0.99999976,
+        -0.0003159613
+      ],
+      "Bank": "animations/antanimations/m416_lmg",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m39ebr/m39ebr_1p_mesh": {
+      "Eye": [
+        0.07405883,
+        0.089847766,
+        0.17021002
+      ],
+      "Look": [
+        -0.026482373,
+        0.008152842,
+        0.99961627
+      ],
+      "Up": [
+        0.0067260345,
+        0.99994564,
+        -0.007977523
+      ],
+      "Bank": "animations/antanimations/m39ebr",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m40a5/m40a5_1p_mesh": {
+      "Eye": [
+        0.10061127,
+        0.10801848,
+        0.1644307
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -5.9603586E-08,
+        1.0
+      ],
+      "Up": [
+        1.3709068E-06,
+        0.99999994,
+        8.940695E-08
+      ],
+      "Bank": "animations/antanimations/m40a5",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m416/m416_1p_mesh": {
+      "Eye": [
+        0.06895362,
+        0.09637597,
+        0.11993741
+      ],
+      "Look": [
+        0.009316686,
+        0.0003229294,
+        0.9999567
+      ],
+      "Up": [
+        -0.000763717,
+        0.99999976,
+        -0.0003159613
+      ],
+      "Bank": "animations/antanimations/m416",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m4a1/m4a1_1p_mesh": {
+      "Eye": [
+        0.05952609,
+        0.09464483,
+        0.14037055
+      ],
+      "Look": [
+        -0.014503211,
+        0.009704165,
+        0.999848
+      ],
+      "Up": [
+        -0.001190241,
+        0.99995214,
+        -0.009722665
+      ],
+      "Bank": "animations/antanimations/m4a1",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/m60/m60_1p_mesh": {
+      "Eye": [
+        0.120518014,
+        0.15133867,
+        -0.058161173
+      ],
+      "Look": [
+        -0.04109266,
+        -0.04507941,
+        0.998138
+      ],
+      "Up": [
+        -0.002055402,
+        0.9989833,
+        0.045033112
+      ],
+      "Bank": "animations/antanimations/m60",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/magpulpdr/magpulpdr_1p_mesh": {
+      "Eye": [
+        0.044130176,
+        0.11157592,
+        0.21486846
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/magpulpdr",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/mk11/mk11_1p_mesh": {
+      "Eye": [
+        0.06532352,
+        0.09454716,
+        0.1404669
+      ],
+      "Look": [
+        -0.014503211,
+        0.009704165,
+        0.999848
+      ],
+      "Up": [
+        -0.001190241,
+        0.99995214,
+        -0.009722665
+      ],
+      "Bank": "animations/antanimations/mk11",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/model98b/model_98b_1p_mesh": {
+      "Eye": [
+        0.0821162,
+        0.15760447,
+        0.17263998
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/model98b",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/mp7/mp7_1p_mesh": {
+      "Eye": [
+        0.06287441,
+        0.06458289,
+        0.032629102
+      ],
+      "Look": [
+        0.008064898,
+        0.009120457,
+        0.99992603
+      ],
+      "Up": [
+        -0.0009556436,
+        0.9999581,
+        -0.00911319
+      ],
+      "Bank": "animations/antanimations/mp7",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/p90/p90_1p_mesh": {
+      "Eye": [
+        0.055293918,
+        0.09392034,
+        0.14173397
+      ],
+      "Look": [
+        -0.0074760895,
+        0.002699432,
+        0.9999686
+      ],
+      "Up": [
+        0.0057476186,
+        0.99998,
+        -0.0026566864
+      ],
+      "Bank": "animations/antanimations/p90",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/pecheneg/pecheneg_1p_mesh": {
+      "Eye": [
+        0.08805126,
+        0.12274039,
+        0.07471794
+      ],
+      "Look": [
+        0.022573564,
+        0.009257608,
+        0.9997025
+      ],
+      "Up": [
+        -0.0006858773,
+        0.9999571,
+        -0.009244654
+      ],
+      "Bank": "animations/antanimations/pecheneg",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/pp2000/pp2000_1p_mesh": {
+      "Eye": [
+        0.066791415,
+        0.06068699,
+        0.08058101
+      ],
+      "Look": [
+        -8.047897E-07,
+        -6.9842445E-06,
+        1.0000001
+      ],
+      "Up": [
+        -0.012162446,
+        0.9999261,
+        6.8545337E-06
+      ],
+      "Bank": "animations/antanimations/pp2000",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/remington870/rem870mcs_magunlock_1p_mesh": {
+      "Eye": [
+        0.07232715,
+        0.17145805,
+        0.19406588
+      ],
+      "Look": [
+        -0.033491727,
+        -0.030906014,
+        0.99896115
+      ],
+      "Up": [
+        0.010119083,
+        0.99946004,
+        0.03126074
+      ],
+      "Bank": "animations/antanimations/remington870",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/rpk/rpk_1p_mesh": {
+      "Eye": [
+        0.08564251,
+        0.09840536,
+        0.06799958
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/rpk_74m",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/saiga20k/saiga_20k_1p_mesh": {
+      "Eye": [
+        0.080756836,
+        0.10326994,
+        0.06832772
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/saiga_20k",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/scar-h/scar-h_1p_mesh": {
+      "Eye": [
+        0.06694182,
+        0.12188457,
+        0.11750055
+      ],
+      "Look": [
+        -0.044666376,
+        -0.017876685,
+        0.9988422
+      ],
+      "Up": [
+        0.009378386,
+        0.9997884,
+        0.018312903
+      ],
+      "Bank": "animations/antanimations/scar_h",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/sg553lb/sg553lb_1p_mesh": {
+      "Eye": [
+        0.058218665,
+        0.07243314,
+        0.1367382
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -5.9603586E-08,
+        1.0
+      ],
+      "Up": [
+        1.3709068E-06,
+        0.99999994,
+        8.940695E-08
+      ],
+      "Bank": "animations/antanimations/sg553lb",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/sks/sks_1p_mesh": {
+      "Eye": [
+        0.077824764,
+        0.08964391,
+        0.11146972
+      ],
+      "Look": [
+        -0.020487456,
+        0.008160292,
+        0.99975705
+      ],
+      "Up": [
+        0.0066780504,
+        0.99994564,
+        -0.008025181
+      ],
+      "Bank": "animations/antanimations/sks",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/sv98/sv98_1p_mesh": {
+      "Eye": [
+        0.09380758,
+        0.12062438,
+        0.09797476
+      ],
+      "Look": [
+        -0.027216285,
+        -0.014162963,
+        0.9995293
+      ],
+      "Up": [
+        -0.004936453,
+        0.99988925,
+        0.014033717
+      ],
+      "Bank": "animations/antanimations/sv98",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/svd/svd_1p_mesh": {
+      "Eye": [
+        0.05913777,
+        0.090316206,
+        0.1667667
+      ],
+      "Look": [
+        0.045903932,
+        0.008162915,
+        0.9989126
+      ],
+      "Up": [
+        0.0061309794,
+        0.9999455,
+        -0.008453176
+      ],
+      "Bank": "animations/antanimations/svddragunov",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/type88/type88_1p_mesh": {
+      "Eye": [
+        0.107757464,
+        0.102581464,
+        0.028369589
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -5.9603586E-08,
+        1.0
+      ],
+      "Up": [
+        1.3709068E-06,
+        0.99999994,
+        8.940695E-08
+      ],
+      "Bank": "animations/antanimations/type_88",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/ump45/ump45_1p_mesh": {
+      "Eye": [
+        0.06715765,
+        0.10109974,
+        0.08487864
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -5.9603586E-08,
+        1.0
+      ],
+      "Up": [
+        1.3709068E-06,
+        0.99999994,
+        8.940695E-08
+      ],
+      "Bank": "animations/antanimations/ump",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/usas-12/usas-12_1p_mesh": {
+      "Eye": [
+        0.05334953,
+        0.11243314,
+        0.15717529
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/usas_12",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_famas/famas_1p_mesh": {
+      "Eye": [
+        0.047672097,
+        0.07812746,
+        0.06928239
+      ],
+      "Look": [
+        -8.324806E-07,
+        -0.01874406,
+        0.9998244
+      ],
+      "Up": [
+        1.4305098E-06,
+        0.99982435,
+        0.01874391
+      ],
+      "Bank": "animations/antanimations/xp1_famas",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_hk53/hk53_1p_mesh": {
+      "Eye": [
+        0.06687169,
+        0.08432651,
+        0.11623981
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -5.9603586E-08,
+        1.0
+      ],
+      "Up": [
+        1.3709068E-06,
+        0.99999994,
+        8.940695E-08
+      ],
+      "Bank": "animations/antanimations/xp1_hk53",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_jackhammer/jackhammer_1p_mesh": {
+      "Eye": [
+        0.08482526,
+        0.1656288,
+        0.10465536
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/xp1_jackhammer",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_l85a2/l85a2_1p_mesh": {
+      "Eye": [
+        0.059646007,
+        0.103588976,
+        0.04687953
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/xp1_l85a2",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_l96/l96_1p_mesh": {
+      "Eye": [
+        0.07719263,
+        0.12391809,
+        0.16215542
+      ],
+      "Look": [
+        -0.025122643,
+        -0.014157122,
+        0.9995844
+      ],
+      "Up": [
+        -0.0049365726,
+        0.9998893,
+        0.014037352
+      ],
+      "Bank": "animations/antanimations/xp1_l96",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_mg36/mg36_1p_mesh": {
+      "Eye": [
+        0.082413174,
+        0.10509599,
+        0.08019592
+      ],
+      "Look": [
+        -0.0074229524,
+        -0.017832816,
+        0.9998136
+      ],
+      "Up": [
+        -0.0001319638,
+        0.99984103,
+        0.017832221
+      ],
+      "Bank": "animations/antanimations/xp1_mg36",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_pp-19/pp-19_1p_mesh": {
+      "Eye": [
+        0.070104755,
+        0.07773172,
+        0.052497525
+      ],
+      "Look": [
+        -0.023797156,
+        -0.018751213,
+        0.9995411
+      ],
+      "Up": [
+        -0.00044565715,
+        0.9998242,
+        0.01874583
+      ],
+      "Bank": "animations/antanimations/xp1_pp19",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_qbb-95/qbb-95_1p_mesh": {
+      "Eye": [
+        0.080009066,
+        0.16156447,
+        0.03760692
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/xp1_qbb95",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_qbu-88/qbu-88_1p_mesh": {
+      "Eye": [
+        0.08937948,
+        0.10603165,
+        0.09153752
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/xp1_qbu88",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp1_qbz-95b/qbz-95b_1p_mesh": {
+      "Eye": [
+        0.06026157,
+        0.08297865,
+        0.10309875
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -1.2595999E-06,
+        1.0000001
+      ],
+      "Up": [
+        1.4305099E-06,
+        1.0,
+        1.0807872E-06
+      ],
+      "Bank": "animations/antanimations/xp1_qbz95b",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_acr/acr_1p_mesh": {
+      "Eye": [
+        0.05873072,
+        0.08687254,
+        0.11666561
+      ],
+      "Look": [
+        0.008522543,
+        0.01238733,
+        0.9998871
+      ],
+      "Up": [
+        -0.0007696772,
+        0.99992305,
+        -0.012381312
+      ],
+      "Bank": "animations/antanimations/xp2_acr",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_hk417/hk417_1p_mesh": {
+      "Eye": [
+        0.06895362,
+        0.09637597,
+        0.11993741
+      ],
+      "Look": [
+        0.009316686,
+        0.0003229294,
+        0.9999567
+      ],
+      "Up": [
+        -0.000763717,
+        0.99999976,
+        -0.0003159613
+      ],
+      "Bank": "animations/antanimations/xp2_hk417",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_jng90/jng90_1p_mesh": {
+      "Eye": [
+        0.088028975,
+        0.108134806,
+        0.12872873
+      ],
+      "Look": [
+        -0.036581125,
+        -0.014158071,
+        0.9992305
+      ],
+      "Up": [
+        -0.0005173642,
+        0.99989974,
+        0.01414852
+      ],
+      "Bank": "animations/antanimations/xp2_jng90",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_l86/l86_1p_mesh": {
+      "Eye": [
+        0.05961148,
+        0.098622605,
+        0.003082145
+      ],
+      "Look": [
+        -0.013974816,
+        -3.643762E-06,
+        0.9999024
+      ],
+      "Up": [
+        2.9031462E-05,
+        1.0,
+        3.979137E-06
+      ],
+      "Bank": "animations/antanimations/xp2_l86",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_lsat/lsat_1p_mesh": {
+      "Eye": [
+        0.07290354,
+        0.092000306,
+        0.089415975
+      ],
+      "Look": [
+        0.0044603664,
+        0.00011390448,
+        0.99999017
+      ],
+      "Up": [
+        -2.3895507E-07,
+        0.99999994,
+        -0.00011387679
+      ],
+      "Bank": "animations/antanimations/xp2_lsat",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_mp5k/mp5k_1p_mesh": {
+      "Eye": [
+        0.074009195,
+        0.11910236,
+        0.1338581
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -5.9603586E-08,
+        1.0
+      ],
+      "Up": [
+        1.3709068E-06,
+        0.99999994,
+        8.940695E-08
+      ],
+      "Bank": "animations/antanimations/xp2_mp5",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_mtar/mtar_1p_mesh": {
+      "Eye": [
+        0.057013012,
+        0.11650582,
+        0.080580905
+      ],
+      "Look": [
+        -0.011324405,
+        -0.018740961,
+        0.9997605
+      ],
+      "Up": [
+        -0.00021189125,
+        0.9998246,
+        0.018739505
+      ],
+      "Bank": "animations/antanimations/xp2_mtar",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_scar-l/scar-l_1p_mesh": {
+      "Eye": [
+        0.07375839,
+        0.10727234,
+        0.107097164
+      ],
+      "Look": [
+        -0.02749163,
+        -0.017877162,
+        0.99946237
+      ],
+      "Up": [
+        0.009691782,
+        0.99978846,
+        0.018149458
+      ],
+      "Bank": "animations/antanimations/xp2_scarhcqb",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_spas12/spas12_1p_mesh": {
+      "Eye": [
+        0.06518237,
+        0.15484725,
+        0.14356299
+      ],
+      "Look": [
+        -8.6228295E-07,
+        -0.00013893843,
+        1.0
+      ],
+      "Up": [
+        1.3113022E-06,
+        0.99999994,
+        0.00013896821
+      ],
+      "Bank": "animations/antanimations/xp2_spas12",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp2_steyraug/steyraug_1p_mesh": {
+      "Eye": [
+        0.055744525,
+        0.0892229,
+        0.098611236
+      ],
+      "Look": [
+        -0.011324405,
+        -0.018740961,
+        0.9997605
+      ],
+      "Up": [
+        -0.00021189125,
+        0.9998246,
+        0.018739505
+      ],
+      "Bank": "animations/antanimations/xp2_steyraug",
+      "Anim": "IdlePose Anim"
+    },
+    "weapons/xp4_crossbow_prototype/xp4_crossbow_prototype_1p_mesh": {
+      "Eye": [
+        0.081894785,
+        0.122925095,
+        0.1197331
+      ],
+      "Look": [
+        -0.0040425346,
+        0.0123552615,
+        0.9999156
+      ],
+      "Up": [
+        -0.0010001052,
+        0.9999231,
+        -0.012359461
+      ],
+      "Bank": "animations/antanimations/xp4_crossbow",
+      "Anim": "IdlePose Anim"
+    }
+  }
+}

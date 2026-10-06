@@ -44,7 +44,7 @@ public static partial class Palette
     public static readonly string[] TextureKinds =
         {
             "Texture", "NormalMap", "TextureCube", "Texture3D", "TextureArray",
-            "UdkTextureSample", "UdkAntialiasedTextureMask",
+            "UdkTextureSample", "UdkAntialiasedTextureMask", "StickerCoordinates", "EmblemLayers",
         };
 
     private static void Add(NodeDef p_Def) => s_Defs[p_Def.Kind] = p_Def;
@@ -333,6 +333,102 @@ public static partial class Palette
 
         Add(new NodeDef
         {
+            Kind = "TangentHandedness",
+            Title = "Tangent Handedness",
+            Category = "Inputs",
+            Params =
+            {
+                // "derivatives" reads the hand off the drawn geometry; "rows" off the determinant of the
+                // interpolated tangent frame (the game's per-vertex binormal sign) — kept for measuring
+                // which field the game carries where (an instrumented package paints the body by it).
+                new ParamDef { Name = "Formula", Kind = ParamKind.Choice, Default = "derivatives", Choices = { "derivatives", "rows" } },
+            },
+            Outputs = { new PortDef { Name = "Out", Type = ShaderPortType.SptScalar } },
+            Description = "+1 where the texture is laid on the surface the way it faces, −1 where it is laid in mirror. " +
+                          "Read from the geometry itself: the orientation of the UV mapping across the pixel's screen " +
+                          "neighbourhood against the orientation of the surface (screen derivatives of the world " +
+                          "position and the UV, and the surface normal), so it owes nothing to the vertex data the " +
+                          "game feeds its tangent frame with. A weapon whose two sides share one patch of texture " +
+                          "differs in exactly this between the sides — what keeps a sticker on the side it was placed on.",
+            Emit = (p_S, p_N) =>
+            {
+                // The sign of the tangent frame's determinant was the first reading, and in the game it gated
+                // the sticker off BOTH sides (2026-09-12, F2000, still PNG): whatever the interpolated frame
+                // carries, its determinant is not the mapping's handedness there. The derivatives are: the
+                // UV Jacobian over screen space times the orientation of the position Jacobian against the
+                // normal is det[dP/du, dP/dv, N] — the screen's own orientation cancels out of the product.
+                bool Has(string p_Field) =>
+                    p_S.Contract.Interpolators.Any(p_I => p_S.Contract.FieldNameFor(p_I.Index) == p_Field);
+
+                if (p_N.GetParam("Formula") == "rows" && Has("TangentRow0"))
+                {
+                    p_S.Out("Out", "sign(determinant(float3x3(i.TangentRow0.xyz, i.TangentRow1.xyz, i.TangentRow2.xyz)))");
+                    return;
+                }
+
+                // The same expression serves the preview and the game: the preview draws the mesh through a
+                // lateral mirror precisely to show the game's geometry, so what it reads here IS the game's
+                // handedness — and the side map stores that handedness (StickerSurface.Handedness).
+                const string s_Flip = "";
+                var s_UvJacobian = p_S.Declare("uvJacobian", ShaderPortType.SptScalar,
+                    "(ddx(i.TexCoord.x) * ddy(i.TexCoord.y) - ddy(i.TexCoord.x) * ddx(i.TexCoord.y))");
+                var s_Normal = Has("TangentRow0")
+                    ? "float3(i.TangentRow0.z, i.TangentRow1.z, i.TangentRow2.z)"
+                    : Has("WorldNormal") ? "i.WorldNormal.xyz" : null;
+                if (s_Normal != null && Has("WorldPos"))
+                {
+                    var s_Facing = p_S.Declare("uvFacing", ShaderPortType.SptScalar,
+                        $"dot(cross(ddx(i.WorldPos.xyz), ddy(i.WorldPos.xyz)), {s_Normal})");
+                    p_S.Out("Out", $"{s_Flip}sign({s_UvJacobian} * {s_Facing})");
+                }
+                else
+                {
+                    // No world position to orient against: the screen orientation of a front face is one
+                    // constant for the whole draw, so the UV Jacobian alone tells the sides apart, up to that
+                    // constant — the gate's Flip is the knob for it.
+                    p_S.Out("Out", $"{s_Flip}sign({s_UvJacobian})");
+                }
+            },
+        });
+
+        Add(new NodeDef
+        {
+            Kind = "StickerSideGate",
+            Title = "Sticker Side Gate",
+            Category = "UV",
+            Inputs =
+            {
+                new PortDef { Name = "Side", Type = ShaderPortType.SptScalar, Default = "0.0" },
+                new PortDef { Name = "Hand", Type = ShaderPortType.SptScalar, Default = "1.0" },
+            },
+            Params =
+            {
+                new ParamDef { Name = "Flip", Kind = ParamKind.Bool, Default = "false" },
+                new ParamDef { Name = "Enabled", Kind = ParamKind.Bool, Default = "true" },
+            },
+            Outputs = { new PortDef { Name = "Out", Type = ShaderPortType.SptScalar } },
+            Description = "1 where a sticker may draw, 0 where it is the mirrored copy of one placed on the other " +
+                          "side: Side is the side map's grey (0 = nothing painted here, ungated; 1/3 = laid out as it " +
+                          "faces; 2/3 = laid out in mirror), Hand the Tangent Handedness. Flip swaps the two " +
+                          "readings, should the handedness read in-game turn out with the opposite polarity; " +
+                          "Enabled off makes the gate always 1 (a sticker on both halves).",
+            Emit = (p_S, p_N) =>
+            {
+                if (p_N.GetParam("Enabled") == "false")
+                {
+                    p_S.Out("Out", "1.0");
+                    return;
+                }
+
+                var s_Side = p_S.Declare("side", ShaderPortType.SptScalar, p_S.In("Side"));
+                var s_Hand = p_S.Declare("hand", ShaderPortType.SptScalar, p_S.In("Hand"));
+                var s_Positive = p_N.GetParam("Flip") == "true" ? "<" : ">";
+                p_S.Out("Out", $"({s_Side} < 0.16) ? 1.0 : ((({s_Side} < 0.5) == ({s_Hand} {s_Positive} 0.0)) ? 1.0 : 0.0)");
+            },
+        });
+
+        Add(new NodeDef
+        {
             Kind = "CameraPos",
             Title = "Camera Position",
             Category = "Inputs",
@@ -486,11 +582,25 @@ public static partial class Palette
     {
         var s_Texture = HlslNames.TextureVar(p_Register);
         var s_Coord = Tiled(p_Scope, p_Node, p_Scope.In("Coord"));
+        var s_Sampler = PinnedSampler(p_Node) ?? p_Scope.SamplerFor(p_Register);
 
         return p_Scope.HasExplicitValue("Lod")
-            ? $"{s_Texture}.SampleLevel({p_Scope.SamplerFor(p_Register)}, {s_Coord}, {p_Scope.In("Lod")})"
-            : $"{s_Texture}.Sample({p_Scope.SamplerFor(p_Register)}, {s_Coord})";
+            ? $"{s_Texture}.SampleLevel({s_Sampler}, {s_Coord}, {p_Scope.In("Lod")})"
+            : $"{s_Texture}.Sample({s_Sampler}, {s_Coord})";
     }
+
+    /// <summary>
+    /// The sampler a texture node is PINNED to ("sampler1"), or null when it follows the flavour it is emitted for.
+    /// A graph moved onto another shader's solutions (a vehicle preset drawn on a donor's rigid flavours) keeps
+    /// the samplers of the shader it was translated from: the donor may read everything through s0 while the
+    /// original read its decals through s1 = Clamp/Clamp/Wrap, and addressing is not cosmetic. Stored only when a
+    /// caller sets it (the bake's retargeting) — ⛔ read from Params directly: GetParam answers "0" for a
+    /// parameter the node does not declare, which would pin every texture to s0.
+    /// </summary>
+    internal static string? PinnedSampler(GraphNode p_Node) =>
+        p_Node.Params.TryGetValue("Sampler", out var s_Value) && int.TryParse(s_Value, out var s_Index) && s_Index >= 0
+            ? "sampler" + s_Index
+            : null;
 
     /// <summary>
     /// Applies the node's Tiling to a UV. This is not a borrowed convenience: DICE bakes a per-texture UV scale
@@ -532,7 +642,7 @@ public static partial class Palette
                     Name = "Register", Kind = ParamKind.Choice, Default = "1",
                     // Up to eight: the drum has two but a character or a parachute declares far more, and a
                     // register the dropdown cannot offer is a slot the author simply cannot reach.
-                    Choices = { "1", "2", "3", "4", "5", "6", "7", "8" },
+                    Choices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" },
                 },
                 new ParamDef { Name = "Tiling", Kind = ParamKind.Text, Default = "1,1" },
 
@@ -591,7 +701,7 @@ public static partial class Palette
                 new ParamDef
                 {
                     Name = "Register", Kind = ParamKind.Choice, Default = "1",
-                    Choices = { "1", "2", "3", "4", "5", "6", "7", "8" },
+                    Choices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" },
                 },
                 new ParamDef { Name = "Taps", Kind = ParamKind.Choice, Default = "4", Choices = { "2", "4" } },
                 new ParamDef { Name = "Threshold", Kind = ParamKind.Text, Default = "0.5" },
@@ -641,7 +751,7 @@ public static partial class Palette
                     new ParamDef
                     {
                         Name = "Register", Kind = ParamKind.Choice, Default = "1",
-                        Choices = { "1", "2", "3", "4", "5", "6", "7", "8" },
+                        Choices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" },
                     },
                 },
                 Description = $"Samples the {s_Title.ToLowerInvariant()} bound to that register. Coord is {s_Meaning}.",
@@ -677,7 +787,7 @@ public static partial class Palette
                     Name = "Register", Kind = ParamKind.Choice, Default = "2",
                     // Up to eight: the drum has two but a character or a parachute declares far more, and a
                     // register the dropdown cannot offer is a slot the author simply cannot reach.
-                    Choices = { "1", "2", "3", "4", "5", "6", "7", "8" },
+                    Choices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12" },
                 },
                 new ParamDef { Name = "Tiling", Kind = ParamKind.Text, Default = "1,1" },
             },
@@ -1421,6 +1531,408 @@ public static partial class Palette
 
         Add(new NodeDef
         {
+            Kind = "TexelSnap",
+            Title = "Texel Snap",
+            Category = "UV",
+            Inputs =
+            {
+                new PortDef { Name = "Coord", Type = ShaderPortType.SptVec2, Default = "i.TexCoord.xy", DefaultIsExpression = true },
+            },
+            Params = { new ParamDef { Name = "Side", Kind = ParamKind.Text, Default = "1024" } },
+            Outputs = { new PortDef { Name = "Out", Type = ShaderPortType.SptVec2 } },
+            Description = "Moves a UV to the centre of the texel it falls in, on a texture Side texels square — a " +
+                          "lookup table (the sticker coordinate map) is read one texel at a time, never blended.",
+            Emit = (p_S, p_N) =>
+            {
+                var s_Side = HlslNames.Number(p_N.GetParam("Side"), 1024);
+                p_S.Out("Out", $"(floor({p_S.In("Coord")} * {s_Side}) + 0.5) / {s_Side}");
+            },
+        });
+
+        Add(new NodeDef
+        {
+            Kind = "StickerCoordinates",
+            Title = "Sticker Coordinates",
+            Category = "UV",
+            Inputs =
+            {
+                new PortDef { Name = "Coord", Type = ShaderPortType.SptVec2, Default = "i.TexCoord.xy", DefaultIsExpression = true },
+            },
+            Params =
+            {
+                new ParamDef { Name = "Register", Kind = ParamKind.Text, Default = "7" },
+                new ParamDef { Name = "Side", Kind = ParamKind.Text, Default = "1024" },
+                new ParamDef { Name = "XChannel", Kind = ParamKind.Text, Default = "w" },
+                new ParamDef { Name = "YChannel", Kind = ParamKind.Text, Default = "y" },
+            },
+            Outputs = { new PortDef { Name = "Out", Type = ShaderPortType.SptVec2 } },
+            Description = "Reads the animated sticker's frame coordinate (x from XChannel, y from YChannel, 0 = nothing " +
+                          "here) out of the coordinate map at Register, Side texels square, at level 0. Between texels the " +
+                          "coordinate is INTERPOLATED — the field is linear across a sticker, so the frame is sampled " +
+                          "smoothly however coarse the map is (read one texel at a time, a sticker had the map's " +
+                          "resolution, not the frame's) — except where the four texels disagree by a lot or one says " +
+                          "'nothing': the sticker's edge and the seams of the unwrap, where the nearest texel is taken as it is.",
+            Emit = (p_S, p_N) =>
+            {
+                var s_Register = p_N.GetParam("Register");
+                var s_Side = HlslNames.Number(p_N.GetParam("Side"), 1024);
+                var s_Channels = (p_N.GetParam("XChannel") is { Length: 1 } s_X ? s_X : "w") + (p_N.GetParam("YChannel") is { Length: 1 } s_Y ? s_Y : "y");
+                var s_Texture = HlslNames.TextureVar(s_Register);
+                var s_Sampler = p_S.SamplerFor(s_Register);
+                var s_Culture = System.Globalization.CultureInfo.InvariantCulture;
+                var s_SideText = s_Side.ToString("0.####", s_Culture);
+                var s_Uv = p_S.Declare("sc_uv", ShaderPortType.SptVec2, p_S.In("Coord"));
+                var s_T = p_S.Declare("sc_t", ShaderPortType.SptVec2, $"{s_Uv} * {s_SideText} - 0.5");
+                var s_T0 = p_S.Declare("sc_t0", ShaderPortType.SptVec2, $"floor({s_T})");
+                var s_F = p_S.Declare("sc_f", ShaderPortType.SptVec2, $"{s_T} - {s_T0}");
+                string Tap(string p_Name, string p_Offset) =>
+                    p_S.Declare(p_Name, ShaderPortType.SptVec2, $"{s_Texture}.SampleLevel({s_Sampler}, ({s_T0} + {p_Offset}) / {s_SideText}, 0.0).{s_Channels}");
+                var s_C00 = Tap("sc_c00", "float2(0.5, 0.5)");
+                var s_C10 = Tap("sc_c10", "float2(1.5, 0.5)");
+                var s_C01 = Tap("sc_c01", "float2(0.5, 1.5)");
+                var s_C11 = Tap("sc_c11", "float2(1.5, 1.5)");
+                var s_Near = p_S.Declare("sc_near", ShaderPortType.SptVec2,
+                    $"{s_Texture}.SampleLevel({s_Sampler}, (floor({s_Uv} * {s_SideText}) + 0.5) / {s_SideText}, 0.0).{s_Channels}");
+                var s_Lo = p_S.Declare("sc_lo", ShaderPortType.SptVec2, $"min(min({s_C00}, {s_C10}), min({s_C01}, {s_C11}))");
+                var s_Hi = p_S.Declare("sc_hi", ShaderPortType.SptVec2, $"max(max({s_C00}, {s_C10}), max({s_C01}, {s_C11}))");
+                var s_Smooth = p_S.Declare("sc_bilinear", ShaderPortType.SptVec2,
+                    $"lerp(lerp({s_C00}, {s_C10}, {s_F}.x), lerp({s_C01}, {s_C11}, {s_F}.x), {s_F}.y)");
+                // Continuous where the four taps agree (a smooth field steps a few 255ths a texel) and none
+                // says "nothing"; the nearest texel across a seam or at the edge.
+                p_S.Out("Out",
+                    $"(min({s_Lo}.x, {s_Lo}.y) > 0.002 && max({s_Hi}.x - {s_Lo}.x, {s_Hi}.y - {s_Lo}.y) < 0.2) ? {s_Smooth} : {s_Near}");
+            },
+        });
+
+        Add(new NodeDef
+        {
+            Kind = "Flipbook",
+            Title = "Flipbook",
+            Category = "UV",
+            Inputs =
+            {
+                new PortDef { Name = "Coord", Type = ShaderPortType.SptVec2, Default = "i.TexCoord.xy", DefaultIsExpression = true },
+                new PortDef { Name = "Time", Type = ShaderPortType.SptScalar, Default = "time", DefaultIsExpression = true },
+            },
+            Params =
+            {
+                new ParamDef { Name = "Side", Kind = ParamKind.Text, Default = "1024" },
+                new ParamDef { Name = "Height", Kind = ParamKind.Text, Default = "" },
+                new ParamDef { Name = "CellW", Kind = ParamKind.Text, Default = "128" },
+                new ParamDef { Name = "CellH", Kind = ParamKind.Text, Default = "128" },
+                new ParamDef { Name = "Cols", Kind = ParamKind.Text, Default = "8" },
+                new ParamDef { Name = "Frames", Kind = ParamKind.Text, Default = "1" },
+                new ParamDef { Name = "Inset", Kind = ParamKind.Text, Default = "1" },
+                new ParamDef { Name = "Delay", Kind = ParamKind.Text, Default = "0.1" },
+                new ParamDef { Name = "Timeline", Kind = ParamKind.Text, Default = "" },
+                new ParamDef { Name = "Cells", Kind = ParamKind.Text, Default = "" },
+            },
+            Outputs =
+            {
+                new PortDef { Name = "Out", Type = ShaderPortType.SptVec2 },
+                new PortDef { Name = "Inside", Type = ShaderPortType.SptScalar },
+            },
+            Description = "Plays a sheet of frames: Coord is the point inside one frame (0..1), Out the UV of that point " +
+                          "in the frame that is on at Time. Cells of CellW×CellH on a sheet Side wide and Height tall " +
+                          "(Height empty = square), Cols per row, Frames in all, each drawn Inset texels inside its cell. " +
+                          "Delay is the seconds every frame lasts; a Timeline (the second each frame ENDS, comma-separated) " +
+                          "overrides it for frames of unequal length — the GIF's own timing, never resampled. The loop is as " +
+                          "long as the last end time. Cells (comma-separated, one per frame) names the cell each frame plays " +
+                          "from when identical frames share one; empty = frame i in cell i. Inside is 1 where Coord names a " +
+                          "point (both parts above zero) and 0 where a coordinate map says 'nothing here' — an opaque " +
+                          "frame's corner must never paint the rest of the object.",
+            Emit = (p_S, p_N) =>
+            {
+                var s_Culture = System.Globalization.CultureInfo.InvariantCulture;
+                var s_Side = HlslNames.Number(p_N.GetParam("Side"), 1024);
+                var s_Height = HlslNames.Number(p_N.GetParam("Height"), s_Side);
+                var s_CellW = HlslNames.Number(p_N.GetParam("CellW"), 128);
+                var s_CellH = HlslNames.Number(p_N.GetParam("CellH"), 128);
+                var s_Cols = Math.Max(1, (int) HlslNames.Number(p_N.GetParam("Cols"), 8));
+                var s_Frames = Math.Max(1, (int) HlslNames.Number(p_N.GetParam("Frames"), 1));
+                var s_Inset = HlslNames.Number(p_N.GetParam("Inset"), 1);
+                var s_Delay = Math.Max(0.001, HlslNames.Number(p_N.GetParam("Delay"), 0.1));
+                var s_Timeline = p_N.GetParam("Timeline").Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p_T => double.TryParse(p_T.Trim(), System.Globalization.NumberStyles.Float, s_Culture, out var s_V) ? s_V : -1)
+                    .Where(p_T => p_T >= 0)
+                    .ToList();
+
+                string F(double p_V) => p_V.ToString("0.####", s_Culture);
+                string s_Frame;
+                if (s_Timeline.Count == s_Frames && s_Frames > 1)
+                {
+                    // Frames of unequal length: the second each one ends, walked in a hoisted function.
+                    var s_Body = $"float ends[{s_Frames}] = {{ {string.Join(", ", s_Timeline.Select(F))} }};\n" +
+                                 "float f = 0.0;\n" +
+                                 $"[unroll] for (int i = 0; i < {s_Frames - 1}; i++)\n" +
+                                 "    f += (t >= ends[i]) ? 1.0 : 0.0;\n" +
+                                 "return float4(f, 0, 0, 0);";
+                    var s_Function = p_S.HoistFunction("float t", s_Body);
+                    s_Frame = p_S.Declare("fb_frame", ShaderPortType.SptScalar,
+                        $"{s_Function}(fmod({p_S.In("Time")}, {F(s_Timeline[^1])})).x");
+                }
+                else
+                {
+                    var s_Total = s_Frames * s_Delay;
+                    s_Frame = p_S.Declare("fb_frame", ShaderPortType.SptScalar,
+                        $"min({s_Frames - 1}.0, floor(fmod({p_S.In("Time")}, {F(s_Total)}) / {F(s_Delay)}))");
+                }
+
+                // Identical frames share a cell: a table from frame to cell, walked in a hoisted function.
+                var s_Cells = p_N.GetParam("Cells").Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p_C => int.TryParse(p_C.Trim(), System.Globalization.NumberStyles.Integer, s_Culture, out var s_V) ? s_V : -1)
+                    .Where(p_C => p_C >= 0)
+                    .ToList();
+                var s_Slot = s_Frame;
+                if (s_Cells.Count == s_Frames && s_Frames > 1 && s_Cells.Select((p_C, p_I) => p_C != p_I).Any(p_Differs => p_Differs))
+                {
+                    var s_Table = $"float cells[{s_Frames}] = {{ {string.Join(", ", s_Cells.Select(p_C => F(p_C)))} }};\n" +
+                                  $"return float4(cells[clamp((int) t, 0, {s_Frames - 1})], 0, 0, 0);";
+                    var s_Lookup = p_S.HoistFunction("float t", s_Table);
+                    s_Slot = p_S.Declare("fb_slot", ShaderPortType.SptScalar, $"{s_Lookup}({s_Frame}).x");
+                }
+
+                var s_Cell = p_S.Declare("fb_cell", ShaderPortType.SptVec2,
+                    $"float2(fmod({s_Slot}, {s_Cols}.0), floor({s_Slot} / {s_Cols}.0))");
+                var s_Coord = p_S.Declare("fb_coord", ShaderPortType.SptVec2, $"saturate({p_S.In("Coord")})");
+                // Inside: a coordinate map stores 1..255 for a point of the frame and 0 for "nothing here".
+                p_S.Out("Inside", $"(min({s_Coord}.x, {s_Coord}.y) > 0.001) ? 1.0 : 0.0");
+                p_S.Out("Out",
+                    $"({s_Cell} * float2({F(s_CellW)}, {F(s_CellH)}) + {F(s_Inset)} + {s_Coord} * " +
+                    $"float2({F(s_CellW - 2 * s_Inset)}, {F(s_CellH - 2 * s_Inset)})) / float2({F(s_Side)}, {F(s_Height)})");
+            },
+        });
+
+        // ⭐ A BF4-format emblem (Battlelog's layer list: shape, colour, opacity, angle, flips, centre, size — keku 2026-09-29,
+        // "acabamos las armas"), drawn by the weapon's own shader over the emblem slot. Coord is the point of the emblem's
+        // square (the slot's coordinate map, as the animated sticker reads it: x right, y down, 0 = no slot here). Every
+        // layer is ONE external constant the ENGINE fills per weapon (the weapon's shader parameter component copies its
+        // vectors into its own block when the weapon is created — measured in game 2026-09-29), so one compiled shader
+        // shows each player's own emblem, and a slot whose layers are all zero draws nothing. One, not two: the engine packs
+        // a shader's external values into a buffer of 64 registers (fb::DxShaderDispatcher, measured 2026-09-29 — eighty
+        // layer constants beside the preset's twelve overflowed it and killed the client), so each layer is four integers
+        // below 2^24, exact in a float (EmblemSlot.Encode):
+        //   x = centre x (12 bits) · 4096 + centre y (12 bits)        — on the square from −0.5 to 1.5;
+        //   y = half width (10) · 16384 + half height (10) · 16 + opacity (4) — half sizes 0..2, opacity in fifteenths;
+        //   z = angle (12) · 4096 + flips (2: x = 1, y = 2) · 1024 + atlas cell (10) — the angle clockwise, a turn in 4096;
+        //   w = the colour 0xRRGGBB.
+        // Layer 0 is the bottom one, as in Battlelog. The shapes come from the atlas at Register: GRID×GRID cells of CELL
+        // texels, each shape stretched to its INNER box in the middle of its cell (Battlelog stretches its SVG the same way),
+        // the coverage in alpha — the same atlas and the same lookup as the emblem decal (a mip cap and an analytic box mask:
+        // far away a thin layer would otherwise smear its whole cell; keku's capture, 2026-09-29).
+        Add(new NodeDef
+        {
+            Kind = "EmblemLayers",
+            Title = "Emblem Layers",
+            Category = "UV",
+            Inputs =
+            {
+                new PortDef { Name = "Coord", Type = ShaderPortType.SptVec2, Default = "float2(0.0, 0.0)" },
+            },
+            Params =
+            {
+                new ParamDef { Name = "Register", Kind = ParamKind.Text, Default = "8" },
+                new ParamDef { Name = "Buffer", Kind = ParamKind.Text, Default = "1" },
+                new ParamDef { Name = "Base", Kind = ParamKind.Text, Default = "12" },
+                new ParamDef { Name = "Layers", Kind = ParamKind.Text, Default = "40" },
+                new ParamDef { Name = "Grid", Kind = ParamKind.Text, Default = "8" },
+                new ParamDef { Name = "Cell", Kind = ParamKind.Text, Default = "128" },
+                new ParamDef { Name = "Inner", Kind = ParamKind.Text, Default = "112" },
+                new ParamDef { Name = "Side", Kind = ParamKind.Text, Default = "1024" },
+                new ParamDef { Name = "MaxLod", Kind = ParamKind.Text, Default = "3" },
+            },
+            Outputs =
+            {
+                new PortDef { Name = "Out", Type = ShaderPortType.SptVec4 },
+                new PortDef { Name = "Inside", Type = ShaderPortType.SptScalar },
+            },
+            Description = "Draws a BF4 emblem (up to Layers layers) at the point Coord of its square: Out is the colour " +
+                          "premultiplied by the coverage, and the coverage in w. Each layer is one packed external constant " +
+                          "(external_EmblemL0.. from element Base of the block at Buffer, right after the shader's own), fed per weapon by the engine; " +
+                          "all zero = nothing drawn. Shapes from the atlas at Register (Grid×Grid cells of Cell texels, the " +
+                          "shape in the middle Inner, coverage in alpha). Inside is 1 where Coord names a point of the square.",
+            Emit = (p_S, p_N) =>
+            {
+                var s_Culture = System.Globalization.CultureInfo.InvariantCulture;
+                string F(double p_V) => p_V.ToString("0.0####", s_Culture);
+                var s_Register = p_N.GetParam("Register");
+                var s_Texture = HlslNames.TextureVar(s_Register);
+                var s_Sampler = p_S.SamplerFor(s_Register);
+                var s_Grid = Math.Max(1.0, HlslNames.Number(p_N.GetParam("Grid"), 8));
+                var s_Cell = HlslNames.Number(p_N.GetParam("Cell"), 128);
+                var s_Inner = HlslNames.Number(p_N.GetParam("Inner"), 112);
+                var s_Side = HlslNames.Number(p_N.GetParam("Side"), 1024);
+                var s_MaxLod = HlslNames.Number(p_N.GetParam("MaxLod"), 3);
+
+                // One layer over what is below it. The gradients come in from outside (the caller's control flow is
+                // not uniform, so no ddx/fwidth in here): the box's own gradients give both the lookup's footprint and
+                // the width of its anti-aliased edge.
+                var s_Layer = p_S.HoistFunction(
+                    "float2 p, float2 dpx, float2 dpy, float4 L, float4 below",
+                    // unpacking: every division is by a power of two, exact on these integers
+                    "float qcx = floor(L.x / 4096.0);\n" +
+                    "float qcy = L.x - qcx * 4096.0;\n" +
+                    "float qhw = floor(L.y / 16384.0);\n" +
+                    "float ry = L.y - qhw * 16384.0;\n" +
+                    "float qhh = floor(ry / 16.0);\n" +
+                    "float qop = ry - qhh * 16.0;\n" +
+                    "if (qop <= 0.0 || qhw <= 0.0 || qhh <= 0.0)\n" +
+                    "    return below;\n" +
+                    "float qa = floor(L.z / 4096.0);\n" +
+                    "float rz = L.z - qa * 4096.0;\n" +
+                    "float flips = floor(rz / 1024.0);\n" +
+                    "float cellIndex = rz - flips * 1024.0;\n" +
+                    "float2 centre = float2(qcx, qcy) / 4095.0 * 2.0 - 0.5;\n" +
+                    "float2 hs = float2(qhw, qhh) / 1023.0 * 2.0;\n" +
+                    "hs.x = fmod(flips, 2.0) >= 1.0 ? -hs.x : hs.x;\n" +
+                    "hs.y = flips >= 2.0 ? -hs.y : hs.y;\n" +
+                    "float angle = qa / 4096.0 * 6.28318531;\n" +
+                    "float opacity = qop / 15.0;\n" +
+                    "float s = sin(angle);\n" +
+                    "float c = cos(angle);\n" +
+                    "float2 d = p - centre;\n" +
+                    "float2 size = 2.0 * hs;\n" +
+                    "float2 inBox = float2(d.x * c + d.y * s, -d.x * s + d.y * c) / size + 0.5;\n" +
+                    "float2 boxDx = float2(dpx.x * c + dpx.y * s, -dpx.x * s + dpx.y * c) / size;\n" +
+                    "float2 boxDy = float2(dpy.x * c + dpy.y * s, -dpy.x * s + dpy.y * c) / size;\n" +
+                    $"float reach = {F((s_Cell - s_Inner) * 0.5 / s_Inner)};\n" +
+                    "float2 inCell = clamp(inBox, -reach, 1.0 + reach);\n" +
+                    $"float2 cell = float2(fmod(cellIndex, {F(s_Grid)}), floor(cellIndex / {F(s_Grid)}));\n" +
+                    $"float2 atlasUv = (cell * {F(s_Cell)} + {F((s_Cell - s_Inner) * 0.5)} + inCell * {F(s_Inner)}) / {F(s_Side)};\n" +
+                    $"float2 gx = boxDx * {F(s_Inner / s_Side)};\n" +
+                    $"float2 gy = boxDy * {F(s_Inner / s_Side)};\n" +
+                    $"float footprint = max(max(length(gx), length(gy)) * {F(s_Side)}, 1e-6);\n" +
+                    $"float shrink = footprint > {F(Math.Pow(2, s_MaxLod))} ? {F(Math.Pow(2, s_MaxLod))} / footprint : 1.0;\n" +
+                    $"float shape = {s_Texture}.SampleGrad({s_Sampler}, atlasUv, gx * shrink, gy * shrink).w;\n" +
+                    "float2 edgeWidth = max(abs(boxDx) + abs(boxDy), 1e-5);\n" +
+                    "float2 edge = saturate(min(inBox, 1.0 - inBox) / edgeWidth + 0.5);\n" +
+                    "float alpha = shape * edge.x * edge.y * saturate(opacity);\n" +
+                    "float red = floor(L.w / 65536.0);\n" +
+                    "float green = floor((L.w - red * 65536.0) / 256.0);\n" +
+                    "float blue = L.w - red * 65536.0 - green * 256.0;\n" +
+                    "float3 colour = pow(saturate(float3(red, green, blue) / 255.0), 2.2);\n" +
+                    "return float4(colour * alpha, alpha) + below * (1.0 - alpha);");
+
+                // Every layer, bottom first, and only where the slot is: outside it the lookups are skipped.
+                var s_Fields = EmblemFields(p_N);
+                var s_Calls = new System.Text.StringBuilder();
+                s_Calls.Append("if (min(p.x, p.y) <= 0.001)\n    return float4(0.0, 0.0, 0.0, 0.0);\n");
+                s_Calls.Append("float4 acc = float4(0.0, 0.0, 0.0, 0.0);\n");
+                foreach (var s_Field in s_Fields)
+                    s_Calls.Append($"acc = {s_Layer}(p, dpx, dpy, {s_Field.Name}, acc);\n");
+                s_Calls.Append("return acc;");
+                var s_All = p_S.HoistFunction("float2 p, float2 dpx, float2 dpy", s_Calls.ToString());
+
+                var s_Point = p_S.Declare("em_p", ShaderPortType.SptVec2, p_S.In("Coord"));
+                var s_Dx = p_S.Declare("em_dpx", ShaderPortType.SptVec2, $"ddx({s_Point})");
+                var s_Dy = p_S.Declare("em_dpy", ShaderPortType.SptVec2, $"ddy({s_Point})");
+                p_S.Out("Inside", $"(min({s_Point}.x, {s_Point}.y) > 0.001) ? 1.0 : 0.0");
+                p_S.Out("Out", $"{s_All}({s_Point}, {s_Dx}, {s_Dy})");
+            },
+        });
+
+        // ⭐ THE POSITION IN THE WEAPON'S OWN SPACE (keku 2026-09-29: the emblem "donde quiera", as BF4's weapons carry a second, unique
+        // unwrap): the vertex shader of an emblem clone hands the mesh-space position of each vertex over in components the game's
+        // writes 0 (DxbcMeshPosition: the .w of the world position and of the first two tangent rows); the studio's preview feeds the
+        // same components the same way. On a shader whose vertex stage was not patched it reads 0.
+        Add(new NodeDef
+        {
+            Kind = "MeshPosition",
+            Title = "Mesh Position",
+            Category = "Inputs",
+            Outputs = { new PortDef { Name = "Out", Type = ShaderPortType.SptVec3 } },
+            Description = "The point's position in the weapon mesh's own space (the space its dump and the emblem slot's anchors are " +
+                          "in), handed over by an emblem clone's patched vertex shader in the .w of the world position and the first " +
+                          "two tangent rows. Zero where the vertex stage was not patched.",
+            Emit = (p_S, _) =>
+            {
+                bool Has(string p_Field) =>
+                    p_S.Contract.Interpolators.Any(p_I => p_S.Contract.FieldNameFor(p_I.Index) == p_Field);
+
+                p_S.Out("Out", Has("WorldPos") && Has("TangentRow0") && Has("TangentRow1")
+                    ? "float3(i.WorldPos.w, i.TangentRow0.w, i.TangentRow1.w)"
+                    : "float3(0.0, 0.0, 0.0)");
+            },
+        });
+
+        // The emblem's square PROJECTED from the mesh position (keku 2026-09-29: "que pueda poner el sticker donde quiera"): a slot is a
+        // frame in the mesh's own space — its centre, and its two axes scaled so a point's coordinate across the square is
+        // 0.5 + dot(p − centre, axis) — and a point takes the square's coordinate when it lies within the square and within reach of its
+        // plane, on a surface facing along it. Nothing in it reads the texture's unwrap: a slot runs across the seams, the mirrored
+        // halves and the tiles of the unwrap as it lies on the body. The frames are external constants (external_EmblemF0.., three per
+        // square, EmblemSlot.FramesOf) that each weapon's own variation fills — one shader serves every weapon of a camo, each with its
+        // own slot (keku 2026-09-29, "funciona" in-game with the frames as literals: the next step). The first square that holds the
+        // point wins; a square left zero holds none.
+        Add(new NodeDef
+        {
+            Kind = "EmblemProjection",
+            Title = "Emblem Projection",
+            Category = "UV",
+            Inputs =
+            {
+                new PortDef { Name = "MeshPos", Type = ShaderPortType.SptVec3, Default = "float3(0.0, 0.0, 0.0)" },
+            },
+            Params =
+            {
+                new ParamDef { Name = "Buffer", Kind = ParamKind.Text, Default = "1" },
+                new ParamDef { Name = "Base", Kind = ParamKind.Text, Default = "52" },
+                new ParamDef { Name = "Squares", Kind = ParamKind.Text, Default = "4" },
+                new ParamDef { Name = "Facing", Kind = ParamKind.Text, Default = "0.25" },
+            },
+            Outputs =
+            {
+                new PortDef { Name = "Coord", Type = ShaderPortType.SptVec2 },
+                new PortDef { Name = "Inside", Type = ShaderPortType.SptScalar },
+            },
+            Description = "The point of the emblem's square the surface shows here, from the mesh position (x right, y down, 0 = outside " +
+                          "every slot) — the slots are frames in the mesh's own space, so they run across the unwrap's seams and mirrored " +
+                          "halves. Up to Squares squares, three external constants each (external_EmblemF0.. from element Base of the block " +
+                          "at Buffer: centre and reach, x axis and the normal's sign, y axis), filled per weapon by its variation. Inside " +
+                          "is 1 where a square holds the point.",
+            Emit = (p_S, p_N) =>
+            {
+                var s_Culture = System.Globalization.CultureInfo.InvariantCulture;
+                string F(double p_V) => p_V.ToString("0.0########", s_Culture);
+                var s_Frames = EmblemFrameFields(p_N);
+                var s_Facing = HlslNames.Number(p_N.GetParam("Facing"), 0.25);
+
+                var s_Point = p_S.Declare("ep_p", ShaderPortType.SptVec3, p_S.In("MeshPos"));
+                // The surface's normal in the mesh's space, from the derivatives of the position (outside every branch) — SIGNED, or a
+                // slot on the left would draw on the right side too (it lies within reach through a thin receiver): the screen
+                // derivatives' orientation is measured in world space against the interpolated normal (as TangentHandedness does), and
+                // the mesh → world map's own orientation is the preview's mirror (its vertex shader writes −1 in TangentRow2.w; the
+                // game's writes 0 there, a rotation: +1).
+                bool Has(string p_Field) =>
+                    p_S.Contract.Interpolators.Any(p_I => p_S.Contract.FieldNameFor(p_I.Index) == p_Field);
+                var s_Orientation = Has("WorldPos") && Has("TangentRow2")
+                    ? p_S.Declare("ep_o", ShaderPortType.SptScalar,
+                        "sign(dot(cross(ddx(i.WorldPos.xyz), ddy(i.WorldPos.xyz)), float3(i.TangentRow0.z, i.TangentRow1.z, i.TangentRow2.z))) * " +
+                        "(i.TangentRow2.w < 0.0 ? -1.0 : 1.0)")
+                    : "1.0";
+                var s_Normal = p_S.Declare("ep_n", ShaderPortType.SptVec3,
+                    $"normalize(cross(ddx({s_Point}), ddy({s_Point})) + float3(1e-12, 0.0, 0.0)) * {s_Orientation}");
+                var s_Coord = p_S.Declare("ep_c", ShaderPortType.SptVec2, "float2(0.0, 0.0)");
+                for (var k = 0; k + EmblemSlot.FrameRegisters <= s_Frames.Count; k += EmblemSlot.FrameRegisters)
+                {
+                    var (s_Origin, s_AxisX, s_AxisY) = (s_Frames[k].Name, s_Frames[k + 1].Name, s_Frames[k + 2].Name);
+                    var s_Local = p_S.Declare("ep_l", ShaderPortType.SptVec3, $"{s_Point} - {s_Origin}.xyz");
+                    // the surface's outward normal at the square: with y down, cross(x axis, y axis) points into the body — the frame
+                    // carries the sign that turns it out
+                    var s_Plane = p_S.Declare("ep_pl", ShaderPortType.SptVec3,
+                        $"normalize(cross({s_AxisX}.xyz, {s_AxisY}.xyz) + float3(1e-12, 0.0, 0.0)) * {s_AxisX}.w");
+                    var s_Here = p_S.Declare("ep_s", ShaderPortType.SptVec2, $"float2(0.5 + dot({s_Local}, {s_AxisX}.xyz), 0.5 + dot({s_Local}, {s_AxisY}.xyz))");
+                    var s_Holds = $"(all({s_Here} > 0.0) && all({s_Here} < 1.0) && abs(dot({s_Local}, {s_Plane})) < {s_Origin}.w && " +
+                                  $"dot({s_Normal}, {s_Plane}) > {F(s_Facing)} && {s_Coord}.x <= 0.0)";
+                    s_Coord = p_S.Declare("ep_c", ShaderPortType.SptVec2, $"{s_Holds} ? max({s_Here}, float2(0.002, 0.002)) : {s_Coord}");
+                }
+
+                p_S.Out("Coord", s_Coord);
+                p_S.Out("Inside", $"({s_Coord}.x > 0.0) ? 1.0 : 0.0");
+            },
+        });
+
+        Add(new NodeDef
+        {
             Kind = "Rotator",
             Title = "Rotator",
             Category = "UV",
@@ -1564,6 +2076,39 @@ public static partial class Palette
             s_Result = "_" + s_Result;
 
         return s_Result;
+    }
+
+    /// <summary>The name every emblem layer constant carries, without the compiler's external_ prefix: EmblemL0, EmblemL1…</summary>
+    public const string EmblemConstantPrefix = "EmblemL";
+
+    /// <summary>
+    /// The external constants an EmblemLayers node reads, one per layer — external_EmblemL0, external_EmblemL1… at consecutive
+    /// elements from its Base, in the block at its Buffer register. The emitter declares them from here and the bake adds them
+    /// to the shader's constant table from here, so the two can never disagree on a name or a slot.
+    /// </summary>
+    public static List<(string Name, int Buffer, int Element)> EmblemFields(GraphNode p_Node)
+    {
+        var s_Layers = Math.Clamp((int) HlslNames.Number(p_Node.GetParam("Layers"), 40), 1, 48);
+        var s_Buffer = int.TryParse(p_Node.GetParam("Buffer"), out var s_B) ? s_B : 1;
+        var s_Base = int.TryParse(p_Node.GetParam("Base"), out var s_E) ? s_E : 12;
+        return Enumerable.Range(0, s_Layers)
+            .Select(i => ($"external_{EmblemConstantPrefix}{i}", s_Buffer, s_Base + i))
+            .ToList();
+    }
+
+    /// <summary>
+    /// The external constants an EmblemProjection node reads, three per square — external_EmblemF0, external_EmblemF1… at consecutive
+    /// elements from its Base, in the block at its Buffer register (EmblemSlot.FramesOf fills them, the bake adds them to the shader's
+    /// table from here and writes each weapon's into its variation).
+    /// </summary>
+    public static List<(string Name, int Buffer, int Element)> EmblemFrameFields(GraphNode p_Node)
+    {
+        var s_Squares = Math.Clamp((int) HlslNames.Number(p_Node.GetParam("Squares"), EmblemSlot.ProjectedSquares), 0, EmblemSlot.ProjectedSquares);
+        var s_Buffer = int.TryParse(p_Node.GetParam("Buffer"), out var s_B) ? s_B : 1;
+        var s_Base = int.TryParse(p_Node.GetParam("Base"), out var s_E) ? s_E : 52;
+        return Enumerable.Range(0, s_Squares * EmblemSlot.FrameRegisters)
+            .Select(i => ($"external_{EmblemSlot.FramePrefix}{i}", s_Buffer, s_Base + i))
+            .ToList();
     }
 
     private static void AddBinary(string p_Kind, string p_Title, string p_Format)
@@ -1929,4 +2474,10 @@ public static class HlslNames
     /// <summary>Maps a texture register index to the variable name the target shader's binding table uses.</summary>
     public static string TextureVar(string p_Register) =>
         p_Register == "1" ? "texture_Texture" : $"texture_Texture{p_Register}";
+
+    /// <summary>A node parameter as a number, or the default when it does not parse.</summary>
+    public static double Number(string p_Text, double p_Default) =>
+        double.TryParse(p_Text.Trim(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var s_Value)
+            ? s_Value
+            : p_Default;
 }

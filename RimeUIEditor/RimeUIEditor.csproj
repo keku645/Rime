@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <UseWPF>true</UseWPF>
+        <LangVersion>default</LangVersion>
+        <Platforms>AnyCPU</Platforms>
+        <Configurations>Release;Debug</Configurations>
+        <AssemblyName>RimeUIEditor</AssemblyName>
+        <RootNamespace>RimeUIEditor</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The editor runs Rime in-process: the same contexts and commands the REPL uses. The Frostbite2_0
+             support assemblies are loaded dynamically at mount time, so they must land next to the exe. -->
+        <ProjectReference Include="..\RimeLib.Cmd\RimeLib.Cmd.csproj" />
+        <ProjectReference Include="..\RimeLib.Serialization.Frostbite2_0\RimeLib.Serialization.Frostbite2_0.csproj" />
+        <ProjectReference Include="..\RimeLib.Texture.Frostbite2_0\RimeLib.Texture.Frostbite2_0.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- Measured data the editor reads at run time: what each widget's own script reads (see External/keku/as_widget_settings.py). -->
+        <None Include="Data\**" CopyToOutputDirectory="PreserveNewest" />
+        <!-- the EBX fidelity map: a partition the build generates (a new screen) needs the game's field layouts, not the C# ones -->
+        <None Include="..\fidelity_fb2.json" Link="fidelity_fb2.json" CopyToOutputDirectory="PreserveNewest" />
+        <!-- the Ruffle web player (ruffle.rs, MIT/Apache-2.0) the live preview runs inside the editor's WebView2 -->
+        <None Include="Ruffle\**" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4191.47" />
+    </ItemGroup>
+
+</Project>

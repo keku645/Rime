@@ -107,7 +107,11 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                 {
                     var s_Parts = s_Line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
                     if (s_Parts.Length != 2) continue;
-                    s_Map[Convert.ToHexString(new GUID(Guid.Parse(s_Parts[0])).Id)] = new GUID(Guid.Parse(s_Parts[1]));
+                    // The STRING constructor: GUID(System.Guid) clears the compression flag (the low bit of the
+                    // last byte), so a key built that way never equals a stored guid carrying the flag, and a
+                    // mapped value lost its bit too (…0007 came out …0006). Measured 2026-09-17: 5 of 9 guids
+                    // of a mesh partition were "not in the map" and got random guids.
+                    s_Map[Convert.ToHexString(new GUID(s_Parts[0]).Id)] = new GUID(s_Parts[1]);
                 }
                 for (var i = 0; i < s_Remaps.Count; i++)
                     if (s_Map.TryGetValue(Convert.ToHexString(s_Remaps[i].Old), out var s_Mapped))
@@ -137,6 +141,23 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                 var s_StrReplaced = ReplaceAll(s_Bytes, Encoding.ASCII.GetBytes(OldString), Encoding.ASCII.GetBytes(NewString));
                 if (s_StrReplaced == 0)
                     p_Writer.WriteLine($"WARNING: internal string '{OldString}' not found (nothing rewritten).");
+
+                // A renamed asset carries its name's hash next to the string (Asset.NameHash = fnv of the
+                // lowercased name; the engine keys resources and variation entries by it), so the hash is
+                // rewritten with the string: every 4-aligned u32 equal to hash(old) becomes hash(new).
+                var s_OldHash = RimeLib.Frostbite.Utils.HashQuickLowerCase(OldString);
+                var s_NewHash = RimeLib.Frostbite.Utils.HashQuickLowerCase(NewString);
+                var s_HashReplaced = 0;
+                for (var i = 0; i + 4 <= s_Bytes.Length; i += 4)
+                {
+                    if (BitConverter.ToUInt32(s_Bytes, i) != s_OldHash)
+                        continue;
+                    Array.Copy(BitConverter.GetBytes(s_NewHash), 0, s_Bytes, i, 4);
+                    s_HashReplaced++;
+                }
+
+                p_Writer.WriteLine($"Rewrote {s_StrReplaced} string occurrence(s) and {s_HashReplaced} name-hash field(s) " +
+                                   $"(0x{s_OldHash:X8} -> 0x{s_NewHash:X8}).");
             }
 
             // Optional float32 value rewrite (e.g. raise the OCEAN LakeData Point Ys). Matched

@@ -57,6 +57,7 @@ internal sealed class UdkScope : IEmitScope
 
     public ShaderContract Contract => m_Inner.Contract;
 
+
     public string HoistFunction(string p_Signature, string p_Body) =>
         m_Inner.HoistFunction(p_Signature, p_Body);
 }

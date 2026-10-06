@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -41,7 +41,30 @@ public sealed class ShaderPreview : IDisposable
         public Vector3 Position;
         public Vector3 Normal;
         public Vector3 Tangent;
+
+        /// <summary>
+        /// The handedness of the texture mapping at the vertex (+1 as laid out, −1 mirrored) — what the
+        /// game's per-vertex BinormalSign carries; 0 (a primitive) reads as +1. Computed from the UV
+        /// gradients when a mesh is loaded, so the tangent frame's determinant tells a mirrored half
+        /// apart, the way it does in the game (the sticker side gate reads it).
+        /// </summary>
+        public float Handedness;
         public Vector2 TexCoord;
+
+        /// <summary>
+        /// The SECOND texture coordinate set, for the meshes that have one (every vehicle body does). The
+        /// game's body preset samples its diffuse with one set and its normal map with the other, so a
+        /// preview carrying a single set cannot draw it — see the UvPair note in PreviewShaders. A mesh
+        /// without a second set carries a copy of the first, so every one-UV subject is untouched.
+        /// </summary>
+        public Vector2 TexCoord1;
+
+        /// <summary>
+        /// The THIRD slot of the dump (RSM7): the set a second uv interpolator carries — the jets'
+        /// declaration adds a TexCoord2 after the bone indices and their decal preset samples its normal map
+        /// with it. A dump without one repeats the first, like the second does.
+        /// </summary>
+        public Vector2 TexCoord2;
     }
 
     private const int c_TargetCount = 4;
@@ -64,7 +87,7 @@ public sealed class ShaderPreview : IDisposable
     private Buffer? m_VsConstants;
     private Buffer? m_ViewConstants;
 
-    /// <summary>The target shader's own parameters (cb1). 64 registers covers every mp_017 shader measured.</summary>
+    /// <summary>The target shader's own parameters (cb1). 64 registers covered every mp_017 shader measured; 128 since the emblem slot.</summary>
     private Buffer? m_ParameterConstants;
 
     /// <summary>Real material-instance values overriding pattern slots of cb1, as (element, xyzw).</summary>
@@ -102,7 +125,8 @@ public sealed class ShaderPreview : IDisposable
     /// <summary>DICE's `$Globals` (cb0): the outdoor light terms a forward-lit shader reads.</summary>
     private Buffer? m_GlobalConstants;
 
-    private const int c_ParameterSlots = 64;
+    // 128: the emblem slot's forty layers are eighty constants right after a weapon preset's twelve (c12..c91; EmblemSlot).
+    private const int c_ParameterSlots = 128;
     private Buffer? m_LightConstants;
 
     private VertexShader? m_CubeVs;
@@ -122,7 +146,256 @@ public sealed class ShaderPreview : IDisposable
     private bool m_ForwardOutput;
     private SamplerState? m_Sampler;
     private RasterizerState? m_Raster;
+    private RasterizerState? m_RasterMirrored;
     private DepthStencilState? m_DepthState;
+
+    /// <summary>
+    /// ⛔ THE GAME'S MESHES ARE RIGHT-HANDED AND THIS PIPELINE IS LEFT-HANDED (LookAtLH / PerspectiveFovLH):
+    /// drawn as-is they come out as their MIRROR IMAGE — measured on the M4A1 (keku, 2026-09-11: "todas las
+    /// armas están mirrored"): the ejection port, forward assist and magazine release showed on the
+    /// geometric LEFT side, the selector and bolt catch on the RIGHT. A loaded mesh is therefore drawn
+    /// through a mirror of its lateral axis (muzzle and up untouched); the primitives, which every
+    /// guardian render is pinned to, stay exactly as they were. Everything else lives in MESH space and
+    /// goes through this one matrix: picks, projections, the overlay, the tangent frame's handedness.
+    /// </summary>
+    private static readonly Matrix s_MeshWorld = Matrix.Scaling(-1f, 1f, 1f);
+
+    private Matrix World => m_Shape == PreviewShape.Mesh && m_MeshData != null ? s_MeshWorld : Matrix.Identity;
+
+    private bool Mirrored => World.M11 < 0f;
+
+    /// <summary>Whether the view draws its mesh through the lateral mirror (a loaded game mesh: always; a primitive: never).</summary>
+    public bool MeshMirrored => Mirrored;
+
+    /// <summary>A mirror flips the winding, so the mirrored world culls the other face; double-sided draws both.</summary>
+    private RasterizerState? RasterFor(bool p_DoubleSided) =>
+        p_DoubleSided ? m_RasterNoCull : Mirrored ? m_RasterMirrored : m_Raster;
+
+    // --- the gizmo overlay: coloured line segments over the finished frame, in mesh space -------------------
+    [StructLayout(LayoutKind.Sequential)]
+    private struct OverlayVertex
+    {
+        public Vector3 Position;
+        public Vector4 Colour;
+    }
+
+    private VertexShader? m_OverlayVs;
+    private PixelShader? m_OverlayPs;
+    private InputLayout? m_OverlayLayout;
+    private DepthStencilState? m_DepthNone;
+    private Buffer? m_OverlayBuffer;
+    private int m_OverlayCapacity;
+    private OverlayVertex[] m_OverlayVertices = Array.Empty<OverlayVertex>();
+    private bool m_OverlayDirty;
+
+    /// <summary>One line segment of the overlay, both ends in the space the mesh is drawn in, ARGB colour.</summary>
+    public readonly record struct OverlayLine(Vector3 A, Vector3 B, uint Colour);
+
+    /// <summary>
+    /// Replaces the overlay: what the sticker mode draws over the weapon (a sticker's outline projected on
+    /// the surface, its handles). Empty clears it. Uploaded on the next frame; nothing here touches the
+    /// GBuffer passes, so the differential harnesses — which never set an overlay — see the same frames.
+    /// </summary>
+    public void SetOverlayLines(IReadOnlyList<OverlayLine> p_Lines)
+    {
+        var s_Vertices = new OverlayVertex[p_Lines.Count * 2];
+        for (var i = 0; i < p_Lines.Count; i++)
+        {
+            var s_Colour = ColourOf(p_Lines[i].Colour);
+            s_Vertices[i * 2] = new OverlayVertex { Position = p_Lines[i].A, Colour = s_Colour };
+            s_Vertices[i * 2 + 1] = new OverlayVertex { Position = p_Lines[i].B, Colour = s_Colour };
+        }
+
+        m_OverlayVertices = s_Vertices;
+        m_OverlayDirty = true;
+    }
+
+    public void ClearOverlay() => SetOverlayLines(Array.Empty<OverlayLine>());
+
+    private static Vector4 ColourOf(uint p_Argb) => new(
+        ((p_Argb >> 16) & 0xFF) / 255f, ((p_Argb >> 8) & 0xFF) / 255f, (p_Argb & 0xFF) / 255f, (p_Argb >> 24) / 255f);
+
+    /// <summary>The view-projection the frame is drawn with — the one thing a pick and a projection must share with Render.</summary>
+    private Matrix ViewProjection() => ViewMatrix() * ProjectionMatrix();
+
+    /// <summary>
+    /// A camera put by hand instead of the orbit — the first-person eye (keku 2026-09-29: "simular cómo se vería el soldado en 1ª persona
+    /// con el arma en las manos"): the eye, the direction it looks and its up, in the space the mesh is DRAWN in (after its lateral
+    /// mirror), and the vertical field of view in radians. Null = the orbit (Yaw, Pitch, Distance, Target).
+    /// </summary>
+    public (Vector3 Eye, Vector3 Look, Vector3 Up, float FovY)? FixedCamera
+    {
+        get => m_FixedCamera;
+        set
+        {
+            if (m_FixedCamera == value)
+                return;
+
+            m_FixedCamera = value;
+            FixedCameraChanged?.Invoke();
+        }
+    }
+
+    private (Vector3 Eye, Vector3 Look, Vector3 Up, float FovY)? m_FixedCamera;
+
+    /// <summary>Raised when the view goes onto the first-person eye, leaves it, or its field of view changes (the window's FOV bar follows).</summary>
+    public event Action? FixedCameraChanged;
+
+    private Vector3 EyePosition() => FixedCamera is { } s_Fixed ? s_Fixed.Eye : CameraPosition();
+
+    private Matrix ViewMatrix() => FixedCamera is { } s_Fixed
+        ? Matrix.LookAtLH(s_Fixed.Eye, s_Fixed.Eye + s_Fixed.Look, s_Fixed.Up)
+        : Matrix.LookAtLH(CameraPosition(), Target, Vector3.UnitY);
+
+    private Matrix ProjectionMatrix()
+    {
+        // The near plane follows the dolly so extreme closeups do not clip into the mesh: at 3 metres it sits at the old 0.05, right up
+        // close it tightens to millimetres; the first-person eye sits a few centimetres from the weapon.
+        var s_Near = FixedCamera != null ? 0.002f : Math.Clamp(Distance * 0.02f, 0.002f, 0.05f);
+        return Matrix.PerspectiveFovLH(FixedCamera?.FovY ?? 0.9f, m_Width / (float) Math.Max(1, m_Height), s_Near, 100f);
+    }
+
+    /// <summary>Where a ray from a panel pixel meets the mesh: the point, the surface normal there, the texture coordinate, the section, and the body triangle (in <see cref="Surface"/>'s numbering).</summary>
+    public readonly record struct SurfaceHit(Vector3 Position, Vector3 Normal, Vector2 Uv, int Section, float Distance, int Triangle = -1);
+
+    private Graph.StickerSurface? m_Surface;
+    private (string? Mesh, string Target, int Aliases) m_SurfaceKey;
+    private Vector3 m_MeshCentre;
+    private float m_MeshScale = 1f;
+
+    /// <summary>
+    /// The body as sticker mode sees it — the sections the authored shader draws, with their positions and
+    /// unwrap — rebuilt when the mesh or the target changes. Triangles are numbered in the order
+    /// <see cref="TargetSections"/> walks them, which is the order every pick here walks them too. It knows
+    /// how the mesh was recentred and rescaled for the camera, so a placement's anchor can be kept in the
+    /// mesh's own units and the bake, reading the raw dump, resolves the same point.
+    /// </summary>
+    public Graph.StickerSurface? Surface
+    {
+        get
+        {
+            if (m_MeshData == null)
+                return null;
+
+            var s_Key = (MeshPath, MeshTargetShader, MeshTargetAliases.Count);
+            if (m_Surface != null && m_SurfaceKey == s_Key)
+                return m_Surface;
+
+            var (s_Vertices, s_Indices) = m_MeshData.Value;
+            var s_Positions = new System.Numerics.Vector3[s_Vertices.Length];
+            var s_Uv = new System.Numerics.Vector2[s_Vertices.Length];
+            for (var i = 0; i < s_Vertices.Length; i++)
+            {
+                s_Positions[i] = new System.Numerics.Vector3(s_Vertices[i].Position.X, s_Vertices[i].Position.Y, s_Vertices[i].Position.Z);
+                s_Uv[i] = new System.Numerics.Vector2(s_Vertices[i].TexCoord.X, s_Vertices[i].TexCoord.Y);
+            }
+
+            var s_Kept = new List<int>();
+            foreach (var s_Section in TargetSections())
+                for (var i = s_Section.StartIndex; i + 2 < s_Section.StartIndex + s_Section.IndexCount; i += 3)
+                {
+                    s_Kept.Add(s_Indices[i]);
+                    s_Kept.Add(s_Indices[i + 1]);
+                    s_Kept.Add(s_Indices[i + 2]);
+                }
+
+            m_Surface = s_Kept.Count == 0
+                ? null
+                : new Graph.StickerSurface(s_Positions, s_Uv, s_Kept.ToArray(),
+                    new System.Numerics.Vector3(m_MeshCentre.X, m_MeshCentre.Y, m_MeshCentre.Z), m_MeshScale);
+            m_SurfaceKey = s_Key;
+            return m_Surface;
+        }
+    }
+
+    /// <summary>
+    /// Casts a ray from a pixel of the panel (0,0 top-left) through the loaded mesh and returns the nearest
+    /// hit on a section the authored shader draws — the body, never the bullets or the tape a sticker cannot
+    /// live on. Null when nothing is under the pixel or no mesh is loaded.
+    /// </summary>
+    public SurfaceHit? Raycast(float p_X, float p_Y)
+    {
+        if (m_MeshData == null || m_Width <= 0 || m_Height <= 0)
+            return null;
+
+        // The pixel's ray in WORLD space, then into MESH space through the world matrix's inverse — the
+        // triangles are intersected where they are stored (a mirrored world flips the ray, not the mesh).
+        var s_Inverse = Matrix.Invert(World * ViewProjection());
+        var s_Ndc = new Vector2(p_X / m_Width * 2f - 1f, 1f - p_Y / m_Height * 2f);
+        var s_Origin = Vector3.TransformCoordinate(new Vector3(s_Ndc, 0f), s_Inverse);
+        var s_Far = Vector3.TransformCoordinate(new Vector3(s_Ndc, 1f), s_Inverse);
+        var s_Direction = Vector3.Normalize(s_Far - s_Origin);
+
+        var (s_Vertices, s_Indices) = m_MeshData.Value;
+        SurfaceHit? s_Best = null;
+        var s_Triangle = -1;
+
+        foreach (var s_Section in TargetSections())
+        {
+            var s_End = s_Section.StartIndex + s_Section.IndexCount;
+            for (var i = s_Section.StartIndex; i + 2 < s_End; i += 3)
+            {
+                s_Triangle++;
+                ref var s_A = ref s_Vertices[s_Indices[i]];
+                ref var s_B = ref s_Vertices[s_Indices[i + 1]];
+                ref var s_C = ref s_Vertices[s_Indices[i + 2]];
+
+                // Möller–Trumbore, both faces: from outside a closed body the nearest hit is the visible one.
+                var s_Edge1 = s_B.Position - s_A.Position;
+                var s_Edge2 = s_C.Position - s_A.Position;
+                var s_P = Vector3.Cross(s_Direction, s_Edge2);
+                var s_Det = Vector3.Dot(s_Edge1, s_P);
+                if (Math.Abs(s_Det) < 1e-9f)
+                    continue;
+
+                var s_InvDet = 1f / s_Det;
+                var s_T = s_Origin - s_A.Position;
+                var s_U = Vector3.Dot(s_T, s_P) * s_InvDet;
+                if (s_U < 0f || s_U > 1f)
+                    continue;
+
+                var s_Q = Vector3.Cross(s_T, s_Edge1);
+                var s_V = Vector3.Dot(s_Direction, s_Q) * s_InvDet;
+                if (s_V < 0f || s_U + s_V > 1f)
+                    continue;
+
+                var s_Distance = Vector3.Dot(s_Edge2, s_Q) * s_InvDet;
+                if (s_Distance <= 1e-5f || (s_Best != null && s_Distance >= s_Best.Value.Distance))
+                    continue;
+
+                var s_W = 1f - s_U - s_V;
+                var s_Normal = Vector3.Normalize(s_A.Normal * s_W + s_B.Normal * s_U + s_C.Normal * s_V);
+                var s_Uv = s_A.TexCoord * s_W + s_B.TexCoord * s_U + s_C.TexCoord * s_V;
+                s_Best = new SurfaceHit(s_Origin + s_Direction * s_Distance, s_Normal, s_Uv,
+                    m_MeshSections.IndexOf(s_Section), s_Distance, s_Triangle);
+            }
+        }
+
+        return s_Best;
+    }
+
+    /// <summary>A mesh-space point on the panel, in pixels (0,0 top-left); null when it is behind the camera.</summary>
+    public Vector2? ProjectToScreen(Vector3 p_Position)
+    {
+        if (m_Width <= 0 || m_Height <= 0)
+            return null;
+
+        var s_Clip = Vector4.Transform(new Vector4(p_Position, 1f), World * ViewProjection());
+        if (s_Clip.W <= 1e-6f)
+            return null;
+
+        return new Vector2((s_Clip.X / s_Clip.W + 1f) * 0.5f * m_Width, (1f - s_Clip.Y / s_Clip.W) * 0.5f * m_Height);
+    }
+
+    /// <summary>The camera's position in MESH space (through the world matrix's inverse), for facing a surface point.</summary>
+    public Vector3 CameraPoint => Vector3.TransformCoordinate(EyePosition(), Matrix.Invert(World));
+
+    /// <summary>Converts a point or a direction of the mesh's own recentred space into the space it is drawn in (through its mirror).</summary>
+    public Vector3 ToDrawn(Vector3 p_Mesh) => Vector3.TransformNormal(p_Mesh, World);
+
+    /// <summary>The sections a sticker can live on: the ones the authored shader draws (target + aliases).</summary>
+    private IEnumerable<MeshSection> TargetSections() =>
+        MeshTargetShader.Length == 0 ? m_MeshSections : m_MeshSections.Where(IsTargetSection);
 
     /// <summary>
     /// One entry per texture register, indexed BY the register. It used to be two fields, t1 and t2, which was
@@ -134,6 +407,9 @@ public sealed class ShaderPreview : IDisposable
     private readonly ShaderResourceView?[] m_Textures = new ShaderResourceView?[c_TextureSlots];
 
     private const int c_TextureSlots = 16;
+
+    /// <summary>Sampler registers bound per draw — the same sixteen the pixel stage exposes.</summary>
+    private const int c_SamplerSlots = 16;
 
     private int m_Width;
     private int m_Height;
@@ -162,6 +438,7 @@ public sealed class ShaderPreview : IDisposable
 
     public void ResetView()
     {
+        FixedCamera = null;
         Yaw = 0.6f;
         Pitch = 0.4f;
         Distance = 3.2f;
@@ -216,15 +493,209 @@ public sealed class ShaderPreview : IDisposable
     /// occludes the whole object. DoubleSided comes from the shader's own solutions (Flags bit 1) and turns
     /// culling off for that section — a canopy is visible from inside, foliage from both sides.</summary>
     public readonly record struct MeshSection(string Shader, string Material, int Category, bool DoubleSided,
-        int StartIndex, int IndexCount);
+        int StartIndex, int IndexCount)
+    {
+        /// <summary>
+        /// The composite PARTS this section is made of, as contiguous index ranges (the loader groups the
+        /// triangles by part so each one can be drawn — or left out — on its own).
+        ///
+        /// ⛔ A section of a vehicle is ONE draw and several OBJECTS: the kit section carries the stowage AND
+        /// the reactive-armour blocks, which the game equips separately. Empty for everything that has no
+        /// parts (every weapon, and any dump older than RSM6), and then the section is drawn whole.
+        /// </summary>
+        public IReadOnlyList<(int Part, int Start, int Count)> Parts { get; init; } =
+            Array.Empty<(int, int, int)>();
+
+        /// <summary>
+        /// The game mesh this section was read from when it came from a CONTEXT mesh — the rest of a soldier drawn around the part
+        /// being authored (keku 2026-09-28: "la vista previa es el personaje entero, con cabeza") — or empty. A context section is never
+        /// the edited shader's own, whatever it wears: it is someone else's material, shown as it ships.
+        /// </summary>
+        public string Context { get; init; } = "";
+
+        /// <summary>For a context section, its index among that mesh's own sections (the order its dump and material list have).</summary>
+        public int ContextSection { get; init; }
+    }
 
     private readonly List<MeshSection> m_MeshSections = new();
 
     /// <summary>The shader the editor is editing, for deciding which mesh sections are "ours".</summary>
     public string MeshTargetShader { get; set; } = "";
 
+    /// <summary>
+    /// Other shader names whose sections ALSO count as the edited shader's own — the presets it replaces.
+    /// A camo is authored on a preset that substitutes the NoCamo one a weapon's body wears; to a plain
+    /// name match the body was foreign, drawn with the game's own bytecode, and the graph being edited
+    /// never reached it. Empty outside that use.
+    /// </summary>
+    public IReadOnlyCollection<string> MeshTargetAliases { get; set; } = Array.Empty<string>();
+
+    /// <summary>Whether a section is drawn with the authored shader: the target's own, or one it replaces.</summary>
+    public bool IsTargetSection(MeshSection p_Section)
+    {
+        // A soldier's helmet and legs wear the same CharacterRoot as the torso being authored, and are still not the torso's.
+        if (p_Section.Context.Length > 0)
+            return false;
+
+        var s_Target = MeshTargetShader.Replace('\\', '/');
+        return p_Section.Shader.Equals(s_Target, StringComparison.OrdinalIgnoreCase) ||
+               MeshTargetAliases.Contains(p_Section.Shader, StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>When set, mesh sections worn by OTHER shaders are not drawn at all (the Settings option).</summary>
     public bool HideForeignSections { get; set; }
+
+    /// <summary>
+    /// Indices (into <see cref="MeshSections"/>) of OWN sections the camo is kept off: each draws with the
+    /// game's bytecode of the shader it wears, as it ships, while the rest of the object takes the authored
+    /// shader — the user's per-material choice (keku, 2026-09-18). Empty = every own section takes it.
+    /// </summary>
+    public ISet<int> SectionsOff { get; set; } = new HashSet<int>();
+
+    /// <summary>When set, only that section (index into <see cref="MeshSections"/>) is drawn — to SEE which material an ID is.</summary>
+    public int? IsolatedSection { get; set; }
+
+    /// <summary>
+    /// When set, the authored shader draws ONLY that section (index into <see cref="MeshSections"/>) — the
+    /// material whose graph is on the canvas — and every other section, the target's siblings included,
+    /// draws as foreign. Null = every target section takes the authored shader.
+    /// </summary>
+    public int? TargetSectionOnly { get; set; }
+
+    /// <summary>
+    /// Per section (index into <see cref="MeshSections"/>), the registered foreign shader it draws with
+    /// instead of whatever its name or the factory look would pick: an edited material's own compiled
+    /// graph, or the camo compiled for the body while another material is being edited.
+    /// </summary>
+    public IDictionary<int, string> SectionOverrides { get; set; } = new Dictionary<int, string>();
+
+    /// <summary>The override registered for a section, if any.</summary>
+    private ForeignShader? OverrideFor(int p_Index) =>
+        SectionOverrides.TryGetValue(p_Index, out var s_Name) && m_ForeignShaders.TryGetValue(s_Name, out var s_Found)
+            ? s_Found
+            : null;
+
+    /// <summary>
+    /// Per section, the registered shader that is the AUTHORED one carrying THAT MATERIAL's own art — so
+    /// every material of an object wears the same camo over its own textures and numbers.
+    ///
+    /// ⛔ WHY IT EXISTS: the authored shader holds ONE texture set for the whole mesh, which is right for a
+    /// weapon (one body material) and wrong for anything with several. Measured on the LAV-25: its hull and
+    /// its ATGM launchers both wear vehiclepreset_mud, so the single set dressed the hull in the launchers'
+    /// art and the vehicle drew flat grey under any camo.
+    ///
+    /// Set by the window, which owns the registrations; empty means "one set for the whole mesh", the
+    /// behaviour every weapon had before. A material being EDITED still wins through
+    /// <see cref="SectionOverrides"/>, and the factory look is untouched — as shipped, each section already
+    /// draws with the game's own shader and the slot map's per-mesh set.
+    /// </summary>
+    public IDictionary<int, string> MaterialDress { get; set; } = new Dictionary<int, string>();
+
+    /// <summary>The per-material dress of a section while the camo is being shown, if there is one.</summary>
+    private ForeignShader? DressFor(int p_Index) =>
+        !FactoryLook && MaterialDress.TryGetValue(p_Index, out var s_Name) &&
+        m_ForeignShaders.TryGetValue(s_Name, out var s_Found)
+            ? s_Found
+            : null;
+
+    /// <summary>
+    /// When set, the sections the authored shader would draw are drawn with the game's OWN bytecode of the
+    /// shader each one wears — registered as foreign under that name — so the object looks as it ships, with
+    /// nothing of the graph on it. The target and its aliases still decide which sections are "own" for
+    /// everything else (sticker surfaces, the section count); only the DRAW is handed to the game's shader.
+    /// A section whose shader is not registered falls back to the neutral stand-in, as any foreign one does.
+    /// </summary>
+    public bool FactoryLook { get; set; }
+
+    /// <summary>
+    /// Under the factory look, the registered foreign shader every OWN section draws with — the game's
+    /// no-camo preset — instead of each section's own; null draws each with the shader it wears.
+    /// </summary>
+    public string? FactoryShader { get; set; }
+
+    /// <summary>
+    /// The opaque sections the NEXT frame would draw with the neutral grey stand-in, by name — the same
+    /// resolution the draw makes (own and authored, a dress, the factory look, a foreign registration), read
+    /// only. A seam's measure of "the object came out grey" (keku, 2026-09-23: *"a veces cuando cambio entre
+    /// vehículos o armas no se aplican los shaders, se queda gris"*): a frame hash cannot say WHICH section
+    /// lost its shader; this can.
+    /// </summary>
+    internal List<string> NeutralSections()
+    {
+        var s_Out = new List<string>();
+        if (m_Shape != PreviewShape.Mesh || m_MeshSections.Count == 0 || MeshTargetShader.Length == 0)
+            return s_Out;
+
+        for (var s_Index = 0; s_Index < m_MeshSections.Count; s_Index++)
+        {
+            var s_Section = m_MeshSections[s_Index];
+            if (IsolatedSection is { } s_Only && s_Only != s_Index)
+                continue;
+            if (HiddenSections.Contains(s_Index) && IsolatedSection != s_Index && TargetSectionOnly != s_Index)
+                continue;
+
+            var s_Own = IsTargetSection(s_Section);
+            var s_Off = s_Own && SectionsOff.Contains(s_Index);
+            var s_Dress = s_Own && !s_Off && TargetSectionOnly == null ? DressFor(s_Index) : null;
+            var s_Mine = s_Own && !FactoryLook && !s_Off && s_Dress == null && OverrideFor(s_Index) == null &&
+                         (TargetSectionOnly == null || TargetSectionOnly == s_Index);
+            var s_Foreign = s_Mine
+                ? null
+                : OverrideFor(s_Index) ?? s_Dress ??
+                  (s_Own && !s_Off
+                      ? FactoryShaderFor(s_Index, s_Section)
+                      : SectionArtFor(s_Index) ??
+                        (m_ForeignShaders.TryGetValue(s_Section.Shader, out var s_Found) ? s_Found : null));
+
+            if (!s_Own && HideForeignSections && OverrideFor(s_Index) == null)
+                continue;
+
+            // A section whose material names no shader at all (the Su-35's PlaneSkeleton_M, a cockpit's
+            // Main_LOD) is grey on every visit, by the dump: said apart from one whose shader was not applied.
+            if (!s_Mine && s_Foreign == null && s_Section.Category == 0)
+                s_Out.Add(s_Section.Shader.Length == 0
+                    ? $"#{s_Index} (no shader in the dump)"
+                    : $"#{s_Index} {s_Section.Shader.Split('/')[^1]}{(s_Own ? " (own)" : "")}");
+        }
+
+        return s_Out;
+    }
+
+    /// <summary>The registered foreign shader an own section draws with under the factory look, if any.</summary>
+    private ForeignShader? FactoryShaderFor(int p_Index, MeshSection p_Section) =>
+        FactoryShader != null && m_ForeignShaders.TryGetValue(FactoryShader, out var s_Preset)
+            ? s_Preset
+            : SectionArtFor(p_Index) ??
+              (m_ForeignShaders.TryGetValue(p_Section.Shader, out var s_Own) ? s_Own : null);
+
+    /// <summary>
+    /// Per section, the registration that carries THAT MATERIAL's own shipped art — the game's own shader for
+    /// it, registered once per material rather than once per shader NAME.
+    ///
+    /// ⛔ WHY IT EXISTS (keku, 2026-09-21: *"el resultado final es que todos los materiales se vean bien pase
+    /// lo que pase"*): a registration keyed by shader name is keyed by the wrong thing. Two materials of one
+    /// object routinely wear the SAME shader — the LAV-25's hull and its ATGM launchers are both
+    /// vehiclepreset_mud, the L85A2's body and its sight rail are both weaponpreset3p — so the first one
+    /// registered lent its textures to the other. <see cref="MaterialDress"/> already fixed that for the camo
+    /// being authored; this is the same fix for everything drawn AS SHIPPED, which is what the object looks
+    /// like before anything is picked and what half the material panel shows.
+    /// </summary>
+    public IDictionary<int, string> SectionArt { get; set; } = new Dictionary<int, string>();
+
+    /// <summary>
+    /// Per CONTEXT section, the registration of the document of the part it belongs to — the rest of a soldier drawn with the skin being
+    /// made on it, not as it ships (keku 2026-09-28: the whole soldier with the whole skin). Wins over <see cref="SectionArt"/>; empty
+    /// means every context section as it ships.
+    /// </summary>
+    public IDictionary<int, string> ContextDress { get; set; } = new Dictionary<int, string>();
+
+    /// <summary>That section's own-art registration, if the window made one — or its part's document, for context dressed with one.</summary>
+    private ForeignShader? SectionArtFor(int p_Index) =>
+        ContextDress.TryGetValue(p_Index, out var s_Dressed) && m_ForeignShaders.TryGetValue(s_Dressed, out var s_Part)
+            ? s_Part
+            : SectionArt.TryGetValue(p_Index, out var s_Name) && m_ForeignShaders.TryGetValue(s_Name, out var s_Found)
+            ? s_Found
+            : null;
 
     /// <summary>
     /// Everything one FOREIGN shader needs to draw its sections for real: its own game bytecode, a vertex
@@ -244,6 +715,43 @@ public sealed class ShaderPreview : IDisposable
 
         public int ParamsRegister = 1;
 
+        /// <summary>The bytecode it was registered with — the layout its constants are rebuilt from (SetForeignValues).</summary>
+        public byte[] Dxbc = Array.Empty<byte>();
+
+        /// <summary>The material values its constants were last built from — kept to rebuild them when only the emblem changes.</summary>
+        public IReadOnlyDictionary<string, string>? MaterialValues;
+
+        /// <summary>
+        /// What its own vertex shader feeds each interpolator, as classified from ITS bytecode. Readable
+        /// because "the art and the values are right and it still looks wrong" is almost always this: an
+        /// interpolator fed a different quantity than the pixel shader reads (a UV pair against one set,
+        /// a world position where a UV belongs). A registration that cannot classify says so.
+        /// </summary>
+        public string Interpolators = "(not classified)";
+
+        /// <summary>
+        /// The registers it declares as a texture CUBE. They must never fall back to the authored shader's
+        /// set: that art is 2D, and sampling a 2D view through a cube declaration is undefined.
+        /// </summary>
+        public HashSet<int> CubeRegisters = new();
+
+        /// <summary>The registers its own instructions sample as DXT5nm NORMAL maps (resource swizzle .xywz).</summary>
+        public HashSet<int> NormalRegisters = new();
+
+        /// <summary>
+        /// The sampler STATE the game binds to each sampler register, when the cached slot map knows it.
+        /// Entries are owned by the preview's cache, never disposed here.
+        ///
+        /// ⛔ Addressing is not in the bytecode and some shaders USE it as an operation: the kit atlas shader
+        /// adds its tile atlas sampled at (u, v+1), which the game's `v=Border` turns into "add nothing" for
+        /// every piece whose V is positive. Drawn through a Wrap sampler, that fetch lands back inside the
+        /// atlas and prints the tile band over the piece.
+        /// </summary>
+        public SamplerState?[] Samplers = new SamplerState?[c_SamplerSlots];
+
+        /// <summary>What was bound, in words, for the window's Output — a fallback must never pass for a measure.</summary>
+        public string SamplerNote = "(none in the cached map — bound as wrap)";
+
         public void Dispose()
         {
             Ps?.Dispose();
@@ -260,11 +768,13 @@ public sealed class ShaderPreview : IDisposable
     /// <summary>
     /// Registers a foreign shader (one worn by mesh sections the editor is NOT editing) so its sections
     /// render with the REAL game pixel shader and art. Returns an error string, or null. Textures arrive
-    /// as decoded BGRA pixel blocks keyed by the register the shader's own binding table names.
+    /// as decoded BGRA pixel blocks keyed by the register the shader's own binding table names, each with
+    /// the game's sRGB flag for that texture (its view is created accordingly, see <see cref="CreateTexture"/>).
     /// </summary>
     public string? RegisterForeignShader(string p_Name, byte[] p_Dxbc,
-        IEnumerable<(int Slot, uint[] Pixels, int Width, int Height)> p_Textures,
-        IReadOnlyDictionary<string, string>? p_MaterialValues = null)
+        IEnumerable<(int Slot, uint[] Pixels, int Width, int Height, bool Srgb)> p_Textures,
+        IReadOnlyDictionary<string, string>? p_MaterialValues = null,
+        IReadOnlyDictionary<string, string>? p_Samplers = null)
     {
         if (m_Device == null)
             return "no device";
@@ -286,7 +796,39 @@ public sealed class ShaderPreview : IDisposable
             {
                 Ps = new PixelShader(m_Device, p_Dxbc),
                 Forward = s_Contract.RenderTargets == 1,
+                Dxbc = p_Dxbc,
             };
+
+            // Which of its registers are CUBES, read from its own declarations — the binding below must not
+            // hand those the authored shader's 2D art.
+            try
+            {
+                foreach (var s_Line in new ShaderBytecode(p_Dxbc).Disassemble().Split('\n'))
+                {
+                    var s_Trim = s_Line.Trim();
+
+                    // …and which it reads as a NORMAL map: a CONTEXT section's empty register gets a flat normal there (see DrawSectionWith)
+                    if (s_Trim.StartsWith("sample", StringComparison.Ordinal) &&
+                        System.Text.RegularExpressions.Regex.Match(s_Trim, @",\s*t(\d+)\.xywz\b") is { Success: true } s_Normal)
+                        s_Foreign.NormalRegisters.Add(int.Parse(s_Normal.Groups[1].Value));
+
+                    if (!s_Trim.StartsWith("dcl_resource_texturecube", StringComparison.Ordinal))
+                        continue;
+
+                    var s_Token = s_Trim.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+                    if (s_Token is { Length: > 1 } && s_Token[0] == 't' &&
+                        int.TryParse(s_Token[1..], out var s_CubeRegister))
+                        s_Foreign.CubeRegisters.Add(s_CubeRegister);
+                }
+            }
+            catch
+            {
+                // No declarations read: the fallback below simply stays as it was.
+            }
+
+            s_Foreign.Interpolators = s_Contract.InterpolatorMeanings is { Count: > 0 } s_Meanings
+                ? string.Join(" ", s_Meanings.OrderBy(p_M => p_M.Key).Select(p_M => $"{p_M.Key}:{p_M.Value}"))
+                : "(none — the rigid default layout)";
 
             var s_VsCode = ShaderBytecode.Compile(
                 PreviewShaders.VertexShaderFor(s_Contract.InterpolatorMeanings), "main", "vs_5_0");
@@ -296,12 +838,36 @@ public sealed class ShaderPreview : IDisposable
                 new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
                 new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
                 new InputElement("TANGENT", 0, Format.R32G32B32_Float, 24, 0),
-                new InputElement("TEXCOORD", 0, Format.R32G32_Float, 36, 0),
+                new InputElement("TANGENT", 1, Format.R32_Float, 36, 0),
+                new InputElement("TEXCOORD", 0, Format.R32G32_Float, 40, 0),
+                new InputElement("TEXCOORD", 1, Format.R32G32_Float, 48, 0),
+                new InputElement("TEXCOORD", 2, Format.R32G32_Float, 56, 0),
             });
 
-            foreach (var (s_Slot, s_Pixels, s_Width, s_Height) in p_Textures)
+            foreach (var (s_Slot, s_Pixels, s_Width, s_Height, s_Srgb) in p_Textures)
                 if (s_Slot >= 1 && s_Slot < c_TextureSlots)
-                    s_Foreign.Textures[s_Slot] = CreateTexture(s_Width, s_Height, s_Pixels);
+                    s_Foreign.Textures[s_Slot] = CreateTexture(s_Width, s_Height, s_Pixels, s_Srgb);
+
+            // The game's own addressing per sampler register, when the cached map carries it. A register it
+            // does not name keeps the preview's wrapping sampler, and the note says which registers were
+            // really bound — a silent fallback is indistinguishable from a measurement downstream.
+            if (p_Samplers is { Count: > 0 })
+            {
+                var s_Bound = new List<string>();
+                foreach (var (s_Register, s_Modes) in p_Samplers)
+                {
+                    if (!int.TryParse(s_Register, out var s_Index) ||
+                        s_Index < 0 || s_Index >= c_SamplerSlots ||
+                        SamplerForModes(s_Modes) is not { } s_State)
+                        continue;
+
+                    s_Foreign.Samplers[s_Index] = s_State;
+                    s_Bound.Add($"s{s_Index}={s_Modes.Replace(",", "/")}");
+                }
+
+                if (s_Bound.Count > 0)
+                    s_Foreign.SamplerNote = string.Join(" ", s_Bound.OrderBy(p_S => p_S, StringComparer.Ordinal));
+            }
 
             BuildForeignConstants(s_Foreign, p_Dxbc, p_MaterialValues);
 
@@ -337,9 +903,36 @@ public sealed class ShaderPreview : IDisposable
         var s_Floats = (s_Fields.Max(p_F => p_F.Offset + p_F.Size) + 15) / 16 * 4;
         var s_Data = new float[s_Floats];
         Array.Fill(s_Data, 1f);
+        p_Foreign.MaterialValues = p_MaterialValues;
+
+        // The emblem slot's layers (external_EmblemL0..) are never the neutral 1 — a layer of ones is a black circle over the slot
+        // (the as-shipped M416's, 2026-09-29): the preview's sample emblem, or zero (no layer), as the game's table defaults them.
+        var s_Emblem = Graph.EmblemSlot.PreviewValues();
+        var s_EmblemPrefix = "external_" + Graph.Palette.EmblemConstantPrefix;
+        // (and a projected slot's frames, external_EmblemF0..: the weapon on screen's, or zero — a frame of ones would draw a square)
+        var s_Frames = Graph.EmblemSlot.FramesOf(Graph.EmblemSlot.PreviewSlots);
+        var s_FramePrefix = "external_" + Graph.EmblemSlot.FramePrefix;
 
         foreach (var s_Field in s_Fields)
         {
+            if (s_Field.Name.StartsWith(s_EmblemPrefix, StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(s_Field.Name[s_EmblemPrefix.Length..], out var s_Layer))
+            {
+                var s_Vector = s_Emblem != null && s_Layer >= 0 && s_Layer < s_Emblem.Length ? s_Emblem[s_Layer] : new float[4];
+                for (var i = 0; i < 4 && i < s_Field.Size / 4 && s_Field.Offset / 4 + i < s_Data.Length; i++)
+                    s_Data[s_Field.Offset / 4 + i] = i < s_Vector.Length ? s_Vector[i] : 0f;
+                continue;
+            }
+
+            if (s_Field.Name.StartsWith(s_FramePrefix, StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(s_Field.Name[s_FramePrefix.Length..], out var s_Frame))
+            {
+                var s_Vector = s_Frame >= 0 && s_Frame < s_Frames.Length ? s_Frames[s_Frame] : new float[4];
+                for (var i = 0; i < 4 && i < s_Field.Size / 4 && s_Field.Offset / 4 + i < s_Data.Length; i++)
+                    s_Data[s_Field.Offset / 4 + i] = s_Vector[i];
+                continue;
+            }
+
             var s_Value = p_MaterialValues?.FirstOrDefault(p_V =>
                 s_Field.Name.Equals("external_" + p_V.Key, StringComparison.OrdinalIgnoreCase) ||
                 s_Field.Name.Equals(p_V.Key, StringComparison.OrdinalIgnoreCase)).Value;
@@ -360,6 +953,164 @@ public sealed class ShaderPreview : IDisposable
 
     public bool HasForeignShader(string p_Name) => m_ForeignShaders.ContainsKey(p_Name);
 
+    /// <summary>Rebuilds every registered foreign shader's constants with the material values they had — after the preview's emblem changed.</summary>
+    public void RefreshEmblemValues()
+    {
+        if (m_Device == null)
+            return;
+
+        foreach (var s_Foreign in m_ForeignShaders.Values.Where(p_F => p_F.Dxbc.Length > 0))
+        {
+            s_Foreign.Params?.Dispose();
+            s_Foreign.Params = null;
+            BuildForeignConstants(s_Foreign, s_Foreign.Dxbc, s_Foreign.MaterialValues);
+        }
+    }
+
+    /// <summary>
+    /// Re-feeds a registered foreign shader's external constants — the accessory look follows the camo's
+    /// sliders, which fire on every tick, and a number must not cost a recompile. False when unregistered.
+    /// </summary>
+    public bool SetForeignValues(string p_Name, IReadOnlyDictionary<string, string>? p_MaterialValues)
+    {
+        if (m_Device == null || !m_ForeignShaders.TryGetValue(p_Name, out var s_Foreign) || s_Foreign.Dxbc.Length == 0)
+            return false;
+
+        s_Foreign.Params?.Dispose();
+        s_Foreign.Params = null;
+        BuildForeignConstants(s_Foreign, s_Foreign.Dxbc, p_MaterialValues);
+        return true;
+    }
+
+    /// <summary>
+    /// Replaces one texture slot of a registered foreign shader — the sticker layer of the shader that draws
+    /// the weapon as shipped with its stickers, recomposed on every placement. False when the shader is not
+    /// registered or the slot is out of range.
+    /// </summary>
+    public bool SetForeignTexture(string p_Name, int p_Slot, uint[] p_Pixels, int p_Width, int p_Height, bool p_Srgb)
+    {
+        if (m_Device == null || p_Slot < 1 || p_Slot >= c_TextureSlots || !m_ForeignShaders.TryGetValue(p_Name, out var s_Foreign))
+            return false;
+
+        s_Foreign.Textures[p_Slot]?.Dispose();
+        s_Foreign.Textures[p_Slot] = CreateTexture(p_Width, p_Height, p_Pixels, p_Srgb);
+        return true;
+    }
+
+    /// <summary>
+    /// Forgets every registered foreign shader, so the next object registers its own.
+    ///
+    /// ⛔ THESE ARE KEYED BY SHADER BUT HOLD THE OBJECT'S ART. Two weapons wear the same
+    /// `bullets_base`/`aimingdots`, and the registration is skipped when the name is already known — so the
+    /// SECOND weapon drew its magazine, sights and barrel with the FIRST one's textures, over its own UVs.
+    /// It reads as "the UVs are broken", and it needed nothing more than opening two weapons in a row.
+    /// </summary>
+    public void ClearForeignShaders()
+    {
+        foreach (var s_Foreign in m_ForeignShaders.Values)
+            s_Foreign.Dispose();
+
+        m_ForeignShaders.Clear();
+        ForeignGeneration++;
+    }
+
+    /// <summary>
+    /// How many times the foreign registry has been emptied. Anything that CACHES which foreign shaders it
+    /// registered — the per-material dress — has to carry this in its key: a wipe leaves that cache naming
+    /// registrations that no longer resolve, and the sections then fall silently back to the single texture
+    /// set the authored shader holds, which is whichever material was dressed last. Nothing reports it.
+    /// </summary>
+    public int ForeignGeneration { get; private set; }
+
+    /// <summary>What a registered foreign shader feeds its interpolators — for the Output to say it.</summary>
+    public string ForeignInterpolatorsOf(string p_Name) =>
+        m_ForeignShaders.TryGetValue(p_Name, out var s_Found) ? s_Found.Interpolators : "(not registered)";
+
+    /// <summary>The sampler addressing a registered foreign shader was bound with, in words.</summary>
+    public string ForeignSamplersOf(string p_Name) =>
+        m_ForeignShaders.TryGetValue(p_Name, out var s_Found) ? s_Found.SamplerNote : "(not registered)";
+
+    /// <summary>
+    /// The addressing the AUTHORED shader draws with — the state the game binds to the shader this one stands
+    /// in for. It is the same law as for a foreign section: a shader whose sampler clamps or borders (the kit
+    /// atlas one, the lamps, a scope glass) draws a different picture through a wrapping sampler, and the
+    /// canvas is exactly where those get authored. Empty entries keep the preview's own sampler.
+    /// </summary>
+    private readonly SamplerState?[] m_AuthoredSamplers = new SamplerState?[c_SamplerSlots];
+
+    public string AuthoredSamplerNote { get; private set; } = "(none in the cached map — bound as wrap)";
+
+    /// <summary>Points the authored draw at the game's own addressing for its target shader.</summary>
+    public void SetAuthoredSamplers(IReadOnlyDictionary<string, string>? p_Samplers)
+    {
+        Array.Clear(m_AuthoredSamplers);
+        AuthoredSamplerNote = "(none in the cached map — bound as wrap)";
+        if (p_Samplers is not { Count: > 0 })
+            return;
+
+        var s_Bound = new List<string>();
+        foreach (var (s_Register, s_Modes) in p_Samplers)
+        {
+            if (!int.TryParse(s_Register, out var s_Index) ||
+                s_Index < 0 || s_Index >= c_SamplerSlots ||
+                SamplerForModes(s_Modes) is not { } s_State)
+                continue;
+
+            m_AuthoredSamplers[s_Index] = s_State;
+            s_Bound.Add($"s{s_Index}={s_Modes.Replace(",", "/")}");
+        }
+
+        if (s_Bound.Count > 0)
+            AuthoredSamplerNote = string.Join(" ", s_Bound.OrderBy(p_S => p_S, StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// One sampler state per distinct addressing triple ("Wrap,Border,Border"), created on demand and kept
+    /// for the lifetime of the device: the same three or four states serve every shader, and building one
+    /// per registration would leak a D3D object on each re-dress.
+    /// </summary>
+    private readonly Dictionary<string, SamplerState> m_SamplerCache = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The sampler for one "U,V,W" triple as the game's shaderdb records it, or null when it cannot be read
+    /// (the caller then keeps the preview's own wrapping sampler and SAYS so).
+    /// </summary>
+    private SamplerState? SamplerForModes(string? p_Modes)
+    {
+        if (m_Device == null || p_Modes is not { Length: > 0 })
+            return null;
+
+        if (m_SamplerCache.TryGetValue(p_Modes, out var s_Cached))
+            return s_Cached;
+
+        var s_Parts = p_Modes.Split(',', StringSplitOptions.TrimEntries);
+        if (s_Parts.Length < 3)
+            return null;
+
+        static TextureAddressMode? Parse(string p_Mode) =>
+            Enum.TryParse<TextureAddressMode>(p_Mode, true, out var s_Mode) ? s_Mode : null;
+
+        if (Parse(s_Parts[0]) is not { } s_U || Parse(s_Parts[1]) is not { } s_V || Parse(s_Parts[2]) is not { } s_W)
+            return null;
+
+        // ⛔ The border colour is TRANSPARENT BLACK, which is what the game's kit shaders rely on: their fetch
+        // outside [0,1] has to contribute nothing to a sum. D3D11's own default is the same; it is spelled out
+        // here because the whole point of the mode is what it returns out there.
+        var s_State = new SamplerState(m_Device, new SamplerStateDescription
+        {
+            Filter = Filter.MinMagMipLinear,
+            AddressU = s_U,
+            AddressV = s_V,
+            AddressW = s_W,
+            BorderColor = new RawColor4(0f, 0f, 0f, 0f),
+            ComparisonFunction = Comparison.Never,
+            MaximumLod = float.MaxValue,
+        });
+
+        m_SamplerCache[p_Modes] = s_State;
+        return s_State;
+    }
+
     /// <summary>The loaded mesh's sections, for the editor to know which foreign shaders to fetch.</summary>
     public IReadOnlyList<MeshSection> MeshSections => m_MeshSections;
 
@@ -370,50 +1121,186 @@ public sealed class ShaderPreview : IDisposable
     /// mesh is recentred and scaled to the primitives' size so the camera framing works unchanged.
     /// Returns an error string, or null on success.
     /// </summary>
-    public string? LoadMeshSections(string p_Path)
+    public string? LoadMeshSections(string p_Path) => LoadMeshSections(p_Path, null);
+
+    /// <summary>
+    /// A mesh drawn TOGETHER with the main one, moved to where the object carries it.
+    ///
+    /// ⛔ WHY IT EXISTS: a tracked vehicle's running belt is NOT in its body mesh — it is its own skinned mesh
+    /// (`vehicles/m1a2/m1a2_tracks_Mesh`, 9 of them in the game) whose bind pose is already the belt wrapped
+    /// round the road wheels, but which sits in ITS OWN space, centred on x. Where each of the two belts goes
+    /// is the vehicle's business, not the mesh's; the body's part anchors are what say it.
+    /// </summary>
+    /// <param name="Context">
+    /// The game mesh it is, when it is drawn as CONTEXT around the subject (the rest of a soldier: helmet, head, legs around the torso
+    /// being authored) — its sections then keep their own identity (<see cref="MeshSection.Context"/>) and are never the edited shader's.
+    /// Empty for a piece of the object itself (a tracked vehicle's belts), which behaves exactly as it always did.
+    /// </param>
+    public readonly record struct MeshInstance(string Path, Vector3 Offset, bool MirrorX, string Context = "");
+
+    public string? LoadMeshSections(string p_Path, IReadOnlyList<MeshInstance>? p_Extras)
     {
         try
         {
-            using var s_Reader = new System.IO.BinaryReader(System.IO.File.OpenRead(p_Path));
-            if (new string(s_Reader.ReadChars(4)) != "RSM3")
-                return "not an RSM3 file (delete the cached dump and re-pick the mesh)";
-
-            var s_SectionCount = s_Reader.ReadInt32();
             var s_Vertices = new List<Vertex>();
             var s_IndexList = new List<int>();
             var s_Sections = new List<MeshSection>();
 
-            for (var s_Section = 0; s_Section < s_SectionCount; s_Section++)
-            {
-                var s_Shader = System.Text.Encoding.UTF8.GetString(s_Reader.ReadBytes(s_Reader.ReadInt32()));
-                var s_Material = System.Text.Encoding.UTF8.GetString(s_Reader.ReadBytes(s_Reader.ReadInt32()));
-                var s_Category = s_Reader.ReadInt32();
-                var s_DoubleSided = s_Reader.ReadInt32() != 0;
-                var s_VertexBase = s_Vertices.Count;
-                var s_VertexCount = s_Reader.ReadInt32();
+            var s_Error = ReadSectionsInto(p_Path, s_Vertices, s_IndexList, s_Sections, Vector3.Zero, false, "");
+            if (s_Error != null)
+                return s_Error;
 
-                for (var i = 0; i < s_VertexCount; i++)
-                    s_Vertices.Add(new Vertex
-                    {
-                        Position = new Vector3(s_Reader.ReadSingle(), s_Reader.ReadSingle(), s_Reader.ReadSingle()),
-                        TexCoord = new Vector2(s_Reader.ReadSingle(), s_Reader.ReadSingle()),
-                    });
+            // The extras are appended BEFORE the mesh is finished, so the recentring and the framing take
+            // them into account — a belt that arrived afterwards would hang outside the camera's idea of
+            // the object. One that cannot be read is skipped: the object still draws.
+            foreach (var s_Extra in p_Extras ?? Array.Empty<MeshInstance>())
+                ReadSectionsInto(s_Extra.Path, s_Vertices, s_IndexList, s_Sections, s_Extra.Offset, s_Extra.MirrorX, s_Extra.Context);
 
-                var s_IndexCount = s_Reader.ReadInt32();
-                var s_Start = s_IndexList.Count;
-                for (var i = 0; i < s_IndexCount; i++)
-                    s_IndexList.Add(s_VertexBase + s_Reader.ReadInt32());
+            s_Error = FinishMesh(s_Vertices, s_IndexList, s_Sections, "the mesh dump has no triangles");
+            if (s_Error == null)
+                MeshPath = p_Path;
 
-                s_Sections.Add(new MeshSection(s_Shader.Replace('\\', '/'), s_Material, s_Category, s_DoubleSided,
-                    s_Start, s_IndexCount));
-            }
-
-            return FinishMesh(s_Vertices, s_IndexList, s_Sections, "the mesh dump has no triangles");
+            return s_Error;
         }
         catch (Exception s_Exception)
         {
             return s_Exception.Message;
         }
+    }
+
+    /// <summary>
+    /// Turns sections of the loaded mesh ITSELF into context — drawn as they ship, never the edited shader's — as if they came from a
+    /// context mesh named <paramref name="p_Mesh"/> (the subject's own mesh, so their identity is read off its own material list at their
+    /// own index). The first-person model of a soldier is one mesh under two parts: its trousers while its upper body is edited, the rest
+    /// while its trousers are (keku 2026-09-28). Indices into <see cref="MeshSections"/>.
+    /// </summary>
+    public void MarkContext(IEnumerable<int> p_Sections, string p_Mesh)
+    {
+        foreach (var s_Index in p_Sections)
+            if (s_Index >= 0 && s_Index < m_MeshSections.Count && m_MeshSections[s_Index].Context.Length == 0)
+                m_MeshSections[s_Index] = m_MeshSections[s_Index] with { Context = p_Mesh, ContextSection = s_Index };
+    }
+
+    /// <summary>Reads one dump's sections into the lists being built, moved and optionally mirrored.</summary>
+    private static string? ReadSectionsInto(string p_Path, List<Vertex> p_Vertices, List<int> p_Indices,
+        List<MeshSection> p_Sections, Vector3 p_Offset, bool p_MirrorX, string p_Context)
+    {
+        if (!System.IO.File.Exists(p_Path))
+            return $"no dump at '{p_Path}'";
+
+        using var s_Reader = new System.IO.BinaryReader(System.IO.File.OpenRead(p_Path));
+
+        // RSM5 carries BOTH texture coordinate sets per vertex; RSM4 carried one, and its vertices read
+        // as a mesh whose two sets are the same — which is what every single-UV subject already is.
+        var s_Magic = new string(s_Reader.ReadChars(4));
+        if (s_Magic != "RSM4" && s_Magic != "RSM5" && s_Magic != "RSM6" && s_Magic != "RSM7")
+            return "not an RSM4/5/6/7 file (an older dump: it is re-dumped when the mesh is picked)";
+
+        var s_TwoSets = s_Magic is "RSM5" or "RSM6" or "RSM7";
+
+        // RSM7 adds a THIRD uv slot per vertex (the jets' TexCoord2, in the order the section's shader hands
+        // the sets over — the dump decides the order, this reader keeps it).
+        var s_ThreeSets = s_Magic == "RSM7";
+
+        // RSM6 keeps the PART each vertex rides — what splits one section into the objects the game equips
+        // separately (stowage against reactive armour). An older dump simply has none, and a section then
+        // stays whole, exactly as it always was.
+        var s_HasParts = s_Magic is "RSM6" or "RSM7";
+        var s_SectionCount = s_Reader.ReadInt32();
+
+        for (var s_Section = 0; s_Section < s_SectionCount; s_Section++)
+        {
+            var s_Shader = System.Text.Encoding.UTF8.GetString(s_Reader.ReadBytes(s_Reader.ReadInt32()));
+            var s_Material = System.Text.Encoding.UTF8.GetString(s_Reader.ReadBytes(s_Reader.ReadInt32()));
+            var s_Category = s_Reader.ReadInt32();
+            var s_DoubleSided = s_Reader.ReadInt32() != 0;
+            var s_VertexBase = p_Vertices.Count;
+            var s_VertexCount = s_Reader.ReadInt32();
+
+            for (var i = 0; i < s_VertexCount; i++)
+            {
+                var s_Position = new Vector3(s_Reader.ReadSingle(), s_Reader.ReadSingle(), s_Reader.ReadSingle());
+                var s_Uv = new Vector2(s_Reader.ReadSingle(), s_Reader.ReadSingle());
+                var s_Uv1 = s_TwoSets
+                    ? new Vector2(s_Reader.ReadSingle(), s_Reader.ReadSingle())
+                    : s_Uv;
+                var s_Uv2 = s_ThreeSets
+                    ? new Vector2(s_Reader.ReadSingle(), s_Reader.ReadSingle())
+                    : s_Uv;
+
+                if (p_MirrorX)
+                    s_Position.X = -s_Position.X;
+
+                p_Vertices.Add(new Vertex
+                {
+                    Position = s_Position + p_Offset,
+                    TexCoord = s_Uv,
+                    TexCoord1 = s_Uv1,
+                    TexCoord2 = s_Uv2,
+                });
+            }
+
+            var s_IndexCount = s_Reader.ReadInt32();
+            var s_Start = p_Indices.Count;
+            var s_Read = new int[s_IndexCount];
+            for (var i = 0; i < s_IndexCount; i++)
+                s_Read[i] = s_VertexBase + s_Reader.ReadInt32();
+
+            // Read AFTER the indices, in the order the dump writes them.
+            var s_Parts = new int[s_VertexCount];
+            if (s_HasParts)
+                for (var i = 0; i < s_VertexCount; i++)
+                    s_Parts[i] = s_Reader.ReadInt32();
+            else
+                Array.Fill(s_Parts, -1);
+
+            // The triangles are laid down GROUPED BY PART, so every part is one contiguous range and can be
+            // drawn or skipped on its own. With no part data there is a single group and the order is the
+            // dump's own — which keeps every existing subject byte-for-byte what it was.
+            var s_Order = new List<int>(s_IndexCount / 3);
+            var s_Groups = new List<(int Part, int Start, int Count)>();
+
+            var s_Triangles = new List<(int Part, int At)>(s_IndexCount / 3);
+            for (var i = 0; i + 2 < s_IndexCount; i += 3)
+            {
+                var s_Local = s_Read[i] - s_VertexBase;
+                s_Triangles.Add((s_Local >= 0 && s_Local < s_Parts.Length ? s_Parts[s_Local] : -1, i));
+            }
+
+            foreach (var s_Group in s_Triangles.GroupBy(p_T => p_T.Part).OrderBy(p_G => p_G.Key))
+            {
+                var s_GroupStart = s_Start + s_Order.Count * 3;
+                var s_Count = 0;
+
+                foreach (var (_, i) in s_Group)
+                {
+                    s_Order.Add(i);
+                    s_Count++;
+                }
+
+                if (s_Group.Key >= 0)
+                    s_Groups.Add((s_Group.Key, s_GroupStart, s_Count * 3));
+            }
+
+            // ⛔ Mirroring turns every triangle inside out, and a reversed winding is CULLED — the belt on
+            // the far side would simply not be there. The order goes back with it.
+            foreach (var i in s_Order)
+            {
+                p_Indices.Add(s_Read[i]);
+                p_Indices.Add(s_Read[p_MirrorX ? i + 2 : i + 1]);
+                p_Indices.Add(s_Read[p_MirrorX ? i + 1 : i + 2]);
+            }
+
+            p_Sections.Add(new MeshSection(s_Shader.Replace('\\', '/'), s_Material, s_Category, s_DoubleSided,
+                s_Start, s_IndexCount / 3 * 3)
+            {
+                Parts = s_Groups,
+                Context = p_Context,
+                ContextSection = s_Section,
+            });
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -507,9 +1394,13 @@ public sealed class ShaderPreview : IDisposable
             }
 
             var s_Name = System.IO.Path.GetFileName(p_Path);
-            return FinishMesh(s_Vertices, s_Indices,
+            var s_Error = FinishMesh(s_Vertices, s_Indices,
                 new List<MeshSection> { new("", s_Name, 0, false, 0, s_Indices.Count) },
                 "the OBJ has no triangular faces (only 'v' and 'f' lines are read)");
+            if (s_Error == null)
+                MeshPath = p_Path;
+
+            return s_Error;
         }
         catch (Exception s_Exception)
         {
@@ -536,33 +1427,7 @@ public sealed class ShaderPreview : IDisposable
 
             var s_Data = s_Vertices.ToArray();
             var s_Indices = s_IndexList.ToArray();
-
-            // Accumulate smooth face normals and UV-gradient tangents.
-            for (var i = 0; i < s_Indices.Length; i += 3)
-            {
-                ref var s_A = ref s_Data[s_Indices[i]];
-                ref var s_B = ref s_Data[s_Indices[i + 1]];
-                ref var s_C = ref s_Data[s_Indices[i + 2]];
-
-                var s_Edge1 = s_B.Position - s_A.Position;
-                var s_Edge2 = s_C.Position - s_A.Position;
-
-                var s_FaceNormal = Vector3.Cross(s_Edge1, s_Edge2);
-                s_A.Normal += s_FaceNormal;
-                s_B.Normal += s_FaceNormal;
-                s_C.Normal += s_FaceNormal;
-
-                var s_DeltaUv1 = s_B.TexCoord - s_A.TexCoord;
-                var s_DeltaUv2 = s_C.TexCoord - s_A.TexCoord;
-                var s_Determinant = s_DeltaUv1.X * s_DeltaUv2.Y - s_DeltaUv2.X * s_DeltaUv1.Y;
-                if (Math.Abs(s_Determinant) > 1e-12f)
-                {
-                    var s_Tangent = (s_Edge1 * s_DeltaUv2.Y - s_Edge2 * s_DeltaUv1.Y) / s_Determinant;
-                    s_A.Tangent += s_Tangent;
-                    s_B.Tangent += s_Tangent;
-                    s_C.Tangent += s_Tangent;
-                }
-            }
+            var s_Bitangents = AccumulateFrame(s_Data, s_Indices);
 
             // Recentre + scale to the primitives' envelope so the camera framing and the light read the same.
             var s_Min = new Vector3(float.MaxValue);
@@ -584,17 +1449,18 @@ public sealed class ShaderPreview : IDisposable
             for (var i = 0; i < s_Data.Length; i++)
             {
                 s_Data[i].Position = (s_Data[i].Position - s_Centre) * s_Scale;
-                s_Data[i].Normal = s_Data[i].Normal.LengthSquared() > 1e-12f
-                    ? Vector3.Normalize(s_Data[i].Normal)
-                    : new Vector3(0, 1, 0);
-                s_Data[i].Tangent = s_Data[i].Tangent.LengthSquared() > 1e-12f
-                    ? Vector3.Normalize(s_Data[i].Tangent)
-                    : new Vector3(1, 0, 0);
+                NormaliseFrame(ref s_Data[i], s_Bitangents[i]);
             }
 
             m_MeshData = (s_Data, s_Indices);
+            m_MeshCentre = s_Centre;
+            m_MeshScale = s_Scale;
+            m_Surface = null;
             m_MeshSections.Clear();
             m_MeshSections.AddRange(s_Sections);
+            m_Appended = null;
+            // a first-person eye is a place in the PREVIOUS mesh's space: a new mesh goes back to the orbit
+            FixedCamera = null;
             if (m_Shape == PreviewShape.Mesh && m_Device != null)
                 BuildGeometry();
 
@@ -602,7 +1468,154 @@ public sealed class ShaderPreview : IDisposable
         }
     }
 
+    /// <summary>
+    /// Accumulates smooth face normals, UV-gradient tangents and bitangents into the vertices (the bitangents returned, only for the
+    /// handedness: a mirrored island's bitangent runs against cross(N, T)).
+    /// </summary>
+    private static Vector3[] AccumulateFrame(Vertex[] p_Data, int[] p_Indices)
+    {
+        var s_Bitangents = new Vector3[p_Data.Length];
+        for (var i = 0; i < p_Indices.Length; i += 3)
+        {
+            ref var s_A = ref p_Data[p_Indices[i]];
+            ref var s_B = ref p_Data[p_Indices[i + 1]];
+            ref var s_C = ref p_Data[p_Indices[i + 2]];
+
+            var s_Edge1 = s_B.Position - s_A.Position;
+            var s_Edge2 = s_C.Position - s_A.Position;
+
+            var s_FaceNormal = Vector3.Cross(s_Edge1, s_Edge2);
+            s_A.Normal += s_FaceNormal;
+            s_B.Normal += s_FaceNormal;
+            s_C.Normal += s_FaceNormal;
+
+            var s_DeltaUv1 = s_B.TexCoord - s_A.TexCoord;
+            var s_DeltaUv2 = s_C.TexCoord - s_A.TexCoord;
+            var s_Determinant = s_DeltaUv1.X * s_DeltaUv2.Y - s_DeltaUv2.X * s_DeltaUv1.Y;
+            if (Math.Abs(s_Determinant) > 1e-12f)
+            {
+                var s_Tangent = (s_Edge1 * s_DeltaUv2.Y - s_Edge2 * s_DeltaUv1.Y) / s_Determinant;
+                s_A.Tangent += s_Tangent;
+                s_B.Tangent += s_Tangent;
+                s_C.Tangent += s_Tangent;
+                var s_Bitangent = (s_Edge2 * s_DeltaUv1.X - s_Edge1 * s_DeltaUv2.X) / s_Determinant;
+                s_Bitangents[p_Indices[i]] += s_Bitangent;
+                s_Bitangents[p_Indices[i + 1]] += s_Bitangent;
+                s_Bitangents[p_Indices[i + 2]] += s_Bitangent;
+            }
+        }
+
+        WeldNormals(p_Data);
+        return s_Bitangents;
+    }
+
+    /// <summary>
+    /// The normals whole across the unwrap's seams — the one rule the stickers use too (<see cref="Graph.StickerSurface.WeldNormals"/>,
+    /// keku 2026-09-29: "la iluminación se corta justo por la mitad del arma").
+    /// </summary>
+    private static void WeldNormals(Vertex[] p_Data)
+    {
+        var s_Positions = p_Data.Select(p_V => new System.Numerics.Vector3(p_V.Position.X, p_V.Position.Y, p_V.Position.Z)).ToArray();
+        var s_Normals = p_Data.Select(p_V => new System.Numerics.Vector3(p_V.Normal.X, p_V.Normal.Y, p_V.Normal.Z)).ToArray();
+        Graph.StickerSurface.WeldNormals(s_Positions, s_Normals);
+        for (var i = 0; i < p_Data.Length; i++)
+            p_Data[i].Normal = new Vector3(s_Normals[i].X, s_Normals[i].Y, s_Normals[i].Z);
+    }
+
+    /// <summary>A vertex's accumulated normal and tangent made unit, and its handedness from the accumulated bitangent.</summary>
+    private static void NormaliseFrame(ref Vertex p_Vertex, Vector3 p_Bitangent)
+    {
+        p_Vertex.Normal = p_Vertex.Normal.LengthSquared() > 1e-12f
+            ? Vector3.Normalize(p_Vertex.Normal)
+            : new Vector3(0, 1, 0);
+        p_Vertex.Tangent = p_Vertex.Tangent.LengthSquared() > 1e-12f
+            ? Vector3.Normalize(p_Vertex.Tangent)
+            : new Vector3(1, 0, 0);
+        p_Vertex.Handedness = Vector3.Dot(Vector3.Cross(p_Vertex.Normal, p_Vertex.Tangent), p_Bitangent) < 0f ? -1f : 1f;
+    }
+
+    /// <summary>What the loaded mesh was before <see cref="AppendContextMesh"/> added to it (vertex, index and section counts); null when nothing is appended.</summary>
+    private (int Vertices, int Indices, int Sections)? m_Appended;
+
+    /// <summary>
+    /// Adds a dump's sections to the mesh on screen as CONTEXT (drawn as they ship, never the edited shader's), in the space the mesh is
+    /// ALREADY drawn in: the same recentring and scale, so the framing, the body's surface and every placement stay exactly as they were
+    /// — the first-person arms around a weapon (keku 2026-09-29), dumped in the weapon mesh's own units. One appended mesh at a time; a
+    /// new mesh load drops it. Returns an error, or null.
+    /// </summary>
+    public string? AppendContextMesh(string p_Path, string p_Context)
+    {
+        if (m_MeshData == null)
+            return "no mesh is loaded";
+
+        RemoveAppendedContext();
+        var s_Vertices = new List<Vertex>();
+        var s_IndexList = new List<int>();
+        var s_Sections = new List<MeshSection>();
+        var s_Error = ReadSectionsInto(p_Path, s_Vertices, s_IndexList, s_Sections, Vector3.Zero, false, p_Context);
+        if (s_Error != null)
+            return s_Error;
+        if (s_IndexList.Count == 0)
+            return "the dump has no triangles";
+
+        var s_Added = s_Vertices.ToArray();
+        var s_AddedIndices = s_IndexList.ToArray();
+        var s_Bitangents = AccumulateFrame(s_Added, s_AddedIndices);
+        for (var i = 0; i < s_Added.Length; i++)
+        {
+            s_Added[i].Position = (s_Added[i].Position - m_MeshCentre) * m_MeshScale;
+            NormaliseFrame(ref s_Added[i], s_Bitangents[i]);
+        }
+
+        var (s_Data, s_Indices) = m_MeshData.Value;
+        m_Appended = (s_Data.Length, s_Indices.Length, m_MeshSections.Count);
+        var s_VertexBase = s_Data.Length;
+        var s_IndexBase = s_Indices.Length;
+        m_MeshData = (s_Data.Concat(s_Added).ToArray(), s_Indices.Concat(s_AddedIndices.Select(p_I => p_I + s_VertexBase)).ToArray());
+        m_MeshSections.AddRange(s_Sections.Select(p_S => p_S with
+        {
+            StartIndex = p_S.StartIndex + s_IndexBase,
+            Parts = p_S.Parts.Select(p_P => (p_P.Part, p_P.Start + s_IndexBase, p_P.Count)).ToList(),
+        }));
+        if (m_Shape == PreviewShape.Mesh && m_Device != null)
+            BuildGeometry();
+
+        return null;
+    }
+
+    /// <summary>Takes away what <see cref="AppendContextMesh"/> added; the mesh is as it was loaded. False when nothing was appended.</summary>
+    public bool RemoveAppendedContext()
+    {
+        if (m_Appended is not { } s_Was || m_MeshData == null)
+            return false;
+
+        var (s_Data, s_Indices) = m_MeshData.Value;
+        m_MeshData = (s_Data[..s_Was.Vertices], s_Indices[..s_Was.Indices]);
+        m_MeshSections.RemoveRange(s_Was.Sections, m_MeshSections.Count - s_Was.Sections);
+        m_Appended = null;
+        if (m_Shape == PreviewShape.Mesh && m_Device != null)
+            BuildGeometry();
+
+        return true;
+    }
+
+    /// <summary>Whether a mesh is appended as context (<see cref="AppendContextMesh"/>).</summary>
+    public bool HasAppendedContext => m_Appended != null;
+
     public bool HasMesh => m_MeshData != null;
+
+    /// <summary>The loaded mesh's vertex normals as the dump carries them, indexed like <see cref="Surface"/>'s vertices; null without a mesh.</summary>
+    public System.Numerics.Vector3[]? MeshVertexNormals =>
+        m_MeshData?.Vertices.Select(p_V => new System.Numerics.Vector3(p_V.Normal.X, p_V.Normal.Y, p_V.Normal.Z)).ToArray();
+
+    /// <summary>
+    /// The file the geometry on screen came from — so whoever drives this window can check WHICH mesh is
+    /// loaded, not merely that one is. Null until a load succeeds; a failed load keeps the previous one.
+    /// </summary>
+    public string? MeshPath { get; private set; }
+
+    /// <summary>Counts every authored shader accepted, so a driver can tell "recompiled" from "still the old one".</summary>
+    public int AuthoredShaderVersion { get; private set; }
 
     public bool Ready => m_Device != null;
     public string? LastError { get; private set; }
@@ -682,6 +1695,37 @@ public sealed class ShaderPreview : IDisposable
         if (m_Device == null || m_Context == null || m_Output == null)
             return null;
 
+        var s_Bytes = ReadPixels(m_Output);
+        SwapToBgra(s_Bytes);
+        return s_Bytes;
+    }
+
+    /// <summary>
+    /// Renders one frame and returns it AS SHOWN — the swap chain's back buffer for a window, the offscreen
+    /// output otherwise — as BGRA bytes. Read before the present, because after it the back buffer is the
+    /// next frame's; so this drives the frame itself rather than reading whatever the last one left.
+    /// </summary>
+    public byte[]? CaptureShownFrame(out int p_Width, out int p_Height)
+    {
+        p_Width = m_Width;
+        p_Height = m_Height;
+
+        if (m_Device == null || m_Context == null)
+            return null;
+
+        m_CaptureNextFrame = true;
+        m_CapturedFrame = null;
+        Render();
+        m_CaptureNextFrame = false;
+        return m_CapturedFrame;
+    }
+
+    private bool m_CaptureNextFrame;
+    private byte[]? m_CapturedFrame;
+
+    /// <summary>One texture's pixels, RGBA as the GPU holds them.</summary>
+    private byte[] ReadPixels(Texture2D p_Source)
+    {
         using var s_Staging = new Texture2D(m_Device, new Texture2DDescription
         {
             Width = m_Width,
@@ -694,7 +1738,7 @@ public sealed class ShaderPreview : IDisposable
             CpuAccessFlags = CpuAccessFlags.Read,
         });
 
-        m_Context.CopyResource(m_Output, s_Staging);
+        m_Context!.CopyResource(p_Source, s_Staging);
 
         var s_Box = m_Context.MapSubresource(s_Staging, 0, MapMode.Read, MapFlags.None, out _);
         var s_Bytes = new byte[m_Width * m_Height * 4];
@@ -704,12 +1748,14 @@ public sealed class ShaderPreview : IDisposable
                 m_Width * 4);
 
         m_Context.UnmapSubresource(s_Staging, 0);
-
-        // RGBA on the GPU, BGRA for the encoder.
-        for (var i = 0; i < s_Bytes.Length; i += 4)
-            (s_Bytes[i], s_Bytes[i + 2]) = (s_Bytes[i + 2], s_Bytes[i]);
-
         return s_Bytes;
+    }
+
+    /// <summary>RGBA on the GPU, BGRA for the encoder.</summary>
+    private static void SwapToBgra(byte[] p_Bytes)
+    {
+        for (var i = 0; i < p_Bytes.Length; i += 4)
+            (p_Bytes[i], p_Bytes[i + 2]) = (p_Bytes[i + 2], p_Bytes[i]);
     }
 
     public bool Initialise(IntPtr p_WindowHandle, int p_Width, int p_Height)
@@ -757,7 +1803,19 @@ public sealed class ShaderPreview : IDisposable
     {
         if (m_Device != null)
             BuildCubeVertexShader(p_Meanings);
+        MeaningsTag = p_Meanings == null || p_Meanings.Count == 0
+            ? "(rigid default)"
+            : string.Join(" ", p_Meanings.OrderBy(p_M => p_M.Key).Select(p_M => $"{p_M.Key}:{p_M.Value}"));
     }
+
+    /// <summary>What the authored shader's vertex feed was last built with (SetInterpolatorMeanings), for a seam to read.</summary>
+    public string MeaningsTag { get; private set; } = "(none yet)";
+
+    /// <summary>The material values over cb1's pattern (SetExternalValues), "element=x" each, for a seam to read.</summary>
+    public string OverridesTag => m_ExternalOverrides == null
+        ? "(none)"
+        : string.Join(" ", m_ExternalOverrides.OrderBy(p_O => p_O.Element)
+            .Select(p_O => $"c{p_O.Element}={p_O.Value[0].ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}"));
 
     private void BuildCubeVertexShader(IReadOnlyDictionary<int, string>? p_Meanings)
     {
@@ -772,7 +1830,10 @@ public sealed class ShaderPreview : IDisposable
             new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
             new InputElement("NORMAL", 0, Format.R32G32B32_Float, 12, 0),
             new InputElement("TANGENT", 0, Format.R32G32B32_Float, 24, 0),
-            new InputElement("TEXCOORD", 0, Format.R32G32_Float, 36, 0),
+            new InputElement("TANGENT", 1, Format.R32_Float, 36, 0),
+            new InputElement("TEXCOORD", 0, Format.R32G32_Float, 40, 0),
+            new InputElement("TEXCOORD", 1, Format.R32G32_Float, 48, 0),
+            new InputElement("TEXCOORD", 2, Format.R32G32_Float, 56, 0),
         });
     }
 
@@ -792,9 +1853,27 @@ public sealed class ShaderPreview : IDisposable
         m_NeutralForwardPs = new PixelShader(s_Device,
             ShaderBytecode.Compile(PreviewShaders.c_NeutralForwardPixelShader, "main", "ps_5_0"));
 
+        var s_OverlayVsCode = ShaderBytecode.Compile(PreviewShaders.c_OverlayVertexShader, "main", "vs_5_0");
+        m_OverlayVs = new VertexShader(s_Device, s_OverlayVsCode);
+        m_OverlayPs = new PixelShader(s_Device,
+            ShaderBytecode.Compile(PreviewShaders.c_OverlayPixelShader, "main", "ps_5_0"));
+        m_OverlayLayout = new InputLayout(s_Device, s_OverlayVsCode, new[]
+        {
+            new InputElement("POSITION", 0, Format.R32G32B32_Float, 0, 0),
+            new InputElement("COLOR", 0, Format.R32G32B32A32_Float, 12, 0),
+        });
+        m_DepthNone = new DepthStencilState(s_Device, new DepthStencilStateDescription
+        {
+            IsDepthEnabled = false,
+            DepthWriteMask = DepthWriteMask.Zero,
+            DepthComparison = Comparison.Always,
+        });
+        m_OverlayDirty = true;
+
         BuildGeometry();
 
-        m_VsConstants = new Buffer(s_Device, 128, ResourceUsage.Dynamic, BindFlags.ConstantBuffer,
+        // world, view-projection, and g_meshRaw (the mesh position's way back to the dump's own units — MeshPositionInW)
+        m_VsConstants = new Buffer(s_Device, 144, ResourceUsage.Dynamic, BindFlags.ConstantBuffer,
             CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
 
         // 21 float4s: the authored shader's cbuffer reaches cameraPos at c20.
@@ -858,6 +1937,16 @@ public sealed class ShaderPreview : IDisposable
         {
             CullMode = CullMode.Back,
             FillMode = FillMode.Solid,
+            IsDepthClipEnabled = true,
+        });
+
+        // The same culling under the mirrored world of a loaded mesh: a reflection turns every triangle's
+        // winding around, so the front face is the counter-clockwise one there.
+        m_RasterMirrored = new RasterizerState(s_Device, new RasterizerStateDescription
+        {
+            CullMode = CullMode.Back,
+            FillMode = FillMode.Solid,
+            IsFrontCounterClockwise = true,
             IsDepthClipEnabled = true,
         });
 
@@ -1310,7 +2399,91 @@ public sealed class ShaderPreview : IDisposable
         return CreateTexture(c_Size, c_Size, s_Pixels);
     }
 
-    private ShaderResourceView CreateTexture(int p_Width, int p_Height, uint[] p_Pixels)
+    /// <summary>
+    /// ⛔ THE VIEW'S FORMAT IS PART OF THE SHADER'S INPUT. A texture the game flags sRGB is sampled through an
+    /// sRGB view there, so the shader receives LINEAR values (a stored 0.12 arrives as 0.013). Creating every
+    /// view as plain UNORM handed the shader the stored numbers instead, which is a ×10 error wherever a channel
+    /// feeds a mask — the weapon presets' wear mask saturated almost everywhere at the game's own WearAmount and
+    /// every camo previewed as worn off. The flag arrives with the pixels; synthetic art stays linear.
+    /// </summary>
+    /// <summary>The neutral sky bound to the cube registers nobody fills; built once, on demand.</summary>
+    private ShaderResourceView? m_NeutralCube;
+
+    /// <summary>
+    /// When set, EVERY foreign section's empty 2D registers get the neutral (see DrawSectionWith), not only a context section's — set by
+    /// the window for a family whose subjects' own foreign materials must not borrow the edited shader's art either (the soldiers: the
+    /// first-person forearms' skin binds no AO, and the empty t2 took the sleeves' camo Mask — black forearms, 2026-09-28).
+    /// </summary>
+    public bool NeutralEmptySlots { get; set; }
+
+    /// <summary>A context section's empty 2D registers: plain white, and a flat normal (0.5, 0.5, 1) where the shader decodes one.</summary>
+    private ShaderResourceView? m_NeutralWhite;
+
+    private ShaderResourceView? m_FlatNormal;
+
+    /// <summary>One flat BGRA colour as a small texture, built once into its field.</summary>
+    private ShaderResourceView? NeutralTexture(ref ShaderResourceView? p_Field, uint p_Bgra)
+    {
+        if (p_Field != null || m_Device == null)
+            return p_Field;
+
+        var s_Pixels = new uint[4 * 4];
+        Array.Fill(s_Pixels, p_Bgra);
+        p_Field = CreateTexture(4, 4, s_Pixels);
+        return p_Field;
+    }
+
+    /// <summary>
+    /// A stand-in sky for a foreign shader's CUBE registers. Mid-grey rather than white or black: it stands
+    /// for an overcast ambient, and either extreme is somebody's lethal value (a reflection term that
+    /// saturates, or one that deadens the surface).
+    /// </summary>
+    private ShaderResourceView? NeutralCube()
+    {
+        if (m_NeutralCube != null || m_Device == null)
+            return m_NeutralCube;
+
+        const int c_Side = 4;
+        var s_Face = new uint[c_Side * c_Side];
+        for (var i = 0; i < s_Face.Length; i++)
+            s_Face[i] = 0xFF9AA0A8;
+
+        var s_Handle = GCHandle.Alloc(s_Face, GCHandleType.Pinned);
+        try
+        {
+            var s_Faces = new DataRectangle[6];
+            for (var i = 0; i < 6; i++)
+                s_Faces[i] = new DataRectangle(s_Handle.AddrOfPinnedObject(), c_Side * 4);
+
+            var s_Texture = new Texture2D(m_Device, new Texture2DDescription
+            {
+                Width = c_Side,
+                Height = c_Side,
+                MipLevels = 1,
+                ArraySize = 6,
+                Format = Format.B8G8R8A8_UNorm,
+                SampleDescription = new SampleDescription(1, 0),
+                Usage = ResourceUsage.Immutable,
+                BindFlags = BindFlags.ShaderResource,
+                OptionFlags = ResourceOptionFlags.TextureCube,
+            }, s_Faces);
+
+            m_NeutralCube = new ShaderResourceView(m_Device, s_Texture);
+            s_Texture.Dispose();
+            return m_NeutralCube;
+        }
+        catch
+        {
+            // Without it the cube registers keep the old (wrong) fallback rather than the draw failing.
+            return null;
+        }
+        finally
+        {
+            s_Handle.Free();
+        }
+    }
+
+    private ShaderResourceView CreateTexture(int p_Width, int p_Height, uint[] p_Pixels, bool p_Srgb = false)
     {
         var s_Handle = GCHandle.Alloc(p_Pixels, GCHandleType.Pinned);
         try
@@ -1321,7 +2494,7 @@ public sealed class ShaderPreview : IDisposable
                 Height = p_Height,
                 MipLevels = 1,
                 ArraySize = 1,
-                Format = Format.B8G8R8A8_UNorm,
+                Format = p_Srgb ? Format.B8G8R8A8_UNorm_SRgb : Format.B8G8R8A8_UNorm,
                 SampleDescription = new SampleDescription(1, 0),
                 Usage = ResourceUsage.Immutable,
                 BindFlags = BindFlags.ShaderResource,
@@ -1337,8 +2510,12 @@ public sealed class ShaderPreview : IDisposable
         }
     }
 
-    /// <summary>Replaces a texture slot with real BF3 art once the thumbnails have been loaded.</summary>
-    public void SetTexture(int p_Register, uint[] p_Pixels, int p_Width, int p_Height)
+    /// <summary>
+    /// Replaces a texture slot with real BF3 art once the thumbnails have been loaded. <paramref name="p_Srgb"/>
+    /// is the game's own flag for that texture (see <see cref="CreateTexture"/>): true = sampled decoded to
+    /// linear, as the game does; false = sampled as stored.
+    /// </summary>
+    public void SetTexture(int p_Register, uint[] p_Pixels, int p_Width, int p_Height, bool p_Srgb = false)
     {
         if (m_Device == null)
             return;
@@ -1348,10 +2525,21 @@ public sealed class ShaderPreview : IDisposable
         if (p_Register < 0 || p_Register >= c_TextureSlots)
             return;
 
-        var s_View = CreateTexture(p_Width, p_Height, p_Pixels);
+        var s_View = CreateTexture(p_Width, p_Height, p_Pixels, p_Srgb);
         m_Textures[p_Register]?.Dispose();
         m_Textures[p_Register] = s_View;
+
+        // what the slot holds, for a seam to read (the size and a hash of the pixels: which picture it is, whoever put it there)
+        var s_Hash = 2166136261u;
+        for (var i = 0; i < p_Pixels.Length; i += Math.Max(1, p_Pixels.Length / 4096))
+            s_Hash = (s_Hash ^ p_Pixels[i]) * 16777619u;
+        m_SlotTags[p_Register] = $"{p_Width}x{p_Height}:{s_Hash:x8}";
     }
+
+    private readonly string?[] m_SlotTags = new string?[c_TextureSlots];
+
+    /// <summary>What the authored shader's texture slot last took (SetTexture): "WxH:hash", or null.</summary>
+    public string? SlotTag(int p_Register) => p_Register >= 0 && p_Register < c_TextureSlots ? m_SlotTags[p_Register] : null;
 
     /// <summary>Swaps in a freshly compiled authored shader. Returns false and keeps the old one on failure.</summary>
     public bool SetAuthoredShader(byte[] p_Dxbc)
@@ -1364,6 +2552,7 @@ public sealed class ShaderPreview : IDisposable
             var s_Shader = new PixelShader(m_Device, p_Dxbc);
             m_AuthoredPs?.Dispose();
             m_AuthoredPs = s_Shader;
+            AuthoredShaderVersion++;
 
             // One declared target = forward output; the resolve pass composites it instead of lighting it.
             try { m_ForwardOutput = Emit.ShaderContract.Detect(p_Dxbc).RenderTargets == 1; }
@@ -1500,25 +2689,20 @@ public sealed class ShaderPreview : IDisposable
             return;
 
         var s_Context = m_Context;
-        var s_Camera = CameraPosition();
-        var s_View = Matrix.LookAtLH(s_Camera, Target, Vector3.UnitY);
-        // The near plane follows the dolly so extreme closeups do not clip into the mesh: at 3 metres it sits
-        // at the old 0.05, right up close it tightens to millimetres.
-        var s_Near = Math.Clamp(Distance * 0.02f, 0.002f, 0.05f);
-        var s_Projection = Matrix.PerspectiveFovLH(0.9f, m_Width / (float) m_Height, s_Near, 100f);
-        var s_ViewProj = s_View * s_Projection;
+        var s_Camera = EyePosition();
+        var s_ViewProj = ViewMatrix() * ProjectionMatrix();
 
         var s_Light = Vector3.Normalize(new Vector3(
             (float) (Math.Cos(LightPitch) * Math.Sin(LightYaw)),
             (float) Math.Sin(LightPitch),
             (float) (Math.Cos(LightPitch) * Math.Cos(LightYaw))));
 
-        WriteVsConstants(Matrix.Identity, s_ViewProj);
+        WriteVsConstants(World, s_ViewProj);
         WriteViewConstants(s_Camera);
         WriteLightConstants(s_ViewProj, s_Camera, s_Light);
 
         s_Context.Rasterizer.SetViewport(new Viewport(0, 0, m_Width, m_Height, 0f, 1f));
-        s_Context.Rasterizer.State = m_Raster;
+        s_Context.Rasterizer.State = RasterFor(false);
         s_Context.OutputMerger.DepthStencilState = m_DepthState;
 
         // Pass 1 -- the authored shader fills the four targets.
@@ -1554,8 +2738,12 @@ public sealed class ShaderPreview : IDisposable
             // four-slot loop left that one on D3D11's default state for the game's shader while ours ran on this
             // one - the same asymmetry as the unbound cb0, found the same way, and there is no reason to keep
             // guessing how many a shader might want.
-            for (var s_Sampler = 0; s_Sampler < 16; s_Sampler++)
-                s_Context.PixelShader.SetSampler(s_Sampler, m_Sampler);
+            // ⛔ …AND WITH THE TARGET'S OWN ADDRESSING when the cached map knows it (see SetAuthoredSamplers):
+            // the authored shader stands in for a game shader, so it has to be fed the state that one is bound
+            // with — authoring the kit atlas shader through a wrapping sampler prints its tile band over every
+            // piece, exactly as a foreign section did.
+            for (var s_Sampler = 0; s_Sampler < c_SamplerSlots; s_Sampler++)
+                s_Context.PixelShader.SetSampler(s_Sampler, m_AuthoredSamplers[s_Sampler] ?? m_Sampler);
 
             // Rebound every frame: the resolve pass below steals t0..t4 for the g-buffer and then unbinds them.
             for (var s_Slot = 1; s_Slot < c_TextureSlots; s_Slot++)
@@ -1570,33 +2758,62 @@ public sealed class ShaderPreview : IDisposable
             m_ForwardQueue.Clear();
             if (m_Shape == PreviewShape.Mesh && m_MeshSections.Count > 0 && MeshTargetShader.Length > 0)
             {
-                var s_Target = MeshTargetShader.Replace('\\', '/');
-                foreach (var s_Section in m_MeshSections)
+                for (var s_Index = 0; s_Index < m_MeshSections.Count; s_Index++)
                 {
-                    var s_Mine = s_Section.Shader.Equals(s_Target, StringComparison.OrdinalIgnoreCase);
-                    var s_Foreign = !s_Mine && m_ForeignShaders.TryGetValue(s_Section.Shader, out var s_Found)
-                        ? s_Found
-                        : null;
+                    var s_Section = m_MeshSections[s_Index];
+                    if (IsolatedSection is { } s_Only && s_Only != s_Index)
+                        continue;
 
-                    if (!s_Mine && HideForeignSections)
+                    // A section the subject is NOT wearing (a kit the game equips separately, a rotor's blur
+                    // disc) is not drawn at all — unlike a material "kept as shipped", which is drawn with its
+                    // own bytecode. Asking for that material by name (isolating it, editing its graph) is the
+                    // one thing that shows it: what the user picks explicitly is never left blank.
+                    if (HiddenSections.Contains(s_Index) && IsolatedSection != s_Index && TargetSectionOnly != s_Index)
+                        continue;
+
+                    // "Own" decides hiding; "mine" decides the shader: under the factory look an own section
+                    // is drawn with the game's bytecode of its own shader, never hidden as foreign. A section
+                    // the camo is kept OFF draws with its own shader's bytecode too — as it ships.
+                    var s_Own = IsTargetSection(s_Section);
+                    var s_Off = s_Own && SectionsOff.Contains(s_Index);
+
+                    // The authored shader carrying this MATERIAL's own art, when the window registered one:
+                    // the same camo, over the textures and numbers that material really has. ⛔ Never while
+                    // ONE material is being edited (TargetSectionOnly): that path owns the draw, and a dress
+                    // would quietly replace the edit with the material's shipped art.
+                    var s_Dress = s_Own && !s_Off && TargetSectionOnly == null ? DressFor(s_Index) : null;
+
+                    // An OVERRIDE wins over everything, the authored shader included: it is a material whose own
+                    // graph was edited, drawn with that edit on its section alone (the window's RefreshMaterialEdits).
+                    var s_Mine = s_Own && !FactoryLook && !s_Off && s_Dress == null && OverrideFor(s_Index) == null &&
+                                 (TargetSectionOnly == null || TargetSectionOnly == s_Index);
+                    var s_Foreign = s_Mine
+                        ? null
+                        : OverrideFor(s_Index) ?? s_Dress ??
+                          (s_Own && !s_Off
+                              ? FactoryShaderFor(s_Index, s_Section)
+                              : SectionArtFor(s_Index) ??
+                                (m_ForeignShaders.TryGetValue(s_Section.Shader, out var s_Found) ? s_Found : null));
+
+                    if (!s_Own && HideForeignSections && OverrideFor(s_Index) == null)
                         continue;
 
                     if (s_Mine ? m_ForwardOutput : s_Foreign?.Forward == true)
                     {
-                        m_ForwardQueue.Add(s_Section);
+                        m_ForwardQueue.Add(s_Index);
                         continue;
                     }
 
-                    s_Context.Rasterizer.State = s_Section.DoubleSided ? m_RasterNoCull : m_Raster;
+                    s_Context.Rasterizer.State = RasterFor(s_Section.DoubleSided);
 
                     if (s_Mine)
                     {
                         s_Context.PixelShader.Set(m_AuthoredPs);
-                        s_Context.DrawIndexed(s_Section.IndexCount, s_Section.StartIndex, 0);
+                        DrawSectionRanges(s_Context, s_Index, s_Section);
                     }
                     else if (s_Foreign != null)
                     {
-                        DrawSectionWith(s_Context, s_Foreign, s_Section);
+                        DrawSectionWith(s_Context, s_Foreign, s_Index, s_Section);
                         RestoreAuthoredBindings(s_Context);
                     }
                     else if (s_Section.Category == 0)
@@ -1605,11 +2822,11 @@ public sealed class ShaderPreview : IDisposable
                         // neutral stand-in; a transparent one is omitted — an opaque grey canopy or
                         // rotor disc OCCLUDES the object it belongs to.
                         s_Context.PixelShader.Set(m_ForwardOutput ? m_NeutralForwardPs : m_NeutralGBufferPs);
-                        s_Context.DrawIndexed(s_Section.IndexCount, s_Section.StartIndex, 0);
+                        DrawSectionRanges(s_Context, s_Index, s_Section);
                     }
                 }
 
-                s_Context.Rasterizer.State = m_Raster;
+                s_Context.Rasterizer.State = RasterFor(false);
             }
             else
             {
@@ -1624,6 +2841,10 @@ public sealed class ShaderPreview : IDisposable
         s_Context.OutputMerger.SetRenderTargets((DepthStencilView?) null, m_BackBufferView);
         s_Context.ClearRenderTargetView(m_BackBufferView, new RawColor4(0.05f, 0.05f, 0.06f, 1f));
 
+        // ⛔ The plain state, never the mesh's: the resolve is one fullscreen triangle of fixed (clockwise)
+        // winding, and the MIRRORED state pass 1 leaves behind for a loaded mesh calls that a back face —
+        // the whole frame then stays the clear colour (measured: a flat 13,13,15 where the weapon was).
+        s_Context.Rasterizer.State = m_Raster;
         s_Context.InputAssembler.InputLayout = null;
         s_Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.TriangleList;
         s_Context.VertexShader.Set(m_ResolveVs);
@@ -1646,7 +2867,6 @@ public sealed class ShaderPreview : IDisposable
         // backbuffer, tested against (but not writing) pass 1's depth, exactly the engine's pass order.
         if (m_ForwardQueue.Count > 0)
         {
-            var s_Target = MeshTargetShader.Replace('\\', '/');
             s_Context.OutputMerger.SetRenderTargets(m_DepthView, m_BackBufferView);
             s_Context.OutputMerger.DepthStencilState = m_DepthReadState;
             s_Context.OutputMerger.BlendState = m_ForwardBlend;
@@ -1656,22 +2876,34 @@ public sealed class ShaderPreview : IDisposable
                 new VertexBufferBinding(m_CubeVertices, Utilities.SizeOf<Vertex>(), 0));
             s_Context.InputAssembler.SetIndexBuffer(m_CubeIndices, m_IndexFormat, 0);
 
-            foreach (var s_Section in m_ForwardQueue)
+            foreach (var s_QueuedIndex in m_ForwardQueue)
             {
-                s_Context.Rasterizer.State = s_Section.DoubleSided ? m_RasterNoCull : m_Raster;
+                var s_Section = m_MeshSections[s_QueuedIndex];
+                s_Context.Rasterizer.State = RasterFor(s_Section.DoubleSided);
 
-                if (s_Section.Shader.Equals(s_Target, StringComparison.OrdinalIgnoreCase))
+                var s_OwnForward = IsTargetSection(s_Section) && !SectionsOff.Contains(s_QueuedIndex);
+                var s_MineForward = s_OwnForward && !FactoryLook && OverrideFor(s_QueuedIndex) == null &&
+                                    (TargetSectionOnly == null || TargetSectionOnly == s_QueuedIndex);
+                if (s_MineForward)
                 {
                     RestoreAuthoredBindings(s_Context);
-                    s_Context.DrawIndexed(s_Section.IndexCount, s_Section.StartIndex, 0);
+                    DrawSectionRanges(s_Context, s_QueuedIndex, s_Section);
                 }
-                else if (m_ForeignShaders.TryGetValue(s_Section.Shader, out var s_Foreign))
+                else if (OverrideFor(s_QueuedIndex) is { } s_Override)
                 {
-                    DrawSectionWith(s_Context, s_Foreign, s_Section);
+                    DrawSectionWith(s_Context, s_Override, s_QueuedIndex, s_Section);
+                }
+                else if ((s_OwnForward
+                             ? FactoryShaderFor(s_QueuedIndex, s_Section)
+                             : SectionArtFor(s_QueuedIndex) ??
+                               (m_ForeignShaders.TryGetValue(s_Section.Shader, out var s_Any) ? s_Any : null))
+                         is { } s_Factory)
+                {
+                    DrawSectionWith(s_Context, s_Factory, s_QueuedIndex, s_Section);
                 }
             }
 
-            s_Context.Rasterizer.State = m_Raster;
+            s_Context.Rasterizer.State = RasterFor(false);
             s_Context.OutputMerger.BlendState = null;
             s_Context.OutputMerger.DepthStencilState = m_DepthState;
 
@@ -1679,13 +2911,64 @@ public sealed class ShaderPreview : IDisposable
                 s_Context.PixelShader.SetShaderResource(i, null);
         }
 
+        // Pass 4 -- the gizmo overlay, lines over everything (no depth test: an outline projected on the
+        // surface must not sink into it), premultiplied over the finished frame.
+        if (m_OverlayVertices.Length > 0 && m_OverlayVs != null && m_OverlayPs != null)
+        {
+            if (m_OverlayDirty || m_OverlayBuffer == null)
+            {
+                if (m_OverlayBuffer == null || m_OverlayCapacity < m_OverlayVertices.Length)
+                {
+                    m_OverlayBuffer?.Dispose();
+                    m_OverlayCapacity = Math.Max(64, m_OverlayVertices.Length);
+                    m_OverlayBuffer = new Buffer(m_Device, m_OverlayCapacity * Utilities.SizeOf<OverlayVertex>(),
+                        ResourceUsage.Dynamic, BindFlags.VertexBuffer, CpuAccessFlags.Write, ResourceOptionFlags.None, 0);
+                }
+
+                Upload(m_OverlayBuffer, m_OverlayVertices);
+                m_OverlayDirty = false;
+            }
+
+            s_Context.OutputMerger.SetRenderTargets((DepthStencilView?) null, m_BackBufferView);
+            s_Context.OutputMerger.DepthStencilState = m_DepthNone;
+            s_Context.OutputMerger.BlendState = m_ForwardBlend;
+            s_Context.Rasterizer.State = m_RasterNoCull;
+
+            s_Context.InputAssembler.InputLayout = m_OverlayLayout;
+            s_Context.InputAssembler.PrimitiveTopology = PrimitiveTopology.LineList;
+            s_Context.InputAssembler.SetVertexBuffers(0,
+                new VertexBufferBinding(m_OverlayBuffer, Utilities.SizeOf<OverlayVertex>(), 0));
+            s_Context.VertexShader.Set(m_OverlayVs);
+            s_Context.VertexShader.SetConstantBuffer(0, m_VsConstants);
+            s_Context.PixelShader.Set(m_OverlayPs);
+            s_Context.Draw(m_OverlayVertices.Length, 0);
+
+            s_Context.OutputMerger.BlendState = null;
+            s_Context.OutputMerger.DepthStencilState = m_DepthState;
+            s_Context.Rasterizer.State = RasterFor(false);
+        }
+
+        if (m_CaptureNextFrame)
+        {
+            var s_Shown = m_SwapChain != null ? m_SwapChain.GetBackBuffer<Texture2D>(0) : m_Output;
+            if (s_Shown != null)
+            {
+                m_CapturedFrame = ReadPixels(s_Shown);
+                SwapToBgra(m_CapturedFrame);
+            }
+
+            if (m_SwapChain != null)
+                s_Shown?.Dispose();
+        }
+
         m_SwapChain?.Present(1, PresentFlags.None);
     }
 
-    private readonly List<MeshSection> m_ForwardQueue = new();
+    /// <summary>Indices into the section list of the forward sections queued for pass 3.</summary>
+    private readonly List<int> m_ForwardQueue = new();
 
     /// <summary>Full per-draw bindings for one foreign-shader section: its VS, layout, PS and textures.</summary>
-    private void DrawSectionWith(DeviceContext p_Context, ForeignShader p_Foreign, MeshSection p_Section)
+    private void DrawSectionWith(DeviceContext p_Context, ForeignShader p_Foreign, int p_Index, MeshSection p_Section)
     {
         p_Context.InputAssembler.InputLayout = p_Foreign.Layout;
         p_Context.VertexShader.Set(p_Foreign.Vs);
@@ -1699,11 +2982,66 @@ public sealed class ShaderPreview : IDisposable
         if (p_Foreign.Params != null)
             p_Context.PixelShader.SetConstantBuffer(p_Foreign.ParamsRegister, p_Foreign.Params);
 
+        // ⛔⛔ AN EMPTY SLOT FALLS BACK TO THE AUTHORED SHADER'S SET, AND THAT ART IS 2D. A foreign shader
+        // that declares a CUBE there — `vehicles/shaders/vehiclepreset_lights` samples
+        // `texture_outdoorLightSkyEnvmap` as a texturecube at t1 — then reads a 2D view through a cube
+        // declaration, which is undefined: the LAV-25's lamps came out MAGENTA (keku, 2026-09-21). Those
+        // registers get a neutral sky instead, never the borrowed 2D texture.
+        // ⛔⛔ AND A CONTEXT SECTION (the rest of a soldier) NEVER BORROWS THE AUTHORED SET AT ALL (keku 2026-09-28, with a picture: "las caras
+        // de los soldados en aftermath se ven raros como texturas mal puestas"). The Aftermath RU heads bind no AO: characterroot_skin_xp4
+        // multiplies the whole face by it (colour = AO × Diffuse) and the empty t2 took the TORSO's t2 — its camo Mask, rectangles of
+        // black and white — so the faces came out patched with dark blocks. Nothing bound means the shader's neutral: white where it is
+        // a colour, an AO or a dirt layer, a flat normal where it decodes a normal map. Weapons and vehicles have no context sections and
+        // keep exactly the fallback they had.
         for (var s_Slot = 1; s_Slot < c_TextureSlots; s_Slot++)
             p_Context.PixelShader.SetShaderResource(s_Slot,
-                p_Foreign.Textures[s_Slot] ?? m_Textures[s_Slot]);
+                p_Foreign.Textures[s_Slot] ??
+                (p_Foreign.CubeRegisters.Contains(s_Slot) ? NeutralCube()
+                    : p_Section.Context.Length == 0 && !NeutralEmptySlots ? m_Textures[s_Slot]
+                    : p_Foreign.NormalRegisters.Contains(s_Slot) ? NeutralTexture(ref m_FlatNormal, 0xFF8080FF)
+                    : NeutralTexture(ref m_NeutralWhite, 0xFFFFFFFF)));
 
-        p_Context.DrawIndexed(p_Section.IndexCount, p_Section.StartIndex, 0);
+        // ⛔ AND ITS OWN SAMPLERS. Addressing is API state, so a shader drawn through the preview's wrapping
+        // sampler is NOT the game's shader with the game's art: the kit atlas one adds its tile atlas sampled
+        // at (u, v+1), which the game's `v=Border` makes contribute nothing above V=0 — wrapped, it lands back
+        // inside the atlas and prints the tile band over the piece (the Sprut-SD's armour blocks, pale grey).
+        // A register the map does not name keeps the preview's sampler, exactly as before.
+        for (var s_Sampler = 0; s_Sampler < c_SamplerSlots; s_Sampler++)
+            p_Context.PixelShader.SetSampler(s_Sampler, p_Foreign.Samplers[s_Sampler] ?? m_Sampler);
+
+        DrawSectionRanges(p_Context, p_Index, p_Section);
+    }
+
+    /// <summary>
+    /// Sections left out of the drawing entirely — an object the game equips SEPARATELY and that the subject
+    /// is not wearing (the reactive armour of a BMP-2 is one whole section of its hull mesh).
+    /// </summary>
+    public HashSet<int> HiddenSections { get; } = new();
+
+    /// <summary>
+    /// Per section, the composite PARTS that may be drawn; a section not named here is drawn whole.
+    ///
+    /// ⛔ IT HAS TO BE PER SECTION, not one global set: a Tunguska carries its reactive armour BOTH ways at
+    /// once — a section of its own AND parts 46 of the shared kit section — so "only these parts" applied to
+    /// every section would delete the piece it is meant to show.
+    /// </summary>
+    public Dictionary<int, HashSet<int>> VisibleParts { get; } = new();
+
+    /// <summary>
+    /// Draws a section, or only the parts of it that are visible. With nothing filtered it is the single
+    /// DrawIndexed it always was — the ranges are contiguous because the loader grouped triangles by part.
+    /// </summary>
+    private void DrawSectionRanges(DeviceContext p_Context, int p_Index, MeshSection p_Section)
+    {
+        if (p_Section.Parts.Count == 0 || !VisibleParts.TryGetValue(p_Index, out var s_Visible))
+        {
+            p_Context.DrawIndexed(p_Section.IndexCount, p_Section.StartIndex, 0);
+            return;
+        }
+
+        foreach (var (s_Part, s_Start, s_Count) in p_Section.Parts)
+            if (s_Count > 0 && s_Visible.Contains(s_Part))
+                p_Context.DrawIndexed(s_Count, s_Start, 0);
     }
 
     /// <summary>Puts the ACTIVE shader's bindings back after a foreign section borrowed the pipeline.</summary>
@@ -1719,6 +3057,10 @@ public sealed class ShaderPreview : IDisposable
 
         for (var s_Slot = 1; s_Slot < c_TextureSlots; s_Slot++)
             p_Context.PixelShader.SetShaderResource(s_Slot, m_Textures[s_Slot]);
+
+        // A foreign section may have left ITS addressing bound; the authored shader gets its own back.
+        for (var s_Sampler = 0; s_Sampler < c_SamplerSlots; s_Sampler++)
+            p_Context.PixelShader.SetSampler(s_Sampler, m_AuthoredSamplers[s_Sampler] ?? m_Sampler);
     }
 
     private void Upload<T>(Buffer p_Buffer, T[] p_Data) where T : struct
@@ -1728,8 +3070,29 @@ public sealed class ShaderPreview : IDisposable
         m_Context.UnmapSubresource(p_Buffer, 0);
     }
 
-    private void WriteVsConstants(Matrix p_World, Matrix p_ViewProj) =>
-        Upload(m_VsConstants!, new[] { Matrix.Transpose(p_World), Matrix.Transpose(p_ViewProj) });
+    private void WriteVsConstants(Matrix p_World, Matrix p_ViewProj)
+    {
+        var s_Values = new float[36];
+        Matrix.Transpose(p_World).ToArray().CopyTo(s_Values, 0);
+        Matrix.Transpose(p_ViewProj).ToArray().CopyTo(s_Values, 16);
+        // g_meshRaw: raw = position / scale + centre (w = 1/scale; 0 = off, the components keep their old values)
+        if (MeshPositionInW && m_MeshData != null && m_MeshScale > 0f)
+        {
+            s_Values[32] = m_MeshCentre.X;
+            s_Values[33] = m_MeshCentre.Y;
+            s_Values[34] = m_MeshCentre.Z;
+            s_Values[35] = 1f / m_MeshScale;
+        }
+
+        Upload(m_VsConstants!, s_Values);
+    }
+
+    /// <summary>
+    /// Feeds the mesh-space position (the dump's own units, before the lateral mirror) in the .w of the world position and the first
+    /// two tangent rows, as an emblem clone's patched vertex shader does in the game (DxbcMeshPosition) — for a graph that reads it
+    /// (Mesh Position). Off, those components keep the distinctive values every other subject is pinned to.
+    /// </summary>
+    public bool MeshPositionInW { get; set; }
 
     /// <summary>
     /// Fills the authored shader's cbuffer at the offsets measured on the vanilla shader: time at c0.x,
@@ -1789,6 +3152,13 @@ public sealed class ShaderPreview : IDisposable
 
         foreach (var s_Texture in m_Textures)
             s_Texture?.Dispose();
+        m_OverlayBuffer?.Dispose();
+        m_OverlayBuffer = null;
+        m_RasterMirrored?.Dispose();
+        m_OverlayLayout?.Dispose();
+        m_OverlayVs?.Dispose();
+        m_OverlayPs?.Dispose();
+        m_DepthNone?.Dispose();
         m_AuthoredPs?.Dispose();
         m_ResolvePs?.Dispose();
         m_ForwardResolvePs?.Dispose();
@@ -1803,9 +3173,17 @@ public sealed class ShaderPreview : IDisposable
         m_ResolveVs?.Dispose();
         m_CubeLayout?.Dispose();
         m_CubeVs?.Dispose();
+        m_NeutralCube?.Dispose();
+        m_NeutralWhite?.Dispose();
+        m_FlatNormal?.Dispose();
         m_DepthState?.Dispose();
         m_Raster?.Dispose();
         m_Sampler?.Dispose();
+
+        foreach (var s_Sampler in m_SamplerCache.Values)
+            s_Sampler.Dispose();
+        m_SamplerCache.Clear();
+
         m_LightConstants?.Dispose();
         m_ViewConstants?.Dispose();
         m_ParameterConstants?.Dispose();

@@ -49,8 +49,16 @@ public static class EngineInterfaceRegistry
 
     private static Type? RefreshInterfaces<T>(EngineType p_Type) where T : IEngineInterface
     {
+        // an assembly loaded by the host application (a UI toolkit whose types reference a package that is not present) must not
+        // stop the scan: the types it can load are looked at, the rest are skipped
+        static IEnumerable<Type> LoadableTypes(System.Reflection.Assembly a)
+        {
+            try { return a.GetTypes(); }
+            catch (System.Reflection.ReflectionTypeLoadException e) { return e.Types.Where(t => t != null)!; }
+            catch { return Array.Empty<Type>(); }
+        }
         var s_InterfaceTypes = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes())
+            .SelectMany(LoadableTypes)
             .Where(t => typeof(T).IsAssignableFrom(t) && t.IsClass);
         
         Registry[typeof(T)].Clear();

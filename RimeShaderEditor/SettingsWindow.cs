@@ -53,6 +53,54 @@ public sealed class SettingsWindow : Window
 
         var s_Root = new StackPanel { Margin = new Thickness(14), Width = 430 };
 
+        // ⛔ THE SAME TWO FOLDERS THE FIRST-RUN WINDOW ASKS FOR. They were only editable in the two
+        // boxes along the top of the main window, which is not where anyone looks for a setting — and a
+        // machine where the guess was wrong had no obvious way back.
+        s_Root.Children.Add(Section("Folders"));
+        s_Root.Children.Add(FolderRow("Game folder",
+            "Read-only: shaders, textures and meshes come out of here.",
+            () => m_Settings.GamePath, p_Value => m_Settings.GamePath = p_Value, "Choose the game folder"));
+        s_Root.Children.Add(FolderRow("Cache and output folder",
+            "Thumbnails, mesh dumps, shader lists, saved graphs and baked mods.",
+            () => m_Settings.OutputFolder, p_Value => m_Settings.OutputFolder = p_Value,
+            "Choose the cache folder"));
+
+        // Only where it means something: the shader editor has no simple mode to offer, and a setting that
+        // does nothing where it is shown teaches people to distrust the whole dialog.
+        if (p_Owner is MainWindow { CamoMode: true })
+        {
+            s_Root.Children.Add(Section("Camo"));
+
+            var s_Simple = new CheckBox
+            {
+                Content = "Simple mode (no node graph)",
+                Foreground = s_Text,
+                Margin = new Thickness(0, 2, 0, 2),
+                IsChecked = m_Settings.CamoSimpleMode,
+            };
+
+            s_Simple.Checked += (_, _) => { m_Settings.CamoSimpleMode = true; m_Changed(); };
+            s_Simple.Unchecked += (_, _) => { m_Settings.CamoSimpleMode = false; m_Changed(); };
+            s_Root.Children.Add(s_Simple);
+
+            s_Root.Children.Add(new TextBlock
+            {
+                Text = "Author a camo by picking an image and setting tiling and wear, instead of wiring " +
+                       "nodes. The camo it produces is the same either way — this only changes what you " +
+                       "work with.",
+                Foreground = s_Dim, TextWrapping = TextWrapping.Wrap, FontSize = 11,
+                Margin = new Thickness(20, 0, 0, 4),
+            });
+
+            // Where a bake lands. The mod is the one place a camo package has to be for the game to see it,
+            // and the studio registers the package there itself — so the folder is a setting, asked once.
+            s_Root.Children.Add(FolderRow("Camo framework mod",
+                "The CamoFramework mod folder (holds mod.json). Baked camos are dropped under its " +
+                "sb/Win32/camos/ and registered automatically; restart the server afterwards.",
+                () => m_Settings.CamoFrameworkFolder, p_Value => m_Settings.CamoFrameworkFolder = p_Value,
+                "Choose the camo framework mod folder"));
+        }
+
         s_Root.Children.Add(Section("Canvas"));
         s_Root.Children.Add(SpeedRow("Zoom speed", () => m_Settings.CanvasZoomSpeed,
             p_V => m_Settings.CanvasZoomSpeed = p_V));
@@ -219,6 +267,62 @@ public sealed class SettingsWindow : Window
         s_Rebuilt.WindowStartupLocation = WindowStartupLocation.Manual;
         s_Rebuilt.Show();
         Close();
+    }
+
+    /// <summary>
+    /// A folder setting: type it or browse to it, applied LIVE like everything else in this dialog so the
+    /// main window's own boxes follow immediately rather than after a restart.
+    /// </summary>
+    private UIElement FolderRow(string p_Label, string p_Help, Func<string> p_Get, Action<string> p_Set,
+        string p_BrowseTitle)
+    {
+        var s_Panel = new StackPanel { Margin = new Thickness(0, 0, 0, 10) };
+        s_Panel.Children.Add(new TextBlock
+        {
+            Text = p_Label, Foreground = s_Text, Margin = new Thickness(0, 0, 0, 2),
+        });
+
+        s_Panel.Children.Add(new TextBlock
+        {
+            Text = p_Help, Foreground = s_Dim, FontSize = 11, TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 4),
+        });
+
+        var s_Box = new TextBox
+        {
+            Text = p_Get(), Background = s_Field, Foreground = s_Text, BorderBrush = s_Border,
+            BorderThickness = new Thickness(1), Padding = new Thickness(4, 3, 4, 3),
+            VerticalContentAlignment = VerticalAlignment.Center,
+        };
+
+        s_Box.TextChanged += (_, _) =>
+        {
+            p_Set(s_Box.Text.Trim());
+            m_Changed();
+        };
+
+        var s_Browse = new Button
+        {
+            Content = "Browse…", Padding = new Thickness(10, 2, 10, 2), Margin = new Thickness(6, 0, 0, 0),
+        };
+
+        s_Browse.Click += (_, _) =>
+        {
+            var s_Dialog = new Microsoft.Win32.OpenFolderDialog { Title = p_BrowseTitle };
+            if (System.IO.Directory.Exists(s_Box.Text.Trim()))
+                s_Dialog.InitialDirectory = s_Box.Text.Trim();
+
+            if (s_Dialog.ShowDialog(this) == true)
+                s_Box.Text = s_Dialog.FolderName;
+        };
+
+        var s_Line = new DockPanel();
+        DockPanel.SetDock(s_Browse, Dock.Right);
+        s_Line.Children.Add(s_Browse);
+        s_Line.Children.Add(s_Box);
+        s_Panel.Children.Add(s_Line);
+
+        return s_Panel;
     }
 
     private static TextBlock Section(string p_Title) => new()

@@ -101,6 +101,15 @@ public class EbxWriter : IEbxWriter
     private readonly List<int> m_RootArrays = new();
     private PendingArray? m_PendingIndexCapture;
 
+    // Which layout each VALUE type's descriptor declares (true = fidelity map offsets/size, false = the
+    // C# attributes), decided while the descriptors are written; the emitters assert against it so a
+    // struct can never be laid out one way and described the other (see WriteTypeDescriptor).
+    private readonly Dictionary<Type, bool> m_ValueTypeLayoutFromFidelity = new();
+
+    // True while a fidelity-driven emitter (EmitContainerFields) is running, false inside a generated
+    // Serialize; only consulted for a descriptor that was not reached from its root type's graph.
+    private bool m_EmittingWithFidelity;
+
     private DatabasePartition m_Partition = new();
 
     public EbxWriter()
@@ -335,7 +344,7 @@ public class EbxWriter : IEbxWriter
             p_Flags.SetBlittable();
     }
 
-    private uint WriteArrayDescriptor(Type p_Type)
+    private uint WriteArrayDescriptor(Type p_Type, bool p_FidelityScope)
     {
         var s_ElementType = p_Type.GetGenericArguments()[0];
 
@@ -387,7 +396,9 @@ public class EbxWriter : IEbxWriter
         else if (typeof(EbxSerializable).IsAssignableFrom(s_ElementType))
         {
             s_FieldDescriptor.Flags.SetIsValueType(false);
-            s_FieldDescriptor.FieldType = (ushort) WriteTypeDescriptor(s_ElementType);
+            // Elements inherit the scope of the array's owner: EmitArrayElements lays them out with the
+            // map only under a fidelity-emitted parent (see WriteTypeDescriptor).
+            s_FieldDescriptor.FieldType = (ushort) WriteTypeDescriptor(s_ElementType, p_FidelityScope);
         }
         else if (s_ElementType.IsEnum)
         {
@@ -468,14 +479,17 @@ public class EbxWriter : IEbxWriter
             .ToList();
     }
 
-    private uint WriteTypeDescriptor(Type p_Type)
+    /// <param name="p_FidelityScope">True when values of this type are reached through fidelity-driven
+    /// emission (an instance or struct the map knows), false when they are reached through a generated
+    /// Serialize (a root or struct the map does not know) — see the layout rule inside.</param>
+    private uint WriteTypeDescriptor(Type p_Type, bool p_FidelityScope = false)
     {
         if (m_TypeDescriptors.Count >= ushort.MaxValue)
             throw new Exception($"Too many different types in this partition. Max supported count is {ushort.MaxValue}.");
 
         // If this is a generic type then we're dealing with an array (shared-key dedupe inside).
         if (p_Type.IsGenericType)
-            return WriteArrayDescriptor(p_Type);
+            return WriteArrayDescriptor(p_Type, p_FidelityScope);
 
         if (m_TypeIndices.TryGetValue(p_Type.FullName!, out var s_ExistingIndex))
             return s_ExistingIndex;
@@ -492,21 +506,35 @@ public class EbxWriter : IEbxWriter
         uint? s_BaseTypeIndex = null;
 
         if (p_Type.BaseType != null && (p_Type.BaseType != typeof(EbxSerializable) && p_Type.BaseType != typeof(DataContainerBase)))
-            s_BaseTypeIndex = WriteTypeDescriptor(p_Type.BaseType);
+            s_BaseTypeIndex = WriteTypeDescriptor(p_Type.BaseType, p_FidelityScope);
 
         var s_Properties = OrderedContainerFields(p_Type);
 
         var s_TypeFidelity = EbxFidelity.GetType(p_Type.Name);
 
-        // ⛔ The fidelity layout may only shape the DESCRIPTOR when the PAYLOAD is emitted with it —
-        // and EmitInstanceOrFallback applies fidelity to INSTANCES (DataContainers) only. A VALUE type
-        // (an inline array element, a nested struct) is always written sequentially in C# declaration
-        // order, so its descriptor must declare the C# layout: the reader strides array elements by the
-        // descriptor's Size, and a fidelity size over a sequential payload derails every element after
-        // the first. Real case: TextureShaderParameter mined as size 52 from a vehicle partition while
-        // the sequential payload is 8 — the engine's EBX reader crashed the server's load thread on it,
-        // and Rime's own reader returned mangled names ("iffuse") and self-referential refs.
+        // ⛔ The descriptor must declare the layout the PAYLOAD is emitted with, and this writer has two
+        // emitters. An instance (DataContainer) goes through EmitInstanceOrFallback: fidelity layout when
+        // the map knows the type, its generated Serialize (sequential C# declaration order) otherwise.
+        // Inside a fidelity-emitted parent, a struct field or an array element is emitted fidelity-driven
+        // too when the map knows its type (EmitFieldValue / EmitArrayElements reserve the map Size and seek
+        // to the map Offset of every field); anything reached through a generated Serialize is sequential
+        // C# order all the way down, whatever the map says.
+        // Measured 2026-09-11 on VectorShaderParameter, whose map offsets (name 0, type 4, value 16 — the
+        // game's own file layout) differ from its C# offsets (value 0, type 16, name 20): the payload
+        // followed the map while this descriptor still claimed the C# offsets, and the engine — which reads
+        // every field at the offset the partition's own descriptor declares — took Value.y for the name
+        // pointer and crashed the client on the first parameter whose y was not 0 (the shipped camo
+        // bundles; the same mismatch made every shipped variation parameter read back as garbage). The
+        // older TextureShaderParameter case — a map Size of 52 over a sequential 8-byte payload — was this
+        // rule broken the other way round.
         var s_OffsetDriven = typeof(DataContainer).IsAssignableFrom(p_Type);
+        var s_LayoutFromFidelity = s_TypeFidelity != null && (s_OffsetDriven || p_FidelityScope);
+
+        // Struct fields and array elements of this type are fidelity-emitted only when this type is.
+        var s_ChildScope = s_LayoutFromFidelity;
+
+        if (!s_OffsetDriven)
+            m_ValueTypeLayoutFromFidelity[p_Type] = s_LayoutFromFidelity;
 
         // ...then the type itself is allocated...
         var s_Descriptor = new TypeDescriptor()
@@ -514,13 +542,9 @@ public class EbxWriter : IEbxWriter
             NameHash = WriteTypeString(p_Type.Name),
             LayoutDescriptor = (uint) m_FieldDescriptors.Count,
             FieldCount = (byte) ((s_BaseTypeIndex != null ? 1 : 0) + s_Properties.Count),
-            Alignment = (byte) (s_OffsetDriven
-                ? s_TypeFidelity?.Alignment ?? s_ContainerTypeAttr.DataAlignment
-                : s_ContainerTypeAttr.DataAlignment),
-            Size = (ushort) (s_OffsetDriven
-                ? s_TypeFidelity?.Size ?? s_ContainerTypeAttr.Size
-                : s_ContainerTypeAttr.Size),
-            SecondarySize = (ushort) (s_OffsetDriven ? s_TypeFidelity?.SecondarySize ?? 0 : 0),
+            Alignment = (byte) (s_LayoutFromFidelity ? s_TypeFidelity!.Alignment : s_ContainerTypeAttr.DataAlignment),
+            Size = (ushort) (s_LayoutFromFidelity ? s_TypeFidelity!.Size : s_ContainerTypeAttr.Size),
+            SecondarySize = (ushort) (s_LayoutFromFidelity ? s_TypeFidelity!.SecondarySize : 0),
         };
 
         if (typeof(DataContainer).IsAssignableFrom(p_Type))
@@ -576,14 +600,14 @@ public class EbxWriter : IEbxWriter
             }
             else if (typeof(EbxSerializable).IsAssignableFrom(s_Property.PropertyType))
             {
-                s_FieldDescriptor.FieldType = (ushort) WriteTypeDescriptor(s_Property.PropertyType);
+                s_FieldDescriptor.FieldType = (ushort) WriteTypeDescriptor(s_Property.PropertyType, s_ChildScope);
                 // Vanilla struct fields carry their struct type's exact flag bits (e.g. Vec3 0xD029).
                 s_FieldDescriptor.Flags.SetFromFlagBits(m_TypeDescriptors[s_FieldDescriptor.FieldType].Flags.ToFlagBits());
             }
             else if (s_Property.PropertyType.IsGenericType)
             {
                 s_FieldDescriptor.Flags.SetIsArray(false);
-                s_FieldDescriptor.FieldType = (ushort) WriteTypeDescriptor(s_Property.PropertyType);
+                s_FieldDescriptor.FieldType = (ushort) WriteTypeDescriptor(s_Property.PropertyType, s_ChildScope);
             }
             else if (s_Property.PropertyType.IsEnum)
             {
@@ -601,11 +625,11 @@ public class EbxWriter : IEbxWriter
             ApplyTypeFlags(s_FieldDescriptor.Flags, s_Property.GetCustomAttributes());
 
             // Exact flags + offsets from the fidelity map (not derivable via reflection): the SDK generator
-            // sometimes emits a different primary offset than the game, so the GAME offset wins here (the
-            // payload already seeks to it, and the field-descriptor order is sorted by it too). Only for
-            // OFFSET-DRIVEN types — a value type's payload is sequential C# order, so its descriptor keeps
-            // the C# offsets (the same rule as the type's Size above); its FLAGS still come from fidelity,
-            // they carry type semantics, not layout.
+            // sometimes emits a different primary offset than the game, so the GAME offset wins whenever
+            // the payload was emitted with it (the field-descriptor order is sorted by it too). A type
+            // reached through a generated Serialize keeps the C# offsets, because that is where its
+            // sequential payload put the fields (same rule as the type's Size above); its FLAGS still
+            // come from fidelity, they carry type semantics, not layout.
             if (EbxFidelity.GetField(p_Type.Name, s_ContainerField.Name) is { } s_FieldFidelity)
             {
                 s_FieldDescriptor.Flags.SetFromFlagBits(s_FieldFidelity.Flags);
@@ -619,12 +643,8 @@ public class EbxWriter : IEbxWriter
                 // The fidelity map already holds the right values; they were simply not applied.
                 s_FieldDescriptor.SecondaryOffset = s_FieldFidelity.SecondaryOffset;
 
-                if (s_OffsetDriven)
-                {
-                    // The PRIMARY offset stays gated: a value type's payload is written in sequential
-                    // C# order, so its descriptor must keep the C# offsets (same rule as Size above).
+                if (s_LayoutFromFidelity)
                     s_FieldDescriptor.Offset = s_FieldFidelity.Offset;
-                }
             }
         }
 
@@ -702,7 +722,9 @@ public class EbxWriter : IEbxWriter
         {
             Id = m_Arrays.Count,
             ElementCount = p_ElementCount,
-            TypeDescriptorIndex = WriteTypeDescriptor(p_ArrayType),
+            // Normally already written from the root type's graph; the emitter flag only decides the
+            // rare descriptor first reached from here (a runtime element type the graph did not name).
+            TypeDescriptorIndex = WriteTypeDescriptor(p_ArrayType, m_EmittingWithFidelity),
         };
 
         s_Array.Writer = new TrackedWriter(this, s_Array.Id);
@@ -730,14 +752,45 @@ public class EbxWriter : IEbxWriter
 
         if (s_Fidelity == null)
         {
-            p_Instance.Serialize(p_Writer, this);   // legacy sequential path
+            EmitSequential(p_Instance, p_Writer);   // legacy sequential path
             return;
         }
 
         var s_Base = p_Writer.Position;
         p_Writer.WriteNullBytes(s_Fidelity.Size);   // reserve the exact game size, zero-filled (fills gaps)
-        EmitContainerFields(p_Instance, p_Type, p_Writer, s_Base);
+        EmitWithFidelity(p_Instance, p_Type, p_Writer, s_Base);
         p_Writer.Seek(s_Base + s_Fidelity.Size, SeekOrigin.Begin);
+    }
+
+    // The two emitters, each flagging itself so a descriptor first reached from inside (GetArrayWriter)
+    // declares the layout actually being written.
+    private void EmitSequential(EbxSerializable p_Instance, RimeWriter p_Writer)
+    {
+        var s_Was = m_EmittingWithFidelity;
+        m_EmittingWithFidelity = false;
+        p_Instance.Serialize(p_Writer, this);
+        m_EmittingWithFidelity = s_Was;
+    }
+
+    private void EmitWithFidelity(object p_Obj, Type p_Type, RimeWriter p_Writer, long p_Base)
+    {
+        var s_Was = m_EmittingWithFidelity;
+        m_EmittingWithFidelity = true;
+        EmitContainerFields(p_Obj, p_Type, p_Writer, p_Base);
+        m_EmittingWithFidelity = s_Was;
+    }
+
+    /// <summary>
+    /// A value type's descriptor was written with one layout (WriteTypeDescriptor); refuse to emit its
+    /// payload with the other one — a partition that lies about its own layout loads as garbage or
+    /// crashes the engine, which is worse than a failed build.
+    /// </summary>
+    private void AssertValueTypeLayout(Type p_Type, bool p_WithFidelity)
+    {
+        if (m_ValueTypeLayoutFromFidelity.TryGetValue(p_Type, out var s_Declared) && s_Declared != p_WithFidelity)
+            throw new Exception($"Value type '{p_Type.Name}' is described with the {(s_Declared ? "fidelity" : "C#")} layout " +
+                                $"but about to be emitted with the {(p_WithFidelity ? "fidelity" : "C#")} one: it is reached " +
+                                "both through a fidelity-emitted parent and through a generated Serialize in this partition.");
     }
 
     private void EmitContainerFields(object p_Obj, Type p_Type, RimeWriter p_Writer, long p_Base)
@@ -775,10 +828,13 @@ public class EbxWriter : IEbxWriter
         {
             // Inline struct (Vec3, InertiaModifier, SurfaceShaderInstanceDataStruct...). Offset-driven
             // within the parent's already-reserved span; sequential fallback if the struct isn't mined.
-            if (EbxFidelity.GetType(p_Type.Name) == null)
-                ((EbxSerializable) p_Value!).Serialize(p_Writer, this);
+            var s_WithFidelity = EbxFidelity.GetType(p_Type.Name) != null;
+            AssertValueTypeLayout(p_Type, s_WithFidelity);
+
+            if (!s_WithFidelity)
+                EmitSequential((EbxSerializable) p_Value!, p_Writer);
             else
-                EmitContainerFields(p_Value!, p_Type, p_Writer, p_Offset);
+                EmitWithFidelity(p_Value!, p_Type, p_Writer, p_Offset);
         }
         else if (p_Type.IsGenericType)
         {
@@ -811,16 +867,17 @@ public class EbxWriter : IEbxWriter
             {
                 var s_ElementType = s_Element.GetType();
                 var s_ElementFidelity = EbxFidelity.GetType(s_ElementType.Name);
+                AssertValueTypeLayout(s_ElementType, s_ElementFidelity != null);
 
                 if (s_ElementFidelity == null)
                 {
-                    s_Struct.Serialize(p_Writer, this);
+                    EmitSequential(s_Struct, p_Writer);
                 }
                 else
                 {
                     var s_ElementBase = p_Writer.Position;
                     p_Writer.WriteNullBytes(s_ElementFidelity.Size);
-                    EmitContainerFields(s_Element, s_ElementType, p_Writer, s_ElementBase);
+                    EmitWithFidelity(s_Element, s_ElementType, p_Writer, s_ElementBase);
                     p_Writer.Seek(s_ElementBase + s_ElementFidelity.Size, SeekOrigin.Begin);
                 }
             }

@@ -1,0 +1,1241 @@
+{
+  "Name": "Rhino - camo on the van body\u0027s paint",
+  "TargetShader": "vehicles/xp4/vanmodified/vanbody_shader",
+  "TranslatedHlslHash": "20b84fd4",
+  "ApplyVariationToLevel": true,
+  "BakeMesh": null,
+  "TranslatedFamily": "Vegetation",
+  "Nodes": [
+    {
+      "Id": "3b0350027844456f85bb546f7aa3a980",
+      "Kind": "NormalMap",
+      "X": 302,
+      "Y": 40,
+      "Comment": "Samples \u0027texture_Texture2\u0027 (t5). A per-instance slot: the (mesh, variation) texture set decides the actual image.",
+      "Params": {
+        "Register": "5"
+      }
+    },
+    {
+      "Id": "13426d0ef523481185d28ef31e83678e",
+      "Kind": "TexCoord",
+      "X": 40,
+      "Y": 40,
+      "Params": {
+        "Interp": "3",
+        "Half": "xy"
+      }
+    },
+    {
+      "Id": "7fc22dae690a45cabab668d122630ed0",
+      "Kind": "Interpolator",
+      "X": 40,
+      "Y": 108,
+      "Comment": "TangentRow0: a row of the tangent basis - the three rows move tangent-space normals to world space.",
+      "Params": {
+        "Index": "0"
+      }
+    },
+    {
+      "Id": "e444ad58d8b546299ee5781638da3e1e",
+      "Kind": "Dot",
+      "X": 564,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "86742a0fcfcc4e798ac370547767b3d7",
+      "Kind": "Interpolator",
+      "X": 40,
+      "Y": 176,
+      "Comment": "TangentRow1: a row of the tangent basis - the three rows move tangent-space normals to world space.",
+      "Params": {
+        "Index": "1"
+      }
+    },
+    {
+      "Id": "cd1e7e5b427546ee904bb7ba11909116",
+      "Kind": "Dot",
+      "X": 564,
+      "Y": 124,
+      "Params": {}
+    },
+    {
+      "Id": "7be5f922f7b249d1a46b96f54b73e24c",
+      "Kind": "Interpolator",
+      "X": 40,
+      "Y": 244,
+      "Comment": "TangentRow2: a row of the tangent basis - the three rows move tangent-space normals to world space.",
+      "Params": {
+        "Index": "2"
+      }
+    },
+    {
+      "Id": "fb86f83d815d483ca504221b7be5bcf4",
+      "Kind": "Dot",
+      "X": 564,
+      "Y": 208,
+      "Params": {}
+    },
+    {
+      "Id": "2227db9fe51a4c8a8eaa6a6023778688",
+      "Kind": "Append",
+      "X": 826,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "025c5d3b06ea4226bd2e5a4a832db832",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 312,
+      "Params": {
+        "Value": "1.0"
+      }
+    },
+    {
+      "Id": "744de074b50449f1b12641c55a9a6e37",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 380,
+      "Params": {
+        "Value": "0.4"
+      }
+    },
+    {
+      "Id": "37fa56646e274a35bfaa70b1033986c1",
+      "Kind": "Multiply",
+      "X": 302,
+      "Y": 264,
+      "Params": {}
+    },
+    {
+      "Id": "c6fba49b3feb4410b0fb7cd9d2384722",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 448,
+      "Comment": "Baked UV tile factor - the game bakes the material\u0027s tiling into the shader as this literal.",
+      "Params": {
+        "Value": "10.0"
+      }
+    },
+    {
+      "Id": "4931ceb5b52245c5b33e4ab09a8d4a6a",
+      "Kind": "Texture",
+      "X": 564,
+      "Y": 292,
+      "Comment": "Samples \u0027texture_Texture5\u0027 (t1). A per-instance slot: the (mesh, variation) texture set decides the actual image.",
+      "Params": {
+        "Register": "1"
+      }
+    },
+    {
+      "Id": "cf46344bda17480cabf451fa950acec8",
+      "Kind": "Add",
+      "X": 1088,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "9f4dc31de07f4b7abc7fcaafbed4299e",
+      "Kind": "MixOut",
+      "X": 826,
+      "Y": 156,
+      "Params": {}
+    },
+    {
+      "Id": "c79798f92e1245ac978fa06cd04f54c1",
+      "Kind": "Texture",
+      "X": 302,
+      "Y": 348,
+      "Comment": "Samples \u0027texture_Texture3\u0027 (t2). A per-instance slot: the (mesh, variation) texture set decides the actual image.",
+      "Params": {
+        "Register": "2"
+      }
+    },
+    {
+      "Id": "d058c4e939fd4309a7c94fe8121f4fa1",
+      "Kind": "MixOut",
+      "X": 564,
+      "Y": 516,
+      "Params": {}
+    },
+    {
+      "Id": "f0f1223c96cc4b18bd8303c52b424d31",
+      "Kind": "Multiply",
+      "X": 1350,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "016443515e9f4f2197ec7876e2ea7e5a",
+      "Kind": "MixOut",
+      "X": 826,
+      "Y": 288,
+      "Params": {}
+    },
+    {
+      "Id": "39dd616fde244e4992ec05e826330d12",
+      "Kind": "Texture",
+      "X": 302,
+      "Y": 572,
+      "Comment": "Samples \u0027texture_Texture\u0027 (t3). A per-instance slot: the (mesh, variation) texture set decides the actual image.",
+      "Params": {
+        "Register": "3"
+      }
+    },
+    {
+      "Id": "77141bf323314a33984cc522650c8d33",
+      "Kind": "MixOut",
+      "X": 564,
+      "Y": 648,
+      "Params": {}
+    },
+    {
+      "Id": "518a3e99840741f0a44cb907032caea0",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 516,
+      "Params": {
+        "Value": "0.639"
+      }
+    },
+    {
+      "Id": "5ffad20d96e646c19e7d2821911da790",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 584,
+      "Params": {
+        "Value": "0.553"
+      }
+    },
+    {
+      "Id": "4ed10d27951b48c3bfe3f6bc99439db8",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 652,
+      "Params": {
+        "Value": "0.391"
+      }
+    },
+    {
+      "Id": "df6f66e6fcda4e53961d01d79c2423f2",
+      "Kind": "Append",
+      "X": 302,
+      "Y": 796,
+      "Params": {}
+    },
+    {
+      "Id": "806cc2ce6f794e2fbfd871378b0ae665",
+      "Kind": "Multiply",
+      "X": 1612,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "e2f10a10158347309e2af77409e0e239",
+      "Kind": "Texture",
+      "X": 302,
+      "Y": 912,
+      "Comment": "Samples \u0027texture_Texture4\u0027 (t4). A per-instance slot: the (mesh, variation) texture set decides the actual image.",
+      "Params": {
+        "Register": "4"
+      }
+    },
+    {
+      "Id": "009257d5b7284770829150473d4abf1f",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 720,
+      "Params": {
+        "Value": "0.0"
+      }
+    },
+    {
+      "Id": "d2504f1590c846e4affb171d7c575e11",
+      "Kind": "MixOut",
+      "X": 564,
+      "Y": 780,
+      "Params": {}
+    },
+    {
+      "Id": "c4cd0b48764e4a03bb6fae5361a4b8d9",
+      "Kind": "Add",
+      "X": 826,
+      "Y": 420,
+      "Params": {}
+    },
+    {
+      "Id": "801455ea440f41bc9ce2fd24e387648b",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 788,
+      "Params": {
+        "Value": "0.3"
+      }
+    },
+    {
+      "Id": "1370115fb620400d833b9a7bd509e156",
+      "Kind": "Multiply",
+      "X": 1088,
+      "Y": 124,
+      "Params": {}
+    },
+    {
+      "Id": "fa043d97aa804e8b805292a1356874c0",
+      "Kind": "Append",
+      "X": 302,
+      "Y": 1136,
+      "Params": {}
+    },
+    {
+      "Id": "d9573fdce25c4f72a456971eef56498f",
+      "Kind": "Subtract",
+      "X": 1874,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "60534030d9734cbb85c222eeb979688f",
+      "Kind": "Multiply",
+      "X": 564,
+      "Y": 912,
+      "Params": {}
+    },
+    {
+      "Id": "aade293dbc2b4306bc64ae94fbc856b3",
+      "Kind": "ExternalConstant",
+      "X": 40,
+      "Y": 856,
+      "Params": {
+        "Name": "external_FLIRData",
+        "Buffer": "externalConstants",
+        "Register": "1",
+        "Element": "0"
+      }
+    },
+    {
+      "Id": "5c2ec88a672c478bb8b81cee09f0e21d",
+      "Kind": "MixOut",
+      "X": 302,
+      "Y": 1252,
+      "Params": {}
+    },
+    {
+      "Id": "e41c356e501b4f5eb9528a07c4aec4cc",
+      "Kind": "ExternalConstant",
+      "X": 40,
+      "Y": 924,
+      "Params": {
+        "Name": "external_FLIRScale",
+        "Buffer": "externalConstants",
+        "Register": "1",
+        "Element": "1"
+      }
+    },
+    {
+      "Id": "515a06db7afe4cf3b458333665d2d73c",
+      "Kind": "MixOut",
+      "X": 302,
+      "Y": 1384,
+      "Params": {}
+    },
+    {
+      "Id": "47ef99c30f6c4ad48c01bb0f51481147",
+      "Kind": "Multiply",
+      "X": 2136,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "25970acf4a5841319868df5fe77d1d0e",
+      "Kind": "Add",
+      "X": 2398,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "c366dcbb44d7419399927b0b095ea5e4",
+      "Kind": "Saturate",
+      "X": 2660,
+      "Y": 40,
+      "Params": {}
+    },
+    {
+      "Id": "c29a24cadcaf414caa4d532fa74d2eb0",
+      "Kind": "StandardRoot",
+      "X": 2922,
+      "Y": 40,
+      "Params": {
+        "NormalSpace": "World",
+        "SpecularMode": "Raw",
+        "SurfaceShaderType": "SurfaceShaderType_Opaque",
+        "DoubleSided": "false"
+      }
+    },
+    {
+      "Id": "417001bdd8f4473299d79d16939329a0",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 992,
+      "Params": {
+        "Value": "0.6"
+      }
+    },
+    {
+      "Id": "74e0040cf42144dfa30bab6ff87ea6cc",
+      "Kind": "Scalar",
+      "X": 40,
+      "Y": 1060,
+      "Params": {
+        "Value": "4.0"
+      }
+    },
+    {
+      "Id": "41aa044eac7a48b198501e9334eec3dd",
+      "Kind": "Normalize",
+      "X": 1088,
+      "Y": 208,
+      "Params": {}
+    },
+    {
+      "Id": "8976fa2bb2f2488a91374fc0f6f8af65",
+      "Kind": "Lerp",
+      "X": 1088,
+      "Y": 276,
+      "Params": {}
+    },
+    {
+      "Id": "751945b7707243fd9f20b6ae67f47469",
+      "Kind": "ExternalConstant",
+      "X": 300,
+      "Y": 1560,
+      "Params": {
+        "Name": "external_CamoTiling",
+        "Buffer": "externalConstants",
+        "Register": "1",
+        "Element": "2"
+      }
+    },
+    {
+      "Id": "403863deb4b24125ae1ec4d9afd68e10",
+      "Kind": "Multiply",
+      "X": 560,
+      "Y": 1560,
+      "Params": {}
+    },
+    {
+      "Id": "eedca44ab6854e469356d5bc2913119b",
+      "Kind": "Texture",
+      "X": 820,
+      "Y": 1560,
+      "Params": {
+        "Register": "6"
+      }
+    },
+    {
+      "Id": "5a0728725aa84bdab85ff516a675a5ab",
+      "Kind": "MixOut",
+      "X": 1080,
+      "Y": 1560,
+      "Params": {}
+    },
+    {
+      "Id": "b0623bd02fd54b8ca2795ae9540ff597",
+      "Kind": "ExternalConstant",
+      "X": 820,
+      "Y": 1730,
+      "Params": {
+        "Name": "external_CamoBrightness",
+        "Buffer": "externalConstants",
+        "Register": "1",
+        "Element": "3"
+      }
+    },
+    {
+      "Id": "5cf8dd36c5314e8a988abf3a4f141b5f",
+      "Kind": "Multiply",
+      "X": 1340,
+      "Y": 1600,
+      "Params": {}
+    },
+    {
+      "Id": "247ff9dcfad24f90b0dfff6a1816d1dc",
+      "Kind": "Texture",
+      "X": 820,
+      "Y": 1900,
+      "Params": {
+        "Register": "7",
+        "CustomTexture": "vehicles_xp4_vanmodified_vanmodified_mesh/rhino_paint_mask.png"
+      }
+    },
+    {
+      "Id": "b5bcc33970b740f389102f20f4c57c9c",
+      "Kind": "MixOut",
+      "X": 1080,
+      "Y": 1900,
+      "Params": {}
+    },
+    {
+      "Id": "362985d757de4c05b5a1cb6abe082feb",
+      "Kind": "OneMinus",
+      "X": 1340,
+      "Y": 1900,
+      "Params": {}
+    },
+    {
+      "Id": "e6b4ee452deb4015affa2f7b5c0713f0",
+      "Kind": "Scalar",
+      "X": 300,
+      "Y": 2080,
+      "Params": {
+        "Value": "1.0"
+      }
+    },
+    {
+      "Id": "0f074512a11048e88bd629a0a5d939c9",
+      "Kind": "ExternalConstant",
+      "X": 300,
+      "Y": 2180,
+      "Params": {
+        "Name": "external_WearAmount",
+        "Buffer": "externalConstants",
+        "Register": "1",
+        "Element": "4"
+      }
+    },
+    {
+      "Id": "648828d718b546d1860a36170ba66124",
+      "Kind": "MixOut",
+      "X": 560,
+      "Y": 2180,
+      "Params": {}
+    },
+    {
+      "Id": "a29979571791419e92b284c4342d22dd",
+      "Kind": "ExternalConstant",
+      "X": 300,
+      "Y": 2320,
+      "Params": {
+        "Name": "external_WearPower",
+        "Buffer": "externalConstants",
+        "Register": "1",
+        "Element": "5"
+      }
+    },
+    {
+      "Id": "3faa12662857465b8e18008cea10c818",
+      "Kind": "MixOut",
+      "X": 560,
+      "Y": 2320,
+      "Params": {}
+    },
+    {
+      "Id": "fa25d323ddda4412a14f678596c525da",
+      "Kind": "Multiply",
+      "X": 820,
+      "Y": 2120,
+      "Params": {}
+    },
+    {
+      "Id": "5d2007d071e246b69c9b5ea6b9d15127",
+      "Kind": "Log2Raw",
+      "X": 1080,
+      "Y": 2120,
+      "Params": {}
+    },
+    {
+      "Id": "25f4df296f5248329c9205594d5580df",
+      "Kind": "Multiply",
+      "X": 1340,
+      "Y": 2160,
+      "Params": {}
+    },
+    {
+      "Id": "f4e468396fc1449183f4ac5958bdc2b5",
+      "Kind": "Exp2",
+      "X": 1600,
+      "Y": 2160,
+      "Params": {}
+    },
+    {
+      "Id": "7ecffca193ea47478b7ecd2c8f61f2a7",
+      "Kind": "Min",
+      "X": 1860,
+      "Y": 2160,
+      "Params": {}
+    },
+    {
+      "Id": "ebb07ca406c14ea0a22e59ee0c804c91",
+      "Kind": "OneMinus",
+      "X": 2120,
+      "Y": 2160,
+      "Params": {}
+    },
+    {
+      "Id": "58da797e2fe5452b87f393c083a9724f",
+      "Kind": "Scalar",
+      "X": 300,
+      "Y": 2480,
+      "Params": {
+        "Value": "0.01"
+      }
+    },
+    {
+      "Id": "48615358e2be41958bae450c54e53ea9",
+      "Kind": "Scalar",
+      "X": 300,
+      "Y": 2560,
+      "Params": {
+        "Value": "-1.0"
+      }
+    },
+    {
+      "Id": "da2c03068c65466cab0435e07c4b6a44",
+      "Kind": "ExternalConstant",
+      "X": 300,
+      "Y": 2640,
+      "Params": {
+        "Name": "external_ScatchAmount",
+        "Buffer": "externalConstants",
+        "Register": "1",
+        "Element": "6"
+      }
+    },
+    {
+      "Id": "3ff0e7eaff0c405aa9673403825cc908",
+      "Kind": "MixOut",
+      "X": 560,
+      "Y": 2640,
+      "Params": {}
+    },
+    {
+      "Id": "612f41622c1c47c49d238de4b9cfa6f3",
+      "Kind": "Multiply",
+      "X": 820,
+      "Y": 2520,
+      "Params": {}
+    },
+    {
+      "Id": "c7382076c081411c9b03598602fcc0d0",
+      "Kind": "Add",
+      "X": 820,
+      "Y": 2660,
+      "Params": {}
+    },
+    {
+      "Id": "5aa6f734d22046c58b1cf5323b9b9982",
+      "Kind": "Multiply",
+      "X": 1080,
+      "Y": 2580,
+      "Params": {}
+    },
+    {
+      "Id": "abe2d809eccc4f8e947b10b60114850d",
+      "Kind": "Add",
+      "X": 1340,
+      "Y": 2580,
+      "Params": {}
+    },
+    {
+      "Id": "302c7eb4fc7c4f70b44baed5d033aaca",
+      "Kind": "Multiply",
+      "X": 2380,
+      "Y": 1920,
+      "Params": {}
+    },
+    {
+      "Id": "6514683e1e9b4f9c95f509f151490300",
+      "Kind": "Multiply",
+      "X": 2640,
+      "Y": 2060,
+      "Params": {}
+    },
+    {
+      "Id": "d7f6f91354324c31b321a269f2c5456f",
+      "Kind": "Lerp",
+      "X": 2900,
+      "Y": 1760,
+      "Params": {}
+    }
+  ],
+  "Connections": [
+    {
+      "FromNode": "13426d0ef523481185d28ef31e83678e",
+      "FromPort": "Out",
+      "ToNode": "3b0350027844456f85bb546f7aa3a980",
+      "ToPort": "Coord"
+    },
+    {
+      "FromNode": "3b0350027844456f85bb546f7aa3a980",
+      "FromPort": "Out",
+      "ToNode": "e444ad58d8b546299ee5781638da3e1e",
+      "ToPort": "A"
+    },
+    {
+      "FromNode": "7fc22dae690a45cabab668d122630ed0",
+      "FromPort": "Out",
+      "ToNode": "e444ad58d8b546299ee5781638da3e1e",
+      "ToPort": "B"
+    },
+    {
+      "FromNode": "3b0350027844456f85bb546f7aa3a980",
+      "FromPort": "Out",
+      "ToNode": "cd1e7e5b427546ee904bb7ba11909116",
+      "ToPort": "A"
+    },
+    {
+      "FromNode": "86742a0fcfcc4e798ac370547767b3d7",
+      "FromPort": "Out",
+      "ToNode": "cd1e7e5b427546ee904bb7ba11909116",
+      "ToPort": "B"
+    },
+    {
+      "FromNode": "3b0350027844456f85bb546f7aa3a980",
+      "FromPort": "Out",
+      "ToNode": "fb86f83d815d483ca504221b7be5bcf4",
+      "ToPort": "A"
+    },
+    {
+      "FromNode": "7be5f922f7b249d1a46b96f54b73e24c",
+      "FromPort": "Out",
+      "ToNode": "fb86f83d815d483ca504221b7be5bcf4",
+      "ToPort": "B"
+    },
+    {
+      "FromNode": "e444ad58d8b546299ee5781638da3e1e",
+      "FromPort": "Out",
+      "ToNode": "2227db9fe51a4c8a8eaa6a6023778688",
+      "ToPort": "X"
+    },
+    {
+      "FromNode": "cd1e7e5b427546ee904bb7ba11909116",
+      "FromPort": "Out",
+      "ToNode": "2227db9fe51a4c8a8eaa6a6023778688",
+      "ToPort": "Y"
+    },
+    {
+      "FromNode": "fb86f83d815d483ca504221b7be5bcf4",
+      "FromPort": "Out",
+      "ToNode": "2227db9fe51a4c8a8eaa6a6023778688",
+      "ToPort": "Z"
+    },
+    {
+      "FromNode": "13426d0ef523481185d28ef31e83678e",
+      "FromPort": "Out",
+      "ToNode": "37fa56646e274a35bfaa70b1033986c1",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "c6fba49b3feb4410b0fb7cd9d2384722",
+      "FromPort": "Out",
+      "ToNode": "37fa56646e274a35bfaa70b1033986c1",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "37fa56646e274a35bfaa70b1033986c1",
+      "FromPort": "Out",
+      "ToNode": "4931ceb5b52245c5b33e4ab09a8d4a6a",
+      "ToPort": "Coord"
+    },
+    {
+      "FromNode": "4931ceb5b52245c5b33e4ab09a8d4a6a",
+      "FromPort": "Out",
+      "ToNode": "9f4dc31de07f4b7abc7fcaafbed4299e",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "9f4dc31de07f4b7abc7fcaafbed4299e",
+      "FromPort": "G",
+      "ToNode": "cf46344bda17480cabf451fa950acec8",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "9f4dc31de07f4b7abc7fcaafbed4299e",
+      "FromPort": "R",
+      "ToNode": "cf46344bda17480cabf451fa950acec8",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "13426d0ef523481185d28ef31e83678e",
+      "FromPort": "Out",
+      "ToNode": "c79798f92e1245ac978fa06cd04f54c1",
+      "ToPort": "Coord"
+    },
+    {
+      "FromNode": "c79798f92e1245ac978fa06cd04f54c1",
+      "FromPort": "Out",
+      "ToNode": "d058c4e939fd4309a7c94fe8121f4fa1",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "d058c4e939fd4309a7c94fe8121f4fa1",
+      "FromPort": "RGB",
+      "ToNode": "016443515e9f4f2197ec7876e2ea7e5a",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "016443515e9f4f2197ec7876e2ea7e5a",
+      "FromPort": "R",
+      "ToNode": "f0f1223c96cc4b18bd8303c52b424d31",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "cf46344bda17480cabf451fa950acec8",
+      "FromPort": "Out",
+      "ToNode": "f0f1223c96cc4b18bd8303c52b424d31",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "13426d0ef523481185d28ef31e83678e",
+      "FromPort": "Out",
+      "ToNode": "39dd616fde244e4992ec05e826330d12",
+      "ToPort": "Coord"
+    },
+    {
+      "FromNode": "39dd616fde244e4992ec05e826330d12",
+      "FromPort": "Out",
+      "ToNode": "77141bf323314a33984cc522650c8d33",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "518a3e99840741f0a44cb907032caea0",
+      "FromPort": "Out",
+      "ToNode": "df6f66e6fcda4e53961d01d79c2423f2",
+      "ToPort": "X"
+    },
+    {
+      "FromNode": "5ffad20d96e646c19e7d2821911da790",
+      "FromPort": "Out",
+      "ToNode": "df6f66e6fcda4e53961d01d79c2423f2",
+      "ToPort": "Y"
+    },
+    {
+      "FromNode": "4ed10d27951b48c3bfe3f6bc99439db8",
+      "FromPort": "Out",
+      "ToNode": "df6f66e6fcda4e53961d01d79c2423f2",
+      "ToPort": "Z"
+    },
+    {
+      "FromNode": "f0f1223c96cc4b18bd8303c52b424d31",
+      "FromPort": "Out",
+      "ToNode": "806cc2ce6f794e2fbfd871378b0ae665",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "8976fa2bb2f2488a91374fc0f6f8af65",
+      "FromPort": "Out",
+      "ToNode": "806cc2ce6f794e2fbfd871378b0ae665",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "009257d5b7284770829150473d4abf1f",
+      "FromPort": "Out",
+      "ToNode": "e2f10a10158347309e2af77409e0e239",
+      "ToPort": "Coord"
+    },
+    {
+      "FromNode": "e2f10a10158347309e2af77409e0e239",
+      "FromPort": "Out",
+      "ToNode": "d2504f1590c846e4affb171d7c575e11",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "d2504f1590c846e4affb171d7c575e11",
+      "FromPort": "R",
+      "ToNode": "c4cd0b48764e4a03bb6fae5361a4b8d9",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "801455ea440f41bc9ce2fd24e387648b",
+      "FromPort": "Out",
+      "ToNode": "c4cd0b48764e4a03bb6fae5361a4b8d9",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "025c5d3b06ea4226bd2e5a4a832db832",
+      "FromPort": "Out",
+      "ToNode": "fa043d97aa804e8b805292a1356874c0",
+      "ToPort": "X"
+    },
+    {
+      "FromNode": "009257d5b7284770829150473d4abf1f",
+      "FromPort": "Out",
+      "ToNode": "fa043d97aa804e8b805292a1356874c0",
+      "ToPort": "Y"
+    },
+    {
+      "FromNode": "025c5d3b06ea4226bd2e5a4a832db832",
+      "FromPort": "Out",
+      "ToNode": "fa043d97aa804e8b805292a1356874c0",
+      "ToPort": "Z"
+    },
+    {
+      "FromNode": "c4cd0b48764e4a03bb6fae5361a4b8d9",
+      "FromPort": "Out",
+      "ToNode": "1370115fb620400d833b9a7bd509e156",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "fa043d97aa804e8b805292a1356874c0",
+      "FromPort": "Out",
+      "ToNode": "1370115fb620400d833b9a7bd509e156",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "1370115fb620400d833b9a7bd509e156",
+      "FromPort": "Out",
+      "ToNode": "d9573fdce25c4f72a456971eef56498f",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "806cc2ce6f794e2fbfd871378b0ae665",
+      "FromPort": "Out",
+      "ToNode": "d9573fdce25c4f72a456971eef56498f",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "aade293dbc2b4306bc64ae94fbc856b3",
+      "FromPort": "Out",
+      "ToNode": "5c2ec88a672c478bb8b81cee09f0e21d",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "5c2ec88a672c478bb8b81cee09f0e21d",
+      "FromPort": "A",
+      "ToNode": "60534030d9734cbb85c222eeb979688f",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "e41c356e501b4f5eb9528a07c4aec4cc",
+      "FromPort": "Out",
+      "ToNode": "515a06db7afe4cf3b458333665d2d73c",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "515a06db7afe4cf3b458333665d2d73c",
+      "FromPort": "R",
+      "ToNode": "60534030d9734cbb85c222eeb979688f",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "60534030d9734cbb85c222eeb979688f",
+      "FromPort": "Out",
+      "ToNode": "47ef99c30f6c4ad48c01bb0f51481147",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "d9573fdce25c4f72a456971eef56498f",
+      "FromPort": "Out",
+      "ToNode": "47ef99c30f6c4ad48c01bb0f51481147",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "47ef99c30f6c4ad48c01bb0f51481147",
+      "FromPort": "Out",
+      "ToNode": "25970acf4a5841319868df5fe77d1d0e",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "806cc2ce6f794e2fbfd871378b0ae665",
+      "FromPort": "Out",
+      "ToNode": "25970acf4a5841319868df5fe77d1d0e",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "25970acf4a5841319868df5fe77d1d0e",
+      "FromPort": "Out",
+      "ToNode": "c366dcbb44d7419399927b0b095ea5e4",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "417001bdd8f4473299d79d16939329a0",
+      "FromPort": "Out",
+      "ToNode": "c29a24cadcaf414caa4d532fa74d2eb0",
+      "ToPort": "FresnelBias"
+    },
+    {
+      "FromNode": "74e0040cf42144dfa30bab6ff87ea6cc",
+      "FromPort": "Out",
+      "ToNode": "c29a24cadcaf414caa4d532fa74d2eb0",
+      "ToPort": "FresnelExponent"
+    },
+    {
+      "FromNode": "41aa044eac7a48b198501e9334eec3dd",
+      "FromPort": "Out",
+      "ToNode": "c29a24cadcaf414caa4d532fa74d2eb0",
+      "ToPort": "Normal"
+    },
+    {
+      "FromNode": "744de074b50449f1b12641c55a9a6e37",
+      "FromPort": "Out",
+      "ToNode": "c29a24cadcaf414caa4d532fa74d2eb0",
+      "ToPort": "Smoothness"
+    },
+    {
+      "FromNode": "016443515e9f4f2197ec7876e2ea7e5a",
+      "FromPort": "G",
+      "ToNode": "c29a24cadcaf414caa4d532fa74d2eb0",
+      "ToPort": "Specular"
+    },
+    {
+      "FromNode": "c366dcbb44d7419399927b0b095ea5e4",
+      "FromPort": "Out",
+      "ToNode": "c29a24cadcaf414caa4d532fa74d2eb0",
+      "ToPort": "Diffuse"
+    },
+    {
+      "FromNode": "2227db9fe51a4c8a8eaa6a6023778688",
+      "FromPort": "Out",
+      "ToNode": "41aa044eac7a48b198501e9334eec3dd",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "df6f66e6fcda4e53961d01d79c2423f2",
+      "FromPort": "Out",
+      "ToNode": "8976fa2bb2f2488a91374fc0f6f8af65",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "016443515e9f4f2197ec7876e2ea7e5a",
+      "FromPort": "B",
+      "ToNode": "8976fa2bb2f2488a91374fc0f6f8af65",
+      "ToPort": "Delta"
+    },
+    {
+      "FromNode": "13426d0ef523481185d28ef31e83678e",
+      "FromPort": "Out",
+      "ToNode": "403863deb4b24125ae1ec4d9afd68e10",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "751945b7707243fd9f20b6ae67f47469",
+      "FromPort": "Out",
+      "ToNode": "403863deb4b24125ae1ec4d9afd68e10",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "403863deb4b24125ae1ec4d9afd68e10",
+      "FromPort": "Out",
+      "ToNode": "eedca44ab6854e469356d5bc2913119b",
+      "ToPort": "Coord"
+    },
+    {
+      "FromNode": "eedca44ab6854e469356d5bc2913119b",
+      "FromPort": "Out",
+      "ToNode": "5a0728725aa84bdab85ff516a675a5ab",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "5a0728725aa84bdab85ff516a675a5ab",
+      "FromPort": "RGB",
+      "ToNode": "5cf8dd36c5314e8a988abf3a4f141b5f",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "b0623bd02fd54b8ca2795ae9540ff597",
+      "FromPort": "Out",
+      "ToNode": "5cf8dd36c5314e8a988abf3a4f141b5f",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "13426d0ef523481185d28ef31e83678e",
+      "FromPort": "Out",
+      "ToNode": "247ff9dcfad24f90b0dfff6a1816d1dc",
+      "ToPort": "Coord"
+    },
+    {
+      "FromNode": "247ff9dcfad24f90b0dfff6a1816d1dc",
+      "FromPort": "Out",
+      "ToNode": "b5bcc33970b740f389102f20f4c57c9c",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "b5bcc33970b740f389102f20f4c57c9c",
+      "FromPort": "R",
+      "ToNode": "362985d757de4c05b5a1cb6abe082feb",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "0f074512a11048e88bd629a0a5d939c9",
+      "FromPort": "Out",
+      "ToNode": "648828d718b546d1860a36170ba66124",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "a29979571791419e92b284c4342d22dd",
+      "FromPort": "Out",
+      "ToNode": "3faa12662857465b8e18008cea10c818",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "016443515e9f4f2197ec7876e2ea7e5a",
+      "FromPort": "G",
+      "ToNode": "fa25d323ddda4412a14f678596c525da",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "648828d718b546d1860a36170ba66124",
+      "FromPort": "R",
+      "ToNode": "fa25d323ddda4412a14f678596c525da",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "fa25d323ddda4412a14f678596c525da",
+      "FromPort": "Out",
+      "ToNode": "5d2007d071e246b69c9b5ea6b9d15127",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "5d2007d071e246b69c9b5ea6b9d15127",
+      "FromPort": "Out",
+      "ToNode": "25f4df296f5248329c9205594d5580df",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "3faa12662857465b8e18008cea10c818",
+      "FromPort": "R",
+      "ToNode": "25f4df296f5248329c9205594d5580df",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "25f4df296f5248329c9205594d5580df",
+      "FromPort": "Out",
+      "ToNode": "f4e468396fc1449183f4ac5958bdc2b5",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "f4e468396fc1449183f4ac5958bdc2b5",
+      "FromPort": "Out",
+      "ToNode": "7ecffca193ea47478b7ecd2c8f61f2a7",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "e6b4ee452deb4015affa2f7b5c0713f0",
+      "FromPort": "Out",
+      "ToNode": "7ecffca193ea47478b7ecd2c8f61f2a7",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "7ecffca193ea47478b7ecd2c8f61f2a7",
+      "FromPort": "Out",
+      "ToNode": "ebb07ca406c14ea0a22e59ee0c804c91",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "da2c03068c65466cab0435e07c4b6a44",
+      "FromPort": "Out",
+      "ToNode": "3ff0e7eaff0c405aa9673403825cc908",
+      "ToPort": "Input"
+    },
+    {
+      "FromNode": "58da797e2fe5452b87f393c083a9724f",
+      "FromPort": "Out",
+      "ToNode": "612f41622c1c47c49d238de4b9cfa6f3",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "3ff0e7eaff0c405aa9673403825cc908",
+      "FromPort": "R",
+      "ToNode": "612f41622c1c47c49d238de4b9cfa6f3",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "9f4dc31de07f4b7abc7fcaafbed4299e",
+      "FromPort": "R",
+      "ToNode": "c7382076c081411c9b03598602fcc0d0",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "48615358e2be41958bae450c54e53ea9",
+      "FromPort": "Out",
+      "ToNode": "c7382076c081411c9b03598602fcc0d0",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "612f41622c1c47c49d238de4b9cfa6f3",
+      "FromPort": "Out",
+      "ToNode": "5aa6f734d22046c58b1cf5323b9b9982",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "c7382076c081411c9b03598602fcc0d0",
+      "FromPort": "Out",
+      "ToNode": "5aa6f734d22046c58b1cf5323b9b9982",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "5aa6f734d22046c58b1cf5323b9b9982",
+      "FromPort": "Out",
+      "ToNode": "abe2d809eccc4f8e947b10b60114850d",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "e6b4ee452deb4015affa2f7b5c0713f0",
+      "FromPort": "Out",
+      "ToNode": "abe2d809eccc4f8e947b10b60114850d",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "362985d757de4c05b5a1cb6abe082feb",
+      "FromPort": "Out",
+      "ToNode": "302c7eb4fc7c4f70b44baed5d033aaca",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "ebb07ca406c14ea0a22e59ee0c804c91",
+      "FromPort": "Out",
+      "ToNode": "302c7eb4fc7c4f70b44baed5d033aaca",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "302c7eb4fc7c4f70b44baed5d033aaca",
+      "FromPort": "Out",
+      "ToNode": "6514683e1e9b4f9c95f509f151490300",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "abe2d809eccc4f8e947b10b60114850d",
+      "FromPort": "Out",
+      "ToNode": "6514683e1e9b4f9c95f509f151490300",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "77141bf323314a33984cc522650c8d33",
+      "FromPort": "RGB",
+      "ToNode": "d7f6f91354324c31b321a269f2c5456f",
+      "ToPort": "Input1"
+    },
+    {
+      "FromNode": "5cf8dd36c5314e8a988abf3a4f141b5f",
+      "FromPort": "Out",
+      "ToNode": "d7f6f91354324c31b321a269f2c5456f",
+      "ToPort": "Input2"
+    },
+    {
+      "FromNode": "6514683e1e9b4f9c95f509f151490300",
+      "FromPort": "Out",
+      "ToNode": "d7f6f91354324c31b321a269f2c5456f",
+      "ToPort": "Delta"
+    },
+    {
+      "FromNode": "d7f6f91354324c31b321a269f2c5456f",
+      "FromPort": "Out",
+      "ToNode": "8976fa2bb2f2488a91374fc0f6f8af65",
+      "ToPort": "Input1"
+    }
+  ],
+  "Groups": [],
+  "Root": {
+    "Id": "c29a24cadcaf414caa4d532fa74d2eb0",
+    "Kind": "StandardRoot",
+    "X": 2922,
+    "Y": 40,
+    "Params": {
+      "NormalSpace": "World",
+      "SpecularMode": "Raw",
+      "SurfaceShaderType": "SurfaceShaderType_Opaque",
+      "DoubleSided": "false"
+    }
+  }
+}

@@ -306,6 +306,81 @@ public class ShaderDatabase
         var s_Patched = 0;
         var s_Cloned = 0;
 
+        // Re-labelling a solution to another declaration is only half of drawing another vertex layout: the
+        // D3D11 input layout lives in the VERTEX permutation (one TEXCOORDn per declaration element, with the
+        // byte offset baked in), so a re-labelled solution that keeps the source's permutation feeds the vertex
+        // shader the bytes at the SOURCE's offsets. Measured 2026-09-17 on the ACOG (Pos, BinormalSign, Color0@8,
+        // Normal@12, Tangent@20, TexCoord0@28) drawn by a ShadowFP clone whose layout said Normal@8/Tangent@16/
+        // UV@24: garbage normals and UVs = chrome reflections, "UVs mal" — while the AUG twin worked only because
+        // its declaration appends elements AFTER the shared prefix. So every re-labelled solution gets a clone of
+        // its vertex permutation whose elements are moved to the target declaration's offsets, matched by the
+        // usage each source element covers (the element at the source offset). One clone per source permutation.
+        (uint Hash, GeometryDeclarationDesc Desc)? s_TargetDecl = null;
+        if (p_NewDeclHash is { } s_WantedDecl)
+        {
+            s_TargetDecl = Declarations.Cast<(uint Hash, GeometryDeclarationDesc Desc)?>()
+                .FirstOrDefault(p_D => p_D!.Value.Hash == s_WantedDecl);
+            if (s_TargetDecl == null)
+                return $"ERROR: the target declaration 0x{s_WantedDecl:X8} is not in this database's declaration table";
+        }
+
+        var s_VertexClones = new Dictionary<VertexShaderPermutation, VertexShaderPermutation>();
+        var s_AppendVertices = new List<VertexShaderPermutation>();
+        var s_RelaidReport = (string?) null;
+
+        VertexShaderPermutation? RelayoutVertex(VertexShaderPermutation? p_Source, GeometryDeclarationDesc? p_SourceDecl)
+        {
+            if (p_Source == null || s_TargetDecl == null || p_SourceDecl == null)
+                return p_Source;
+
+            if (s_VertexClones.TryGetValue(p_Source, out var s_Known))
+                return s_Known;
+
+            var s_Target = s_TargetDecl.Value.Desc;
+            var s_Elements = (SharpDX.Direct3D11.InputElement[]) p_Source.Elements.Clone();
+            var s_Moves = new List<string>();
+
+            for (var i = 0; i < s_Elements.Length; i++)
+            {
+                var s_At = s_Elements[i].AlignedByteOffset;
+                var s_Usage = p_SourceDecl.Elements.FirstOrDefault(p_E => p_E.Offset == s_At &&
+                    p_E.Usage != fb.VertexElementUsage.VertexElementUsage_Unknown);
+                if (s_Usage == null)
+                {
+                    s_RemapFailed ??= $"input element {s_Elements[i].SemanticName}{s_Elements[i].SemanticIndex}@{s_At} matches no element of the source declaration";
+                    return p_Source;
+                }
+
+                var s_In = s_Target.Elements.FirstOrDefault(p_E => p_E.Usage == s_Usage.Usage);
+                if (s_In == null)
+                {
+                    s_RemapFailed ??= $"the target declaration has no {s_Usage.Usage} for input element {s_Elements[i].SemanticName}{s_Elements[i].SemanticIndex}";
+                    return p_Source;
+                }
+
+                if (s_In.Offset != s_At)
+                    s_Moves.Add($"{s_Elements[i].SemanticName}{s_Elements[i].SemanticIndex}({s_Usage.Usage})@{s_At}->{s_In.Offset}");
+                s_Elements[i].AlignedByteOffset = s_In.Offset;
+            }
+
+            var s_Clone = new VertexShaderPermutation
+            {
+                Guid = new RimeLib.Frostbite.Core.GUID(Guid.NewGuid()),
+                ShaderBytecode = p_Source.ShaderBytecode,
+                InputSignatureBytecode = p_Source.InputSignatureBytecode,
+                Constant = Remap(p_Source.Constant, Constants, s_From.Constants, "vertex constant")!,
+                ConstantFunction = Remap(p_Source.ConstantFunction, ConstantFunctions, s_From.ConstantFunctions, "vertex constant function")!,
+                TextureFunction = Remap(p_Source.TextureFunction, TextureFunctions, s_From.TextureFunctions, "vertex texture function")!,
+                Elements = s_Elements,
+                InstructionCount = p_Source.InstructionCount,
+            };
+
+            s_VertexClones[p_Source] = s_Clone;
+            s_AppendVertices.Add(s_Clone);
+            s_RelaidReport ??= s_Moves.Count == 0 ? "no offset moved" : string.Join(", ", s_Moves);
+            return s_Clone;
+        }
+
         foreach (var s_Solution in s_Source.Solutions)
         {
             var s_Mode = s_Solution.State?.Mode.ToString() ?? "";
@@ -378,6 +453,15 @@ public class ShaderDatabase
             // of the state and recompute its hash (the reader validates solution.StateHash == state.Hash).
             var s_StateClone = CloneStateForKey(s_Solution.State, p_NewKey, p_NewDeclHash, p_FromDeclHash);
 
+            // Re-labelled (the state's declaration changed): the vertex permutation is re-laid out too.
+            var s_Relabelled = p_NewDeclHash is { } s_NewDecl2 &&
+                               s_Solution.State.GeometryDeclarationHash != s_NewDecl2 &&
+                               s_StateClone.GeometryDeclarationHash == s_NewDecl2;
+            var s_VertexForClone = s_Relabelled
+                ? RelayoutVertex(Remap(s_Solution.VertexPermutation, VertexPermutations, s_From.VertexPermutations, "vertex permutation"),
+                    s_Solution.State.GeometryDeclarationDesc)
+                : Remap(s_Solution.VertexPermutation, VertexPermutations, s_From.VertexPermutations, "vertex permutation");
+
             var s_SolutionClone = new ShaderSolution
             {
                 StateHash = s_StateClone.Hash,
@@ -386,8 +470,7 @@ public class ShaderDatabase
                 SurfaceType = s_Solution.SurfaceType,
                 BlendMode = s_Solution.BlendMode,
                 ExtraData = s_Solution.ExtraData,
-                VertexPermutation = Remap(s_Solution.VertexPermutation, VertexPermutations,
-                    s_From.VertexPermutations, "vertex permutation"),
+                VertexPermutation = s_VertexForClone,
                 PixelPermutation = s_PixelClone,
                 GeometryPermutation = Remap(s_Solution.GeometryPermutation, GeometryPermutations,
                     s_From.GeometryPermutations, "geometry permutation"),
@@ -446,6 +529,17 @@ public class ShaderDatabase
             .OrderBy(p_P => p_P.Guid.Id, ByteArrayComparer.Instance)
             .ToArray();
 
+        // Vertex permutations are referenced by INDEX from the solutions (recomputed at serialize time), so an
+        // append is order-free; kept guid-sorted anyway when the originals are, so a runtime guid search on
+        // this section (the pixel one has it) keeps working.
+        if (s_AppendVertices.Count > 0)
+        {
+            var s_Sorted = VertexPermutations.Zip(VertexPermutations.Skip(1), (p_A, p_B) =>
+                ByteArrayComparer.Instance.Compare(p_A.Guid.Id, p_B.Guid.Id) <= 0).All(p_Ok => p_Ok);
+            var s_All = VertexPermutations.Concat(s_AppendVertices);
+            VertexPermutations = (s_Sorted ? s_All.OrderBy(p_P => p_P.Guid.Id, ByteArrayComparer.Instance) : s_All).ToArray();
+        }
+
         Constants = Constants.Concat(s_AppendConstants).ToArray();
         Shaders.Add(p_NewName, s_NewInfo);
         ShaderEntries.Add((p_NewKey, s_NewInfo));
@@ -454,7 +548,98 @@ public class ShaderDatabase
         // otherwise clone silently with every permutation left vanilla — a working-looking, wrong bake.
         return $"cloned '{s_SourceKey}' -> '{p_NewName}' (key 0x{p_NewKey:x8}): {s_Cloned} solution(s) deep-cloned " +
                $"({s_AppendPixels.Count} pixel permutation(s), {s_Patched} patched, " +
-               $"{s_AppendConstants.Count} constant(s)), {s_NewSolutions.Count - s_Cloned} shared outside the mode";
+               $"{s_AppendConstants.Count} constant(s)), {s_NewSolutions.Count - s_Cloned} shared outside the mode" +
+               (s_AppendVertices.Count > 0
+                   ? $"; {s_AppendVertices.Count} vertex permutation(s) re-laid out for decl 0x{p_NewDeclHash:X8}: {s_RelaidReport}"
+                   : "");
+    }
+
+    /// <summary>
+    /// Gives an entry (a CLONE, by its exact name or the "__unresolved_0x&lt;key&gt;" a re-read file files it under) vertex shaders of
+    /// its own that hand the mesh-space position to the pixel shader (<see cref="DxbcMeshPosition"/>, keku 2026-09-29: the emblem
+    /// projected like BF4's second unwrap). A clone SHARES its vertex permutations with the entry it was cloned from, so each one a
+    /// solution of the entry uses is copied under a fresh guid with the patched bytecode and the solution re-pointed — the source
+    /// entry, and every object wearing it, keeps the game's. A permutation without the pattern (depth-only) stays shared. Returns a
+    /// report line ("ERROR: ..." when nothing could be patched).
+    /// </summary>
+    public string PatchVertexMeshPosition(string p_Shader, uint p_Key)
+    {
+        var s_Unresolved = $"__unresolved_0x{p_Key:x8}";
+        SurfaceShaderInfo? s_Info = null;
+        foreach (var (s_Name, s_Entry) in Shaders)
+            if (s_Name.Equals(p_Shader, StringComparison.OrdinalIgnoreCase) || s_Name.Equals(s_Unresolved, StringComparison.OrdinalIgnoreCase))
+            {
+                s_Info = s_Entry;
+                break;
+            }
+
+        if (s_Info == null)
+            return $"ERROR: no entry '{p_Shader}' (nor '{s_Unresolved}') in this database";
+
+        var s_Copies = new Dictionary<VertexShaderPermutation, VertexShaderPermutation?>();
+        var s_Append = new List<VertexShaderPermutation>();
+        var s_Reports = new SortedSet<string>(StringComparer.Ordinal);
+        var s_Repointed = 0;
+        var s_Already = 0;
+        var s_Skipped = 0;
+        foreach (var s_Solution in s_Info.Solutions)
+        {
+            if (s_Solution.VertexPermutation is not { } s_Vertex)
+                continue;
+
+            if (DxbcMeshPosition.IsPatched(s_Vertex.ShaderBytecode))
+            {
+                s_Already++;
+                continue;
+            }
+
+            if (!s_Copies.TryGetValue(s_Vertex, out var s_Copy))
+            {
+                var s_Bytes = DxbcMeshPosition.Patch(s_Vertex.ShaderBytecode, out var s_Report);
+                s_Copy = s_Bytes == null
+                    ? null
+                    : new VertexShaderPermutation
+                    {
+                        Guid = new RimeLib.Frostbite.Core.GUID(Guid.NewGuid()),
+                        ShaderBytecode = s_Bytes,
+                        InputSignatureBytecode = s_Vertex.InputSignatureBytecode,
+                        Constant = s_Vertex.Constant,
+                        ConstantFunction = s_Vertex.ConstantFunction,
+                        TextureFunction = s_Vertex.TextureFunction,
+                        Elements = s_Vertex.Elements,
+                        InstructionCount = s_Vertex.InstructionCount,
+                    };
+                s_Copies[s_Vertex] = s_Copy;
+                if (s_Copy != null)
+                {
+                    s_Append.Add(s_Copy);
+                    s_Reports.Add(s_Report);
+                }
+            }
+
+            if (s_Copy == null)
+            {
+                s_Skipped++;
+                continue;
+            }
+
+            s_Solution.VertexPermutation = s_Copy;
+            s_Repointed++;
+        }
+
+        if (s_Append.Count > 0)
+        {
+            // kept guid-sorted when the originals are (see CloneShaderEntry)
+            var s_Sorted = VertexPermutations.Zip(VertexPermutations.Skip(1), (p_A, p_B) =>
+                ByteArrayComparer.Instance.Compare(p_A.Guid.Id, p_B.Guid.Id) <= 0).All(p_Ok => p_Ok);
+            var s_All = VertexPermutations.Concat(s_Append);
+            VertexPermutations = (s_Sorted ? s_All.OrderBy(p_P => p_P.Guid.Id, ByteArrayComparer.Instance) : s_All).ToArray();
+        }
+
+        var s_Line = $"'{p_Shader}': {s_Append.Count} vertex shader(s) copied with the mesh position, {s_Repointed} solution(s) re-pointed, " +
+                     $"{s_Skipped} left shared (no pattern), {s_Already} already patched" +
+                     (s_Reports.Count > 0 ? $" [{string.Join(" | ", s_Reports)}]" : "");
+        return s_Repointed == 0 && s_Already == 0 ? "ERROR: " + s_Line : s_Line;
     }
 
     /// <summary>

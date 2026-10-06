@@ -121,6 +121,9 @@ public class TextureGenerator : ITextureGenerator
         if (p_Attributes.SrgbGamma)
             s_Flags |= TextureFlags.SrgbGamma;
 
+        if (p_Attributes.OnDemandLoaded)
+            s_Flags |= TextureFlags.OnDemandLoaded;
+
         return s_Flags;
     }
     
@@ -142,8 +145,17 @@ public class TextureGenerator : ITextureGenerator
         var s_MipMapSizes = DDSUtils.CalculateMipMapSizes(p_Header);
 
         // Textures must always be compressed so set the flag in the GUID.
-        var s_ChunkGuid = new GUID(Guid.NewGuid());
-        s_ChunkGuid.SetCompressionFlag(true);
+        // A caller-supplied id lets the same texture be generated twice with the SAME chunk, which is what
+        // a split delivery needs (header resource NONCAS, pixel chunk CAS).
+        var s_ChunkGuid = new GUID(string.IsNullOrWhiteSpace(p_Attributes.ChunkId)
+            ? Guid.NewGuid()
+            : Guid.Parse(p_Attributes.ChunkId));
+
+        // A caller-supplied id keeps ITS OWN compression flag: the header has to agree with how the
+        // chunk was actually written, and a chunk shipped raw in a chunk-store superbundle is not
+        // compressed. Only a generated id is forced to the compressed default.
+        if (string.IsNullOrWhiteSpace(p_Attributes.ChunkId))
+            s_ChunkGuid.SetCompressionFlag(true);
         
         return new DxTexture
         {
@@ -161,7 +173,13 @@ public class TextureGenerator : ITextureGenerator
             StreamingChunkId = s_ChunkGuid,
             MipmapSizes = s_MipMapSizes,
             MipmapChainSize = (uint)s_MipMapSizes.Sum(x => x),
-            ResourceNameHash = (string.IsNullOrWhiteSpace(p_Attributes.Name) ? 0 : RimeLib.Frostbite.Utils.HashQuick(p_Attributes.Name)),
+            // LOWERCASE, always. Measured against DICE's own texture: the vanilla
+            // UI/Art/Persistence/Specializations/Camo/PremiumCamo_ABU carries 0x73882508, which is
+            // HashQuick of the name LOWERCASED -- HashQuick of the name as written gives 0x6D9E19E8.
+            // The engine pools textures by this hash, so a hash built from the caller's capitalisation
+            // indexes the texture wrong and takes the whole texture GROUP down with it (every camo
+            // thumbnail in the menu went blank the moment the bad one was first shown).
+            ResourceNameHash = (string.IsNullOrWhiteSpace(p_Attributes.Name) ? 0 : RimeLib.Frostbite.Utils.HashQuickLowerCase(p_Attributes.Name)),
             TextureGroup = p_Attributes.TextureGroup,
         };
     }

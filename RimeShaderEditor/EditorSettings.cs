@@ -26,6 +26,13 @@ public class EditorSettings
     public double PreviewOrbitSpeed { get; set; } = 1.0;
 
     /// <summary>
+    /// The field of view of the first-person view as the GAME's setting names it (horizontal on a 16:9 screen — measured against keku's
+    /// capture at 90), in degrees: the FOV bar over the 3D view (keku 2026-09-29). The game takes the player's own setting (the
+    /// soldier's camera forces none), so it is the user's to match; 70 is where it starts.
+    /// </summary>
+    public double FirstPersonFov { get; set; } = 70.0;
+
+    /// <summary>
     /// PREVIEW-ONLY: when false (default) the engine-fed thermal parameters (FLIRData/FLIRScale) read zero in
     /// the preview, the way the game renders with thermal optics off. When true they read the probe pattern,
     /// which shows the thermal tint path alive. Baking is untouched either way: these live in the material
@@ -53,11 +60,35 @@ public class EditorSettings
     /// </summary>
     public bool ExportTexturesAsPng { get; set; } = true;
 
+    /// <summary>
+    /// CAMO STUDIO ONLY: author a camo with a plain form — pick an image, set tiling and wear — instead of
+    /// with the node graph. Both reach the same place; this is about who is holding the tool. Off by
+    /// default, so the graph stays what the studio opens with and nobody is pushed into the simple path.
+    /// </summary>
+    public bool CamoSimpleMode { get; set; }
+
+    /// <summary>
+    /// CAMO STUDIO ONLY: the folder of the camo framework mod a bake drops its package into (the one holding
+    /// mod.json and ext/Shared/__init__.lua). Asked for on the first bake when empty, editable in Settings;
+    /// the bake registers the package there itself (keku: "cada vez que se bakee un mod, el propio camo
+    /// framework reemplaza el registro y el propio programa dropea el custom camo donde pertoca").
+    /// </summary>
+    public string CamoFrameworkFolder { get; set; } = "";
+
     /// <summary>Node-placement shortcut overrides, node kind -> key name ("Multiply" -> "Q"). Empty = defaults.</summary>
     public Dictionary<string, string> NodeShortcuts { get; set; } = new();
 
     /// <summary>Test seams point this at a scratch file so they never touch the user's real settings.</summary>
     internal static string? PathOverride;
+
+    /// <summary>
+    /// True when no settings file existed, i.e. this is the first time the editor runs on this machine.
+    ///
+    /// ⛔ NOT serialised: it is a fact about the LOAD, not a preference. Asking again because a preference
+    /// said so would survive the answer.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsFirstRun { get; private set; }
 
     private static string SettingsPath => PathOverride ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -79,6 +110,10 @@ public class EditorSettings
                 if (s_Loaded != null)
                     return s_Loaded.WithDefaults();
             }
+
+            // No file: first run on this machine. A corrupt one does NOT count — the paths in it may still
+            // be good, and re-asking would be the editor forgetting an answer it was already given.
+            return new EditorSettings { IsFirstRun = true }.WithDefaults();
         }
         catch
         {
@@ -131,6 +166,15 @@ public class EditorSettings
             // Losing the settings is not worth interrupting the user over.
         }
     }
+
+    /// <summary>
+    /// Whether a folder looks like the game's install. ONE predicate, used by the first-run window, the
+    /// settings dialog and the editor itself — three places asking "is this the game?" in three different
+    /// ways is how a dialog ends up accepting a folder the editor then refuses.
+    /// </summary>
+    public static bool LooksLikeGame(string? p_Folder) =>
+        !string.IsNullOrWhiteSpace(p_Folder) && Directory.Exists(p_Folder) &&
+        (File.Exists(Path.Combine(p_Folder, "bf3.exe")) || Directory.Exists(Path.Combine(p_Folder, "Data")));
 
     /// <summary>Reads the BF3 install directory the retail installer records under EA Games.</summary>
     public static string? DetectGamePath()

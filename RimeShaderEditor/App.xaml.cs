@@ -544,6 +544,15 @@ public partial class App : Application
 
                     return SettingsShot(p_Arguments[1]);
 
+                case "--firstrunshot":
+                    if (p_Arguments.Length < 2)
+                    {
+                        Console.Error.WriteLine("Usage: --firstrunshot <out.png>");
+                        return 2;
+                    }
+
+                    return FirstRunShot(p_Arguments[1]);
+
                 case "--asmparse":
                     if (p_Arguments.Length < 2)
                     {
@@ -776,8 +785,14 @@ public partial class App : Application
 
             if (int.TryParse(s_Register, out var s_Slot))
             {
-                p_Preview.SetTexture(s_Slot, s_Pixels, s_Converted.PixelWidth, s_Converted.PixelHeight);
-                Console.Out.WriteLine($"t{s_Slot} <- {Path.GetFileName(s_Png)}");
+                // The game's sRGB flag for that texture rides with the pixels, from the .dds beside the
+                // thumbnail — the view's format is an input of the shader (see ShaderPreview.CreateTexture).
+                var (s_Srgb, s_FromHeader) = RimeShaderEditor.View.DdsImage.SrgbOf(
+                    Path.Combine(p_CacheDir, Sanitize(s_Name) + ".dds"), s_Name);
+
+                p_Preview.SetTexture(s_Slot, s_Pixels, s_Converted.PixelWidth, s_Converted.PixelHeight, s_Srgb);
+                Console.Out.WriteLine($"t{s_Slot} <- {Path.GetFileName(s_Png)} " +
+                                      $"({(s_Srgb ? "sRGB" : "linear")}{(s_FromHeader ? "" : ", guessed: no .dds")})");
             }
         }
     }
@@ -796,6 +811,41 @@ public partial class App : Application
     /// Photographs the Settings dialog's content the way the human sees it — the dialog is a hand-built
     /// visual, so its correctness is judged by LOOKING, not by counting its controls.
     /// </summary>
+    /// <summary>
+    /// Photographs the window someone sees ONCE, the first time they open the editor — which is exactly the
+    /// screen nobody on this machine will ever see again, and therefore the one most likely to ship wrong.
+    /// </summary>
+    private static int FirstRunShot(string p_OutputPath)
+    {
+        var s_Window = new RimeShaderEditor.View.FirstRunWindow(RimeShaderEditor.EditorSettings.Load());
+        var s_Root = (System.Windows.UIElement) s_Window.Content;
+        s_Window.Content = null;
+
+        var s_Host = new System.Windows.Controls.Border
+        {
+            Background = s_Window.Background,
+            Child = s_Root,
+        };
+
+        s_Host.Measure(new System.Windows.Size(560, 2000));
+        s_Host.Arrange(new System.Windows.Rect(0, 0, 560, s_Host.DesiredSize.Height));
+        s_Host.UpdateLayout();
+
+        var s_Bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            560, (int) Math.Ceiling(s_Host.DesiredSize.Height), 96, 96,
+            System.Windows.Media.PixelFormats.Pbgra32);
+
+        s_Bitmap.Render(s_Host);
+
+        var s_Encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        s_Encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(s_Bitmap));
+        using (var s_Stream = File.Create(p_OutputPath))
+            s_Encoder.Save(s_Stream);
+
+        Console.Out.WriteLine($"Rendered the first-run window -> {p_OutputPath}");
+        return 0;
+    }
+
     private static int SettingsShot(string p_OutputPath)
     {
         var s_Owner = new RimeShaderEditor.MainWindow();
@@ -910,7 +960,7 @@ public partial class App : Application
                                    Environment.GetEnvironmentVariable("PREVIEW_TEXCACHE") is { Length: > 0 } s_ForeignCache
                     ? RimeShaderEditor.MainWindow.LoadForeignTexturesFromCache(s_Parts[2].Trim(), s_ForeignCache,
                         Environment.GetEnvironmentVariable("PREVIEW_MESH_NAME"))
-                    : new List<(int, uint[], int, int)>();
+                    : new List<(int, uint[], int, int, bool)>();
 
                 var s_ForeignError = s_Preview.RegisterForeignShader(s_Parts[0].Trim(),
                     File.ReadAllBytes(s_Parts[1].Trim()), s_ForeignArt,

@@ -1,0 +1,5112 @@
+{
+ "source": "ActionScript of the ui/assets movies (initData reads, var defaults, update*Data methods)",
+ "widgets": {
+  "actionscriptlibrary": {
+   "symbol": "ActionscriptLibrary",
+   "class": "Main.ActionscriptLibrary",
+   "chain": [
+    "Main.ActionscriptLibrary"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "advancedbar": {
+   "symbol": "AdvancedBar",
+   "class": "Widget.Bar.AdvancedBar",
+   "chain": [
+    "Widget.Bar.AdvancedBar"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "alertmanager": {
+   "symbol": "AlertManager",
+   "class": "Widget.Icon3D.Alerts.AlertManager",
+   "chain": [
+    "Widget.Icon3D.Alerts.AlertManager",
+    "Widget.Icon3D.Icon3DManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ammo": {
+   "symbol": "Ammo",
+   "class": "Widget.Hud.Ammo",
+   "chain": [
+    "Widget.Hud.Ammo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TotalAmmo",
+    "ClipAmmo",
+    "GrenadeAmmo",
+    "LowAmmo",
+    "ReloadButton",
+    "ShowAmmo",
+    "FiringMode",
+    "FiringModeTypes",
+    "ProjectileIndex",
+    "ProjectileTypes",
+    "HasAlternativeProjectiles",
+    "WeaponProgress",
+    "ActiveWeapon",
+    "Visible"
+   ]
+  },
+  "artificialhorizon": {
+   "symbol": "ArtificialHorizon",
+   "class": "Widget.Hud.ArtificialHorizon",
+   "chain": [
+    "Widget.Hud.ArtificialHorizon",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "HorizonRotationAccess",
+    "PitchAccess",
+    "BumpXAccess",
+    "BumpYAccess"
+   ]
+  },
+  "artificialhorizonhelicopter": {
+   "symbol": "ArtificialHorizonHelicopter",
+   "class": "Widget.Hud.ArtificialHorizonHelicopter",
+   "chain": [
+    "Widget.Hud.ArtificialHorizonHelicopter",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "HorizonRotationAccess",
+    "PitchAccess",
+    "BumpXAccess",
+    "BumpYAccess",
+    "VehicleName"
+   ]
+  },
+  "assignmentinfobox": {
+   "symbol": "AssignmentInfoBox",
+   "class": "Widget.ScreenSpecific.AssignmentInfoBox",
+   "chain": [
+    "Widget.ScreenSpecific.AssignmentInfoBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SelectedUnlock"
+   ]
+  },
+  "assignmentscreen": {
+   "symbol": "AssignmentScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "awardunlockinfobox": {
+   "symbol": "AwardUnlockInfoBox",
+   "class": "Widget.Eor.AwardUnlockInfoBox",
+   "chain": [
+    "Widget.Eor.AwardUnlockInfoBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "InEOR": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Eor.AwardUnlockInfoBox"
+    }
+   },
+   "dataNames": []
+  },
+  "bankangle": {
+   "symbol": "BankAngle",
+   "class": "Widget.Hud.BankAngle",
+   "chain": [
+    "Widget.Hud.BankAngle",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "ValueAccess"
+   ]
+  },
+  "battlelog": {
+   "symbol": "BattleLog",
+   "class": "Widget.Message.BattleLog",
+   "chain": [
+    "Widget.Message.BattleLog",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "State",
+    "BattleLog",
+    "BattleLogMessageCount",
+    "LoadingText",
+    "BattlelogEmail"
+   ]
+  },
+  "blackstartscreen": {
+   "symbol": "BlackStartScreen",
+   "class": "Screen.BlackStartScreen",
+   "chain": [
+    "Screen.BlackStartScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "bootcampscreen": {
+   "symbol": "BootCampScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "button": {
+   "symbol": "Button",
+   "class": "Widget.Button.Button",
+   "chain": [
+    "Widget.Button.Button",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "HideOnConsole": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Button.Button"
+    },
+    "TextData": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Button.Button"
+    },
+    "ButtonItem": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Button.Button"
+    },
+    "IconData": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Button.Button"
+    },
+    "Toggled": {
+     "default": null,
+     "kind": "bool",
+     "from": "Widget.Button.Button"
+    }
+   },
+   "dataNames": [
+    "ButtonItem",
+    "Visible"
+   ]
+  },
+  "buyservertransitionscreen": {
+   "symbol": "BuyServerTransitionScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "calibratetvbrightness1screen": {
+   "symbol": "CalibrateTvBrightness1Screen",
+   "class": "fb.Base.UIPopup",
+   "chain": [
+    "fb.Base.UIPopup",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "campaignmissionsscreen": {
+   "symbol": "CampaignMissionsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "cannonpredictivesight": {
+   "symbol": "CannonPredictiveSight",
+   "class": "Widget.Hud.CannonPredictiveSight",
+   "chain": [
+    "Widget.Hud.CannonPredictiveSight",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "BumpXAccess",
+    "BumpYAccess",
+    "WeaponName"
+   ]
+  },
+  "capturepointmanager": {
+   "symbol": "CapturepointManager",
+   "class": "Widget.Icon3D.Capturepoint.CapturepointManager",
+   "chain": [
+    "Widget.Icon3D.Capturepoint.CapturepointManager",
+    "Widget.Icon3D.Icon3DManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "changelistener": {
+   "symbol": "ChangeListener",
+   "class": "Widget.Listener.ChangeListener",
+   "chain": [
+    "Widget.Listener.ChangeListener",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Key"
+   ]
+  },
+  "chatlog": {
+   "symbol": "ChatLog",
+   "class": "Widget.Message.ChatLog",
+   "chain": [
+    "Widget.Message.ChatLog",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Visible",
+    "Message",
+    "NumberOfRows"
+   ]
+  },
+  "chatlogscreen": {
+   "symbol": "ChatLogScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "chatscreen": {
+   "symbol": "ChatScreen",
+   "class": "Screen.Chat.ChatScreen",
+   "chain": [
+    "Screen.Chat.ChatScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "checkbox": {
+   "symbol": "CheckBox",
+   "class": "Widget.CheckBox.CheckBox",
+   "chain": [
+    "Widget.CheckBox.CheckBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "StaticText": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.CheckBox.CheckBox"
+    }
+   },
+   "dataNames": [
+    "Text",
+    "Selected",
+    "Visible",
+    "Enabled",
+    "TextAccess",
+    "VisibleAccess",
+    "SelectedAccess",
+    "EnabledAccess"
+   ]
+  },
+  "climbratemeter": {
+   "symbol": "ClimbRateMeter",
+   "class": "Widget.Hud.ClimbRateMeter",
+   "chain": [
+    "Widget.Hud.ClimbRateMeter",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "valueOffset": {
+     "default": "50",
+     "kind": "number",
+     "from": "Widget.Hud.ClimbRateMeter"
+    }
+   },
+   "dataNames": [
+    "ClimbRate"
+   ]
+  },
+  "comcenter": {
+   "symbol": "ComCenter",
+   "class": "Widget.ComCenter.ComCenter",
+   "chain": [
+    "Widget.ComCenter.ComCenter",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "FriendsNum",
+    "InvitesNum",
+    "ComCenterEnabled"
+   ]
+  },
+  "comcenterheaderscreen": {
+   "symbol": "ComCenterHeaderScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "comcenterscreen": {
+   "symbol": "ComCenterScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "commrosescreen": {
+   "symbol": "CommRoseScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "compass": {
+   "symbol": "Compass",
+   "class": "Widget.Hud.Compass",
+   "chain": [
+    "Widget.Hud.Compass",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "HeadingAccess",
+    "ValueAccess",
+    "ObjectivesAccess",
+    "Heading",
+    "VisibleAccess",
+    "Visible",
+    "ShowAirRadar",
+    "RadarSweepDegree",
+    "RadarSweepDegreeAccess"
+   ]
+  },
+  "comrose": {
+   "symbol": "ComRose",
+   "class": "Widget.Hud.ComRose",
+   "chain": [
+    "Widget.Hud.ComRose",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SelectedButton",
+    "InVehicle",
+    "IsAlive",
+    "IsLeaderInActiveSquad"
+   ]
+  },
+  "consolebuttonbar": {
+   "symbol": "ConsoleButtonBar",
+   "class": "Widget.Button.ConsoleButtonBar",
+   "chain": [
+    "Widget.Button.ConsoleButtonBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Buttons",
+    "InputOnRelease",
+    "Visible"
+   ]
+  },
+  "controller": {
+   "symbol": "Controller",
+   "class": "Widget.ScreenSpecific.Controller",
+   "chain": [
+    "Widget.ScreenSpecific.Controller",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "m_ps3ImagePath": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.ScreenSpecific.Controller"
+    },
+    "m_xenonImagePath": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.ScreenSpecific.Controller"
+    }
+   },
+   "dataNames": [
+    "LayoutHighlighted",
+    "LayoutAlternativesSelected"
+   ]
+  },
+  "coopcollectablesscreen": {
+   "symbol": "CoopCollectablesScreen",
+   "class": "Screen.CoopCollectablesScreen",
+   "chain": [
+    "Screen.CoopCollectablesScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopeormissionresultsscreen": {
+   "symbol": "CoopEORMissionResultsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopeorstatsscreen": {
+   "symbol": "CoopEORStatsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopfrienddifficultyscreen": {
+   "symbol": "CoopFriendDifficultyScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopfriendinvitescreen": {
+   "symbol": "CoopFriendInviteScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopfriendmissionscreen": {
+   "symbol": "CoopFriendMissionScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopleaderboardmissionscreen": {
+   "symbol": "CoopLeaderBoardMissionScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopleaderboardsscreen": {
+   "symbol": "CoopLeaderboardsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopmissionresults": {
+   "symbol": "CoopMissionResults",
+   "class": "Widget.Eor.CoopMissionResults",
+   "chain": [
+    "Widget.Eor.CoopMissionResults",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "MissionSuccess",
+    "BeatenPreviousScore",
+    "CompletionTime",
+    "BestScore",
+    "Difficulty",
+    "MissionName",
+    "MissionDebriefing",
+    "LocalPlayer",
+    "RemotePlayer"
+   ]
+  },
+  "cooppublicdifficultyscreen": {
+   "symbol": "CoopPublicDifficultyScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "cooppublicmissionscreen": {
+   "symbol": "CoopPublicMissionScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopscreen": {
+   "symbol": "CoopScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopstats": {
+   "symbol": "CoopStats",
+   "class": "Widget.Stats.CoopStats",
+   "chain": [
+    "Widget.Stats.CoopStats",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopstatsscreen": {
+   "symbol": "CoopStatsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "coopwaitingscreen": {
+   "symbol": "CoopWaitingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "credits": {
+   "symbol": "Credits",
+   "class": "Widget.ScreenSpecific.Credits",
+   "chain": [
+    "Widget.ScreenSpecific.Credits",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "m_screenXrot": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_screenYrot": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_screenZrot": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_sidesXoffset": {
+     "default": "800",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_sidesYoffset": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_zoffset": {
+     "default": "-15000",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_xrotation": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_yrotation": {
+     "default": "45",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_zrotation": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_animTime": {
+     "default": "3",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_pageDelayMs": {
+     "default": "5000",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    },
+    "m_middleZoffset": {
+     "default": "4000",
+     "kind": "number",
+     "from": "Widget.ScreenSpecific.Credits"
+    }
+   },
+   "dataNames": [
+    "CreditsPage"
+   ]
+  },
+  "creditsmenuscreenpc": {
+   "symbol": "CreditsMenuScreenPC",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "creditsscreen": {
+   "symbol": "CreditsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "creditsscreensp": {
+   "symbol": "CreditsScreenSP",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "crosshair": {
+   "symbol": "Crosshair",
+   "class": "Widget.Crosshair.Crosshair",
+   "chain": [
+    "Widget.Crosshair.Crosshair",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "HideOnZoom": {
+     "default": "false",
+     "kind": "string",
+     "from": "Widget.Crosshair.Crosshair"
+    }
+   },
+   "dataNames": [
+    "VisibleAccess",
+    "Visible",
+    "BaseValue",
+    "Zoomed",
+    "Dispersion"
+   ]
+  },
+  "crosshaircircle": {
+   "symbol": "CrosshairCircle",
+   "class": "Screen.Weapon.CrosshairCircle",
+   "chain": [
+    "Screen.Weapon.CrosshairCircle",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "crosshaircirclehideonzoom": {
+   "symbol": "CrosshairCircleHideOnZoom",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "crosshairdefault": {
+   "symbol": "CrosshairDefault",
+   "class": "Screen.Weapon.CrosshairDefault",
+   "chain": [
+    "Screen.Weapon.CrosshairDefault",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "crosshairdot": {
+   "symbol": "CrosshairDot",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "crosshairgrenadelauncher": {
+   "symbol": "CrosshairGrenadeLauncher",
+   "class": "Screen.Weapon.CrosshairGrenadeLauncher",
+   "chain": [
+    "Screen.Weapon.CrosshairGrenadeLauncher",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "crosshairgrenadelauncherhideonzoom": {
+   "symbol": "CrosshairGrenadeLauncherHideOnZoom",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizeaccessoriesscreen": {
+   "symbol": "CustomizeAccessoriesScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizeairscreen": {
+   "symbol": "CustomizeAirScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizeairsubscreen": {
+   "symbol": "CustomizeAirSubScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizeappearancescreen": {
+   "symbol": "CustomizeAppearanceScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizelandscreen": {
+   "symbol": "CustomizeLandScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizelandsubscreen": {
+   "symbol": "CustomizeLandSubScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizesoldierscreen": {
+   "symbol": "CustomizeSoldierScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "customizesoldiersubscreen": {
+   "symbol": "CustomizeSoldierSubScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "cutscenemessage": {
+   "symbol": "CutsceneMessage",
+   "class": "Widget.Message.CutsceneMessage",
+   "chain": [
+    "Widget.Message.CutsceneMessage",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Message"
+   ]
+  },
+  "damageindicator": {
+   "symbol": "DamageIndicator",
+   "class": "Widget.Hud.DamageIndicator",
+   "chain": [
+    "Widget.Hud.DamageIndicator",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Indicator"
+   ]
+  },
+  "debugfield": {
+   "symbol": "WidgetTemplate",
+   "class": "Widget.Text.DebugField",
+   "chain": [
+    "Widget.Text.DebugField",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "Label": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Text.DebugField"
+    }
+   },
+   "dataNames": [
+    "Label",
+    "Data"
+   ]
+  },
+  "debugscreen": {
+   "symbol": "DebugScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "debugscreencrosshairs": {
+   "symbol": "DebugScreenCrosshairs",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "deckofcards": {
+   "symbol": "DeckOfCards",
+   "class": "Widget.DeckOfCards.DeckOfCards",
+   "chain": [
+    "Widget.DeckOfCards.DeckOfCards",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "IsEnabled",
+    "Items"
+   ]
+  },
+  "defaultaamissilesscreen": {
+   "symbol": "DefaultAAMissilesScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaultairscreen": {
+   "symbol": "DefaultAirScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaultgunshipscreen": {
+   "symbol": "DefaultGunshipScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaulthelicoptergunnerscreen": {
+   "symbol": "DefaultHelicopterGunnerScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaulthelicopterscreen": {
+   "symbol": "DefaultHelicopterScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaultmfdmissilescreen": {
+   "symbol": "DefaultMFDMissileScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaultmfdscreen": {
+   "symbol": "DefaultMFDScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaultmissilescreen": {
+   "symbol": "DefaultMissileScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaultspmfdscreen": {
+   "symbol": "DefaultSPMFDScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaulttankgunnerscreen": {
+   "symbol": "DefaultTankGunnerScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaulttankgunnerscreennoturretdisp": {
+   "symbol": "DefaultTankGunnerScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaulttankscreen": {
+   "symbol": "DefaultTankScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaulttrackingscreen": {
+   "symbol": "DefaultTrackingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "defaultweapon": {
+   "symbol": "DefaultWeapon",
+   "class": "Screen.Weapon.DefaultWeapon",
+   "chain": [
+    "Screen.Weapon.DefaultWeapon",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "descriptionbox": {
+   "symbol": "DescriptionBox",
+   "class": "Widget.Text.DescriptionBox",
+   "chain": [
+    "Widget.Text.DescriptionBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TextAccess",
+    "VisibleAccess",
+    "Visible",
+    "Text"
+   ]
+  },
+  "deviceselectionscreen": {
+   "symbol": "DeviceSelectionScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "devscreen": {
+   "symbol": "DevScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "dimmer": {
+   "symbol": "Dimmer",
+   "class": "Widget.Image.Dimmer",
+   "chain": [
+    "Widget.Image.Dimmer",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "DimFromStart": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Image.Dimmer"
+    },
+    "InstantDim": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Image.Dimmer"
+    }
+   },
+   "dataNames": [
+    "Visible"
+   ]
+  },
+  "dogtagpair": {
+   "symbol": "DogTagPair",
+   "class": "Widget.DogTag.DogTagPair",
+   "chain": [
+    "Widget.DogTag.DogTagPair",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "p_static": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.DogTag.DogTagPair"
+    }
+   },
+   "dataNames": [
+    "basicData",
+    "advancedData"
+   ]
+  },
+  "dynamictexture": {
+   "symbol": "DynamicTexture",
+   "class": "Widget.Image.DynamicTexture",
+   "chain": [
+    "Widget.Image.DynamicTexture",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "TextureId": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Image.DynamicTexture"
+    },
+    "SpinnerXOffset": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.Image.DynamicTexture"
+    },
+    "SpinnerYOffset": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.Image.DynamicTexture"
+    }
+   },
+   "dataNames": [
+    "ImageLoaded",
+    "Visible"
+   ]
+  },
+  "e3clicktostartscreen": {
+   "symbol": "E3ClickToStartScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "emptyscreen": {
+   "symbol": "EmptyScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eodrecdisplay": {
+   "symbol": "EODRecDisplay",
+   "class": "Widget.Hud.EODRecDisplay",
+   "chain": [
+    "Widget.Hud.EODRecDisplay",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SystemTimeAccess"
+   ]
+  },
+  "eodscreen": {
+   "symbol": "EODScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorassignmentsscreen": {
+   "symbol": "EORAssignmentsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorassignmentstabscreen": {
+   "symbol": "EORAssignmentsTabScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorassignmentunlocks": {
+   "symbol": "EorAssignmentUnlocks",
+   "class": "Widget.Eor.EorAssignmentUnlocks",
+   "chain": [
+    "Widget.Eor.EorAssignmentUnlocks",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Unlocks"
+   ]
+  },
+  "eordetailsawardsscreen": {
+   "symbol": "EORDetailsAwardsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eordetailskitsscreen": {
+   "symbol": "EORDetailsKitsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eordetailsscoreboardscreen": {
+   "symbol": "EORDetailsScoreboardScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eordetailsstatsscreen": {
+   "symbol": "EORDetailsStatsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eordetailstabsscreen": {
+   "symbol": "EORDetailsTabsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eordetailsunlocksscreen": {
+   "symbol": "EORDetailsUnlocksScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eordetailsvehiclesscreen": {
+   "symbol": "EORDetailsVehiclesScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorheader": {
+   "symbol": "EorHeader",
+   "class": "Widget.Eor.EorHeader",
+   "chain": [
+    "Widget.Eor.EorHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorprogress": {
+   "symbol": "EorProgress",
+   "class": "Widget.Eor.EorProgress",
+   "chain": [
+    "Widget.Eor.EorProgress",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorprogressscreen": {
+   "symbol": "EORProgressScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorscoreboardheaderscreen": {
+   "symbol": "EORScoreboardHeaderScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eortopplayersscreen": {
+   "symbol": "EORTopPlayersScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "eorwinningteamscreen": {
+   "symbol": "EORWinningTeamScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "extramenuscreen": {
+   "symbol": "ExtraMenuScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "failedscreen": {
+   "symbol": "FailedScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "flagcounter": {
+   "symbol": "FlagCounter",
+   "class": "Widget.FlagCounter.FlagCounter",
+   "chain": [
+    "Widget.FlagCounter.FlagCounter",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "FriendlyTeamName",
+    "EnemyTeamName",
+    "FriendlyFlags",
+    "EnemyFlags",
+    "MaxFlags",
+    "VisibleAccess"
+   ]
+  },
+  "flagprogress": {
+   "symbol": "FlagProgress",
+   "class": "Widget.FlagCounter.FlagProgress",
+   "chain": [
+    "Widget.FlagCounter.FlagProgress",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TimeLeft",
+    "FriendlyProgress",
+    "EnemyProgress",
+    "FriendlyFlagStatus",
+    "EnemyFlagStatus",
+    "VisibleAccess"
+   ]
+  },
+  "friendslistscreen": {
+   "symbol": "FriendsListScreen",
+   "class": "Screen.FriendsListScreen",
+   "chain": [
+    "Screen.FriendsListScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "gadgetdetailsscreen": {
+   "symbol": "GadgetDetailsScreen",
+   "class": "Screen.GadgetDetailsScreen",
+   "chain": [
+    "Screen.GadgetDetailsScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "gamemodeinfo": {
+   "symbol": "GamemodeInfo",
+   "class": "Widget.Info.GamemodeInfo",
+   "chain": [
+    "Widget.Info.GamemodeInfo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Gamemode",
+    "IsAttacker"
+   ]
+  },
+  "gofirstpartyonlineloadingscreen": {
+   "symbol": "GoFirstPartyOnlineLoadingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "goonlineloadingscreen": {
+   "symbol": "GoOnlineLoadingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "grid": {
+   "symbol": "Grid",
+   "class": "Widget.Grid.Grid",
+   "chain": [
+    "Widget.Grid.Grid",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "p_cellType": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_selectedIndex": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_keyboardNavigation": {
+     "default": "1",
+     "kind": "flag",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_highlightInactive": {
+     "default": "0",
+     "kind": "flag",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_dynamicLoading": {
+     "default": "0",
+     "kind": "string",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_activeCellState": {
+     "default": "0",
+     "kind": "string",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_itemPicker": {
+     "default": "0",
+     "kind": "flag",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_animTime": {
+     "default": "1",
+     "kind": "number",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_itemPickerAlphaMin": {
+     "default": "0",
+     "kind": "number",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_itemPickerAlphaMax": {
+     "default": "100",
+     "kind": "number",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_isStaticGrid": {
+     "default": "0",
+     "kind": "flag",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_useTooltip": {
+     "default": "0",
+     "kind": "string",
+     "from": "Widget.Grid.Grid"
+    },
+    "p_alignCenter": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Grid.Grid"
+    }
+   },
+   "dataNames": [
+    "selectedIndex",
+    "GridItems"
+   ]
+  },
+  "gunmasterdeploy": {
+   "symbol": "GunMasterDeploy",
+   "class": "Widget.ScreenSpecific.GunMasterDeploy",
+   "chain": [
+    "Widget.ScreenSpecific.GunMasterDeploy",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "LevelInfo",
+    "Friendlies",
+    "Enemies",
+    "LevelCount"
+   ]
+  },
+  "gunmasterprogress": {
+   "symbol": "GunMasterProgress",
+   "class": "Widget.Hud.GunMasterProgress",
+   "chain": [
+    "Widget.Hud.GunMasterProgress",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "LevelList"
+   ]
+  },
+  "health": {
+   "symbol": "Health",
+   "class": "Widget.Hud.Health",
+   "chain": [
+    "Widget.Hud.Health",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "HealthData": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Hud.Health"
+    }
+   },
+   "dataNames": [
+    "Health"
+   ]
+  },
+  "heligunnerdirectiondisplay": {
+   "symbol": "HeliGunnerDirectionDisplay",
+   "class": "Widget.Hud.HeliGunnerDirectionDisplay",
+   "chain": [
+    "Widget.Hud.HeliGunnerDirectionDisplay",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "isGunner": {
+     "default": "false",
+     "kind": "string",
+     "from": "Widget.Hud.HeliGunnerDirectionDisplay"
+    }
+   },
+   "dataNames": [
+    "RotationPercentage",
+    "PitchPercentage",
+    "VehicleName"
+   ]
+  },
+  "hitindicator": {
+   "symbol": "Hitindicator",
+   "class": "Widget.Crosshair.Hitindicator",
+   "chain": [
+    "Widget.Crosshair.Hitindicator",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "IndicatorValue",
+    "IsInVehicle",
+    "Color"
+   ]
+  },
+  "hudalertmessage": {
+   "symbol": "HudAlertMessage",
+   "class": "Widget.Message.HudAlertMessage",
+   "chain": [
+    "Widget.Message.HudAlertMessage",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "m_staticDescription": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Message.HudAlertMessage"
+    },
+    "m_staticTitle": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Message.HudAlertMessage"
+    }
+   },
+   "dataNames": [
+    "WarningVisibility",
+    "RevivedVisibility",
+    "WaitingVisibility",
+    "DeathVisibility",
+    "FailedVisibility",
+    "InformationVisibility",
+    "SquadLeaderVisibility",
+    "FlagTransporterVisibility",
+    "FlagHolderVisibility",
+    "LastManStandingVisibility",
+    "Description",
+    "Title",
+    "Timer"
+   ]
+  },
+  "hudbackground": {
+   "symbol": "HudBackground",
+   "class": "Shared.HudBackground",
+   "chain": [
+    "Shared.HudBackground"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudbackgroundwidget": {
+   "symbol": "HudBackgroundWidget",
+   "class": "Widget.Hud.HudBackgroundWidget",
+   "chain": [
+    "Widget.Hud.HudBackgroundWidget",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "m_enableTilt": {
+     "default": "\"none\"",
+     "kind": "string",
+     "from": "Widget.Hud.HudBackgroundWidget"
+    },
+    "m_width": {
+     "default": null,
+     "kind": "number",
+     "from": "Widget.Hud.HudBackgroundWidget"
+    },
+    "m_height": {
+     "default": null,
+     "kind": "number",
+     "from": "Widget.Hud.HudBackgroundWidget"
+    }
+   },
+   "dataNames": [
+    "Visible",
+    "ShowAirRadar"
+   ]
+  },
+  "hudconquestscreen": {
+   "symbol": "HudConquestScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudcoopscreen": {
+   "symbol": "HudCoopScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudctfscreen": {
+   "symbol": "HudCTFScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudgmscreen": {
+   "symbol": "HudGMScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudmatchpreroundscreen": {
+   "symbol": "HudMatchPreroundScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudmessage": {
+   "symbol": "HudMessage",
+   "class": "Widget.Message.HudMessage",
+   "chain": [
+    "Widget.Message.HudMessage",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "NumberOfRows",
+    "MessageAccess",
+    "Message"
+   ]
+  },
+  "hudmpscreen": {
+   "symbol": "HudMPScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudpreroundscreen": {
+   "symbol": "HudPreroundScreen",
+   "class": "Screen.HudPreroundScreen",
+   "chain": [
+    "Screen.HudPreroundScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudquicktimeevents": {
+   "symbol": "HudQuicktimeEvents",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudrushscreen": {
+   "symbol": "HudRushScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudscreen": {
+   "symbol": "HudScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudsdmscreen": {
+   "symbol": "HudSDMScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudspscreen": {
+   "symbol": "HudSPScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "hudtdmscreen": {
+   "symbol": "HudTDMScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "iconsshared": {
+   "symbol": "mc_iconsMenuKitLarge",
+   "class": "Shared.KitIcons",
+   "chain": [
+    "Shared.KitIcons"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "idletimer": {
+   "symbol": "IdleTimer",
+   "class": "Widget.Misc.IdleTimer",
+   "chain": [
+    "Widget.Misc.IdleTimer",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "imagemanager": {
+   "symbol": "ImageManager",
+   "class": "Widget.Image.ImageManager",
+   "chain": [
+    "Widget.Image.ImageManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "StaticUrl": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Image.ImageManager"
+    },
+    "ResizeToTarget": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Image.ImageManager"
+    }
+   },
+   "dataNames": [
+    "ImageUrl",
+    "Visible"
+   ]
+  },
+  "ingamemapsscreen": {
+   "symbol": "IngameMapsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingamemenucoop": {
+   "symbol": "IngameMenuCoop",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingamemenump": {
+   "symbol": "IngameMenuMP",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingamemenusp": {
+   "symbol": "IngameMenuSP",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingamemenusp_pc": {
+   "symbol": "IngameMenuSP_PC",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingameplayersfoursquads": {
+   "symbol": "IngamePlayersFourSquads",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingameplayersscreen": {
+   "symbol": "IngamePlayersScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingameplayerstwosquads": {
+   "symbol": "IngamePlayersTwoSquads",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ingameserverinfoscreen": {
+   "symbol": "IngameServerInfoScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "inputlistener": {
+   "symbol": "InputListener",
+   "class": "Widget.Input.InputListener",
+   "chain": [
+    "Widget.Input.InputListener",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "interactionmanager": {
+   "symbol": "InteractionManager",
+   "class": "Widget.Icon3D.Interaction.InteractionManager",
+   "chain": [
+    "Widget.Icon3D.Interaction.InteractionManager",
+    "Widget.Icon3D.Icon3DManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "invitefriendscreen": {
+   "symbol": "InviteFriendScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "javelinhud": {
+   "symbol": "JavelinHud",
+   "class": "Widget.Hud.JavelinHud",
+   "chain": [
+    "Widget.Hud.JavelinHud",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Seeking",
+    "LaserLocked",
+    "NormalLocked",
+    "Reloading"
+   ]
+  },
+  "javelinscreen": {
+   "symbol": "JavelinScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "jettrackingandlocking": {
+   "symbol": "JetTrackingAndLocking",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "jettrackingandlockingmanager": {
+   "symbol": "JetTrackingAndLockingManager",
+   "class": "Widget.Icon3D.TrackingAndLocking.TrackingAndLockingManager",
+   "chain": [
+    "Widget.Icon3D.TrackingAndLocking.TrackingAndLockingManager",
+    "Widget.Icon3D.Icon3DManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "joiningserverwaitingfordatascreen": {
+   "symbol": "JoiningServerWaitingForDataScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "jphealthwarningscreen": {
+   "symbol": "JPHealthWarningScreen",
+   "class": "Screen.Frontend.JPHealthWarningScreen",
+   "chain": [
+    "Screen.Frontend.JPHealthWarningScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "killcam": {
+   "symbol": "KillCam",
+   "class": "Widget.ScreenSpecific.KillCam",
+   "chain": [
+    "Widget.ScreenSpecific.KillCam",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "DogtagBasic",
+    "DogtagAdvanced",
+    "Suicide",
+    "BadLuck",
+    "IsPro",
+    "Name",
+    "Rank",
+    "Health",
+    "Kit",
+    "MyScore",
+    "HisScore",
+    "Weapon",
+    "Cust1",
+    "Cust2",
+    "Cust3",
+    "Cust1Sid",
+    "Cust2Sid",
+    "Cust3Sid",
+    "IsNemesis",
+    "WeaponType",
+    "VehicleSeat",
+    "WeaponImage",
+    "RankImage",
+    "DogtagImage",
+    "WeaponServiceStars",
+    "KitServiceStars"
+   ]
+  },
+  "killscreen": {
+   "symbol": "KillScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "kitbar": {
+   "symbol": "KitBar",
+   "class": "Widget.Bar.KitBar",
+   "chain": [
+    "Widget.Bar.KitBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SelectedKit",
+    "Kits",
+    "ScoreboardEnabled"
+   ]
+  },
+  "kitinfobox": {
+   "symbol": "KitInfoBox",
+   "class": "Widget.CustomizeKit.KitInfoBox",
+   "chain": [
+    "Widget.CustomizeKit.KitInfoBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "kitprogress": {
+   "symbol": "KitProgress",
+   "class": "Widget.Bar.KitProgress",
+   "chain": [
+    "Widget.Bar.KitProgress",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Kit"
+   ]
+  },
+  "kitselector": {
+   "symbol": "KitSelector",
+   "class": "Widget.CustomizeKit.KitView",
+   "chain": [
+    "Widget.CustomizeKit.KitView",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "BtnLabel1": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.CustomizeKit.KitView"
+    },
+    "BtnLabel2": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.CustomizeKit.KitView"
+    }
+   },
+   "dataNames": [
+    "Setup",
+    "Visibility"
+   ]
+  },
+  "kitview": {
+   "symbol": "KitView",
+   "class": "Widget.CustomizeKit.KitView",
+   "chain": [
+    "Widget.CustomizeKit.KitView",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "BtnLabel1": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.CustomizeKit.KitView"
+    },
+    "BtnLabel2": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.CustomizeKit.KitView"
+    }
+   },
+   "dataNames": [
+    "Setup",
+    "Visibility"
+   ]
+  },
+  "latencyindicator": {
+   "symbol": "LatencyIndicator",
+   "class": "Widget.Misc.LatencyIndicator",
+   "chain": [
+    "Widget.Misc.LatencyIndicator",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Visible"
+   ]
+  },
+  "leaderboardlistheader": {
+   "symbol": "LeaderBoardListHeader",
+   "class": "Widget.MissionHeader.LeaderBoardListHeader",
+   "chain": [
+    "Widget.MissionHeader.LeaderBoardListHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Column"
+   ]
+  },
+  "list": {
+   "symbol": "List",
+   "class": "Widget.List.List",
+   "chain": [
+    "Widget.List.List",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "ListAccess",
+    "NavigationType",
+    "NavigationTypeSource",
+    "List",
+    "Visible",
+    "RowType",
+    "UseScrollBar",
+    "ListIndex",
+    "ScreenRotationEnabled",
+    "UnFocusMode",
+    "Use3DSelection",
+    "DataIncludesButtonLayout",
+    "ClearListAtNavigationEvent",
+    "RowSpacing",
+    "SendIndexWithEvent",
+    "EmptyRowType",
+    "HighlightedRow"
+   ]
+  },
+  "loaddiscscreen": {
+   "symbol": "LoadDiscScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "loadingmessage": {
+   "symbol": "LoadingMessage",
+   "class": "Widget.Message.LoadingMessage",
+   "chain": [
+    "Widget.Message.LoadingMessage",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "InvertVisible": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Message.LoadingMessage"
+    },
+    "WaitingMessage": {
+     "default": "\"ID_M_LOADING\"",
+     "kind": "string",
+     "from": "Widget.Message.LoadingMessage"
+    }
+   },
+   "dataNames": [
+    "LevelName",
+    "Finished",
+    "Visible"
+   ]
+  },
+  "loadingscreen": {
+   "symbol": "LoadingScreen",
+   "class": "Screen.LoadingScreen",
+   "chain": [
+    "Screen.LoadingScreen"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "loadingspinner": {
+   "symbol": "LoadingSpinner",
+   "class": "Widget.Loading.LoadingSpinner",
+   "chain": [
+    "Widget.Loading.LoadingSpinner",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "startAsVisible": {
+     "default": "false",
+     "kind": "string",
+     "from": "Widget.Loading.LoadingSpinner"
+    }
+   },
+   "dataNames": [
+    "Visibility",
+    "StartVisible"
+   ]
+  },
+  "logmessage": {
+   "symbol": "LogMessage",
+   "class": "Widget.Message.LogMessage",
+   "chain": [
+    "Widget.Message.LogMessage",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Message"
+   ]
+  },
+  "mainmenuscreen": {
+   "symbol": "MainMenuScreen",
+   "class": "Screen.Frontend.MainMenuScreen",
+   "chain": [
+    "Screen.Frontend.MainMenuScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "mainmenuscreenpc": {
+   "symbol": "MainMenuScreenPC",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "managemaprotationscreen": {
+   "symbol": "ManageMapRotationScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "manageplayersscreen": {
+   "symbol": "ManagePlayersScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "manageplayerswaitingscreen": {
+   "symbol": "ManagePlayersWaitingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "managepresetsscreen": {
+   "symbol": "ManagePresetsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "manageserverinfoloadingscreen": {
+   "symbol": "ManageServerInfoLoadingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "manageserverinfoscreen": {
+   "symbol": "ManageServerInfoScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "managesettingsscreen": {
+   "symbol": "ManageSettingsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "manualscreen": {
+   "symbol": "ManualScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "mapmarkermanager": {
+   "symbol": "MapmarkerManager",
+   "class": "Widget.Icon3D.Mapmarker.MapmarkerManager",
+   "chain": [
+    "Widget.Icon3D.Mapmarker.MapmarkerManager",
+    "Widget.Icon3D.Icon3DManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "matchesscreen": {
+   "symbol": "MatchesScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "matchinfobox": {
+   "symbol": "MatchInfoBox",
+   "class": "Widget.ScreenSpecific.MatchInfoBox",
+   "chain": [
+    "Widget.ScreenSpecific.MatchInfoBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "MatchInfo",
+    "PingValue"
+   ]
+  },
+  "matchpreroundinformation": {
+   "symbol": "MatchPreroundInformation",
+   "class": "Widget.Hud.MatchPreroundInformation",
+   "chain": [
+    "Widget.Hud.MatchPreroundInformation",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "PreroundStatus"
+   ]
+  },
+  "matchteamheader": {
+   "symbol": "MatchTeamHeader",
+   "class": "Widget.ScreenSpecific.MatchTeamHeader",
+   "chain": [
+    "Widget.ScreenSpecific.MatchTeamHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TeamInfo"
+   ]
+  },
+  "menuactionscriptlibrary": {
+   "symbol": "ActionscriptLibrary",
+   "class": "Main.ActionscriptLibrary",
+   "chain": [
+    "Main.ActionscriptLibrary"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "menuhint": {
+   "symbol": "MenuHint",
+   "class": "Widget.Text.MenuHint",
+   "chain": [
+    "Widget.Text.MenuHint",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TextAccess",
+    "VisibleAccess",
+    "Visible",
+    "Text"
+   ]
+  },
+  "minimap": {
+   "symbol": "Minimap",
+   "class": "Widget.Hud.Minimap",
+   "chain": [
+    "Widget.Hud.Minimap",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Size",
+    "Zoom",
+    "ShowCross",
+    "HitIndicatorValue",
+    "ShowAirRadar"
+   ]
+  },
+  "missionheadermp": {
+   "symbol": "MissionHeaderMP",
+   "class": "Widget.MissionHeader.MissionHeaderMP",
+   "chain": [
+    "Widget.MissionHeader.MissionHeaderMP",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "m_width": {
+     "default": "385",
+     "kind": "number",
+     "from": "Widget.MissionHeader.MissionHeaderMP"
+    }
+   },
+   "dataNames": [
+    "Header",
+    "SubHeader",
+    "Icon"
+   ]
+  },
+  "missionheadersp": {
+   "symbol": "MissionHeaderSP",
+   "class": "Widget.MissionHeader.MissionHeaderSP",
+   "chain": [
+    "Widget.MissionHeader.MissionHeaderSP",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Header",
+    "SubHeader",
+    "Icon"
+   ]
+  },
+  "multiplayerawardsscreen": {
+   "symbol": "MultiplayerAwardsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "multiplayerdogtagsscreen": {
+   "symbol": "MultiplayerDogtagsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "multiplayerleaderboardsscreen": {
+   "symbol": "MultiplayerLeaderboardsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "multiplayermissionsscreen": {
+   "symbol": "MultiplayerMissionsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "multiplayermykillcardscreen": {
+   "symbol": "MultiplayerMyKillcardScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "multiplayerribbonsscreen": {
+   "symbol": "MultiplayerRibbonsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "multiplayerscreen": {
+   "symbol": "MultiPlayerScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "multiplayerstatsscreen": {
+   "symbol": "MultiplayerStatsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "myprogressionkitsscreen": {
+   "symbol": "MyProgressionKitsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "myprogressionvehiclesscreen": {
+   "symbol": "MyProgressionVehiclesScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "myserversbar": {
+   "symbol": "MyServersBar",
+   "class": "Widget.ScreenSpecific.MyServersBar",
+   "chain": [
+    "Widget.ScreenSpecific.MyServersBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Owner",
+    "Create",
+    "Expiry",
+    "Update",
+    "By"
+   ]
+  },
+  "mysoldierscreen": {
+   "symbol": "MySoldierScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "newcampaigninfo": {
+   "symbol": "NewCampaignInfo",
+   "class": "Widget.ScreenSpecific.NewCampaignInfo",
+   "chain": [
+    "Widget.ScreenSpecific.NewCampaignInfo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "newsticker": {
+   "symbol": "NewsTicker",
+   "class": "Widget.Message.NewsTicker",
+   "chain": [
+    "Widget.Message.NewsTicker",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Visible",
+    "NewsArray"
+   ]
+  },
+  "objectivebar": {
+   "symbol": "ObjectiveBar",
+   "class": "Widget.Hud.ObjectiveBar",
+   "chain": [
+    "Widget.Hud.ObjectiveBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "ObjectiveStatus",
+    "VisibleAccess"
+   ]
+  },
+  "objectivelist": {
+   "symbol": "ObjectiveList",
+   "class": "Widget.Message.ObjectiveList",
+   "chain": [
+    "Widget.Message.ObjectiveList",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Objectives"
+   ]
+  },
+  "objectivemessage": {
+   "symbol": "ObjectiveMessage",
+   "class": "Widget.Message.ObjectiveMessage",
+   "chain": [
+    "Widget.Message.ObjectiveMessage",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Objectives"
+   ]
+  },
+  "optionsaudioconsolescreen": {
+   "symbol": "OptionsAudioConsoleScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionsaudioscreen": {
+   "symbol": "OptionsAudioScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionscontrolsconsolescreen": {
+   "symbol": "OptionsControlsConsoleScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionscontrolsps3screen": {
+   "symbol": "OptionsControlsPs3Screen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionscontrolsscreen": {
+   "symbol": "OptionsControlsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionsgameplayconsolescreen": {
+   "symbol": "OptionsGameplayConsoleScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionsgameplayscreen": {
+   "symbol": "OptionsGameplayScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionskeybindingscreen": {
+   "symbol": "OptionsKeyBindingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionsnavigationconsolescreen": {
+   "symbol": "OptionsNavigationConsoleScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionsscreen": {
+   "symbol": "OptionsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionsvideoconsolescreen": {
+   "symbol": "OptionsVideoConsoleScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "optionsvideoscreen": {
+   "symbol": "OptionsVideoScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "overviewmap": {
+   "symbol": "OverviewMap",
+   "class": "Widget.Image.OverviewMap",
+   "chain": [
+    "Widget.Image.OverviewMap",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "pagedisplay": {
+   "symbol": "PageDisplay",
+   "class": "Widget.Misc.PageDisplay",
+   "chain": [
+    "Widget.Misc.PageDisplay",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Page",
+    "NumPages"
+   ]
+  },
+  "pageheader": {
+   "symbol": "PageHeader",
+   "class": "Widget.Text.PageHeader",
+   "chain": [
+    "Widget.Text.PageHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "HideOnConsole": {
+     "default": null,
+     "kind": "bool",
+     "from": "Widget.Text.PageHeader"
+    },
+    "HideOnPC": {
+     "default": null,
+     "kind": "bool",
+     "from": "Widget.Text.PageHeader"
+    }
+   },
+   "dataNames": [
+    "Header",
+    "SubHeader"
+   ]
+  },
+  "passangerlist": {
+   "symbol": "PassangerList",
+   "class": "Widget.Hud.PassangerList",
+   "chain": [
+    "Widget.Hud.PassangerList",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "IsInVehicleAccess",
+    "PassangerList"
+   ]
+  },
+  "playcampaignmissionscreen": {
+   "symbol": "PlayCampaignMissionScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupbindkey": {
+   "symbol": "PopupBindKey",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupbuttonsmanager": {
+   "symbol": "PopupButtonsManager",
+   "class": "Widget.Popup.PopupButtonsManager",
+   "chain": [
+    "Widget.Popup.PopupButtonsManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Buttons"
+   ]
+  },
+  "popupbuypremium": {
+   "symbol": "PopupBuyPremium",
+   "class": "fb.Base.UIPopup",
+   "chain": [
+    "fb.Base.UIPopup",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupbuyservercard": {
+   "symbol": "PopupBuyServerCard",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupcoopmatchmaking": {
+   "symbol": "PopupCOOPMatchmaking",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupcreatemaprotation": {
+   "symbol": "PopupCreateMapRotation",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupdelay": {
+   "symbol": "PopupDelay",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupdisc1insert": {
+   "symbol": "PopupDisc1Insert",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupdisc2insert": {
+   "symbol": "PopupDisc2Insert",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupdisc2install": {
+   "symbol": "PopupDisc2Install",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupdisc2installing": {
+   "symbol": "PopupDisc2Installing",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupdynamic": {
+   "symbol": "PopupDynamic",
+   "class": "fb.Base.UIPopup",
+   "chain": [
+    "fb.Base.UIPopup",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupextendlease": {
+   "symbol": "PopupExtendLease",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupgamequeue": {
+   "symbol": "PopupGameQueue",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupgeneric": {
+   "symbol": "PopupGeneric",
+   "class": "fb.Base.UIPopup",
+   "chain": [
+    "fb.Base.UIPopup",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupgenericwidget": {
+   "symbol": "PopupGenericWidget",
+   "class": "Widget.Popup.PopupGenericWidget",
+   "chain": [
+    "Widget.Popup.PopupGenericWidget",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Title",
+    "Text"
+   ]
+  },
+  "popuplogin": {
+   "symbol": "PopupLogin",
+   "class": "fb.Base.UIPopup",
+   "chain": [
+    "fb.Base.UIPopup",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popuplongtext": {
+   "symbol": "PopupLongText",
+   "class": "fb.Base.UIPopup",
+   "chain": [
+    "fb.Base.UIPopup",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupmanageplayer": {
+   "symbol": "PopupManagePlayer",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popuponlinepass": {
+   "symbol": "PopupOnlinePass",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popuppromoinfo": {
+   "symbol": "PopupPromoInfo",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupserverextended": {
+   "symbol": "PopupServerExtended",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupserverlocation": {
+   "symbol": "PopupServerLocation",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupservermanagelater": {
+   "symbol": "PopupServerManageLater",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupserverreminder": {
+   "symbol": "PopupServerReminder",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupserverrented": {
+   "symbol": "PopupServerRented",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupserverwizard1": {
+   "symbol": "PopupServerWizard1",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "popupserverwizard2": {
+   "symbol": "PopupServerWizard2",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "premiumcalendarscreen": {
+   "symbol": "PremiumCalendarScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "premiumcategoryheader": {
+   "symbol": "PremiumCategoryHeader",
+   "class": "Widget.Text.PremiumCategoryHeader",
+   "chain": [
+    "Widget.Text.PremiumCategoryHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Category"
+   ]
+  },
+  "premiumdetailscreen": {
+   "symbol": "PremiumDetailScreen",
+   "class": "fb.Base.UIPopup",
+   "chain": [
+    "fb.Base.UIPopup",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "premiuminfo": {
+   "symbol": "PremiumInfo",
+   "class": "Widget.ScreenSpecific.PremiumInfo",
+   "chain": [
+    "Widget.ScreenSpecific.PremiumInfo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "premiummonthsheader": {
+   "symbol": "PremiumMonthsHeader",
+   "class": "Widget.ScreenSpecific.PremiumMonthsHeader",
+   "chain": [
+    "Widget.ScreenSpecific.PremiumMonthsHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SelectedMonth"
+   ]
+  },
+  "premiumupcomingscreen": {
+   "symbol": "PremiumUpcomingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "premiumwaitfordatascreen": {
+   "symbol": "PremiumWaitForDataScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "premiumxpackdetailscreen": {
+   "symbol": "PremiumXpackDetailScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "preroundwaitingscreen": {
+   "symbol": "PreRoundWaitingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "privatematchscreen": {
+   "symbol": "PrivateMatchScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "promo": {
+   "symbol": "Promo",
+   "class": "Widget.Promo.Promo",
+   "chain": [
+    "Widget.Promo.Promo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Loaded",
+    "Timeout"
+   ]
+  },
+  "promoscreenlayer": {
+   "symbol": "PromoScreenLayer",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "quickmatchscreen": {
+   "symbol": "QuickMatchScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "quicktimeevent": {
+   "symbol": "QuickTimeEvent",
+   "class": "Widget.Hud.QuickTimeEvent",
+   "chain": [
+    "Widget.Hud.QuickTimeEvent",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "QTEAction": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Hud.QuickTimeEvent"
+    }
+   },
+   "dataNames": [
+    "QuicktimeEvent"
+   ]
+  },
+  "radaraltitudedisplay": {
+   "symbol": "RadarAltitudeDisplay",
+   "class": "Widget.Hud.RadarAltitudeDisplay",
+   "chain": [
+    "Widget.Hud.RadarAltitudeDisplay",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "StaticWarnLevel": {
+     "default": "50",
+     "kind": "number",
+     "from": "Widget.Hud.RadarAltitudeDisplay"
+    }
+   },
+   "dataNames": [
+    "RadioAltitude",
+    "WarnLevel"
+   ]
+  },
+  "radaraltitudemeter": {
+   "symbol": "RadarAltitudeMeter",
+   "class": "Widget.Hud.RadarAltitudeMeter",
+   "chain": [
+    "Widget.Hud.RadarAltitudeMeter",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "barHeight": {
+     "default": "200",
+     "kind": "number",
+     "from": "Widget.Hud.RadarAltitudeMeter"
+    }
+   },
+   "dataNames": [
+    "RadioAltitude"
+   ]
+  },
+  "rentaserverscreen": {
+   "symbol": "RentAServerScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "revivetimer": {
+   "symbol": "ReviveTimer",
+   "class": "Widget.Hud.ReviveTimer",
+   "chain": [
+    "Widget.Hud.ReviveTimer",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "IsBeingRevived",
+    "IsVisible",
+    "TimeUntilDeath",
+    "TimeUntilRevived",
+    "Progress"
+   ]
+  },
+  "rootmovieclip": {
+   "symbol": "Main",
+   "class": "Main.MainUI",
+   "chain": [
+    "Main.MainUI"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "russiantankscreen": {
+   "symbol": "RussianTankScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "safeareascreen": {
+   "symbol": "SafeAreaScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreaggregator": {
+   "symbol": "ScoreAggregator",
+   "class": "Widget.Message.ScoreAggregator",
+   "chain": [
+    "Widget.Message.ScoreAggregator",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "ScoreAgregateValue"
+   ]
+  },
+  "scoreboardbackscreen": {
+   "symbol": "ScoreboardBackScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardfoursquadsscreen": {
+   "symbol": "ScoreboardFourSquadsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardfourteamsspectatorscreen": {
+   "symbol": "ScoreboardFourTeamsSpectatorScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardheader": {
+   "symbol": "ScoreboardHeader",
+   "class": "Widget.List.ScoreboardHeader",
+   "chain": [
+    "Widget.List.ScoreboardHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TeamName",
+    "TeamIsWinner",
+    "TeamID",
+    "Tickets",
+    "GameMode",
+    "Rush",
+    "RushIsAttacker",
+    "RushAttackerLife",
+    "RushDefenderInfo",
+    "Kills",
+    "BackgroundMode"
+   ]
+  },
+  "scoreboardspectatorbox": {
+   "symbol": "ScoreboardSpectatorBox",
+   "class": "Widget.ScreenSpecific.ScoreboardSpectatorBox",
+   "chain": [
+    "Widget.ScreenSpecific.ScoreboardSpectatorBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Spectators"
+   ]
+  },
+  "scoreboardtwosquadsscreen": {
+   "symbol": "ScoreboardTwoSquadsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardtwoteamshud16screen": {
+   "symbol": "ScoreboardTwoTeamsHUD16Screen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardtwoteamshud32screen": {
+   "symbol": "ScoreboardTwoTeamsHUD32Screen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardtwoteamshud64screen": {
+   "symbol": "ScoreboardTwoTeamsHUD64Screen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardtwoteamsscreen": {
+   "symbol": "ScoreboardTwoTeamsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scoreboardtwoteamsspectatorscreen": {
+   "symbol": "ScoreboardTwoTeamsSpectatorScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "screenadjust": {
+   "symbol": "ScreenAdjust",
+   "class": "Widget.ScreenSpecific.ScreenAdjust",
+   "chain": [
+    "Widget.ScreenSpecific.ScreenAdjust",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Width",
+    "Height"
+   ]
+  },
+  "screenadjustscreen": {
+   "symbol": "ScreenAdjustScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scrollbar": {
+   "symbol": "ScrollBar",
+   "class": "Widget.Bar.ScrollBar",
+   "chain": [
+    "Widget.Bar.ScrollBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "scrollingtextfield": {
+   "symbol": "ScrollingTextField",
+   "class": "Widget.Text.ScrollingTextField",
+   "chain": [
+    "Widget.Text.ScrollingTextField",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TextAccess",
+    "VisibleAccess",
+    "Text",
+    "Visible"
+   ]
+  },
+  "serverbrowserbar": {
+   "symbol": "ServerBrowserBar",
+   "class": "Widget.ScreenSpecific.ServerBrowserBar",
+   "chain": [
+    "Widget.ScreenSpecific.ServerBrowserBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SlotsInfo",
+    "ModeInfo",
+    "MapInfo",
+    "GameTypeInfo",
+    "RankedInfo",
+    "RegionInfo"
+   ]
+  },
+  "serverbrowserlistheaders": {
+   "symbol": "ServerBrowserListHeaders",
+   "class": "Widget.ScreenSpecific.ServerBrowserListHeaders",
+   "chain": [
+    "Widget.ScreenSpecific.ServerBrowserListHeaders",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serverbrowserscreen": {
+   "symbol": "ServerBrowserScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serverbrowserstatusbar": {
+   "symbol": "ServerBrowserStatusBar",
+   "class": "Widget.ScreenSpecific.ServerBrowserStatusBar",
+   "chain": [
+    "Widget.ScreenSpecific.ServerBrowserStatusBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "CurrentPage",
+    "TotalPages",
+    "WarningMessage",
+    "FinalListSizeText",
+    "TruncatedList"
+   ]
+  },
+  "serverfavouritesscreen": {
+   "symbol": "ServerFavouritesScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serverfilterscreen": {
+   "symbol": "ServerFilterScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serverfriendsscreen": {
+   "symbol": "ServerFriendsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serverhistoryscreen": {
+   "symbol": "ServerHistoryScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serverinfoscreen": {
+   "symbol": "ServerInfoScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serverinfotabbar": {
+   "symbol": "ServerInfoTabBar",
+   "class": "Widget.ScreenSpecific.ServerInfoTabBar",
+   "chain": [
+    "Widget.ScreenSpecific.ServerInfoTabBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TabText0",
+    "TabText1",
+    "TabText2"
+   ]
+  },
+  "servermyserversscreen": {
+   "symbol": "ServerMyServersScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "serversearchscreen": {
+   "symbol": "ServerSearchScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "sidtestscreen": {
+   "symbol": "SidTestScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "simplifiedmfdscreen": {
+   "symbol": "SimplifiedMFDScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "singleplayerscreen": {
+   "symbol": "SinglePlayerScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "slavemodescreen": {
+   "symbol": "SlaveModeScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "slideshow": {
+   "symbol": "Slideshow",
+   "class": "Widget.Slideshow.Slideshow",
+   "chain": [
+    "Widget.Slideshow.Slideshow",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "p_itemRendererClass": {
+     "default": "\"PremiumSlideshowItem\"",
+     "kind": "string",
+     "from": "Widget.Slideshow.Slideshow"
+    },
+    "p_pagerRendererClass": {
+     "default": "\"ThumbPager\"",
+     "kind": "string",
+     "from": "Widget.Slideshow.Slideshow"
+    },
+    "p_delay": {
+     "default": "5",
+     "kind": "number",
+     "from": "Widget.Slideshow.Slideshow"
+    },
+    "p_cooldown": {
+     "default": "15",
+     "kind": "number",
+     "from": "Widget.Slideshow.Slideshow"
+    }
+   },
+   "dataNames": [
+    "Items"
+   ]
+  },
+  "soflamscreen": {
+   "symbol": "SOFLAMScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnbuttonconsolescreen": {
+   "symbol": "SpawnButtonConsoleScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnbuttonscreen": {
+   "symbol": "SpawnButtonScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnpointsheader": {
+   "symbol": "SpawnPointsHeader",
+   "class": "Widget.ScreenSpecific.SpawnPointsHeader",
+   "chain": [
+    "Widget.ScreenSpecific.SpawnPointsHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "IsSpawnScreen": {
+     "default": "true",
+     "kind": "bool",
+     "from": "Widget.ScreenSpecific.SpawnPointsHeader"
+    }
+   },
+   "dataNames": [
+    "GameMode",
+    "IsAttacker",
+    "TeamName",
+    "TeamNumber"
+   ]
+  },
+  "spawnscreen": {
+   "symbol": "SpawnScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnscreengm": {
+   "symbol": "SpawnScreenGM",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnscreenpc": {
+   "symbol": "SpawnScreenPC",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnscreenticketcounterconquestscreen": {
+   "symbol": "SpawnScreenTicketCounterConquestScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnscreenticketcounterctfscreen": {
+   "symbol": "SpawnScreenTicketCounterCTFScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnscreenticketcounterrushscreen": {
+   "symbol": "SpawnScreenTicketCounterRushScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnscreenticketcountersdmscreen": {
+   "symbol": "SpawnScreenTicketCounterSDMScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawnscreenticketcountertdmscreen": {
+   "symbol": "SpawnScreenTicketCounterTDMScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spawntimer": {
+   "symbol": "SpawnTimer",
+   "class": "Widget.SpawnTimer.SpawnTimer",
+   "chain": [
+    "Widget.SpawnTimer.SpawnTimer",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "TimerData": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.SpawnTimer.SpawnTimer"
+    },
+    "CanSpawnData": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.SpawnTimer.SpawnTimer"
+    }
+   },
+   "dataNames": [
+    "Time",
+    "CanSpawn",
+    "AutoDeployEnabled"
+   ]
+  },
+  "specializationdetailsscreen": {
+   "symbol": "SpecializationDetailsScreen",
+   "class": "Screen.SpecializationDetailsScreen",
+   "chain": [
+    "Screen.SpecializationDetailsScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spectatorscreen": {
+   "symbol": "SpectatorScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "spjetscreen": {
+   "symbol": "SPJetScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "squadboosterinfo": {
+   "symbol": "SquadBoosterInfo",
+   "class": "Widget.Info.SquadBoosterInfo",
+   "chain": [
+    "Widget.Info.SquadBoosterInfo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SquadBoosters"
+   ]
+  },
+  "squadigmbackgroundscreen": {
+   "symbol": "SquadIGMBackgroundScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "squadlist": {
+   "symbol": "SquadList",
+   "class": "Widget.Hud.SquadList",
+   "chain": [
+    "Widget.Hud.SquadList",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SquadList"
+   ]
+  },
+  "squadscreen": {
+   "symbol": "SquadScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "squadspawnbackgroundscreenpc": {
+   "symbol": "SquadSpawnBackgroundScreenPC",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "startnewcampaignscreen": {
+   "symbol": "StartNewCampaignScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "startscreen": {
+   "symbol": "StartScreen",
+   "class": "Screen.Frontend.StartScreen",
+   "chain": [
+    "Screen.Frontend.StartScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "startscreentimer": {
+   "symbol": "StartScreenTimer",
+   "class": "Widget.ScreenSpecific.StartScreenTimer",
+   "chain": [
+    "Widget.ScreenSpecific.StartScreenTimer",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Visible"
+   ]
+  },
+  "stats": {
+   "symbol": "Stats",
+   "class": "Widget.Stats.Stats",
+   "chain": [
+    "Widget.Stats.Stats",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "stepper": {
+   "symbol": "Stepper",
+   "class": "Widget.Stepper.Stepper",
+   "chain": [
+    "Widget.Stepper.Stepper",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "m_consoleCap": {
+     "default": "20",
+     "kind": "number",
+     "from": "Widget.Stepper.Stepper"
+    }
+   },
+   "dataNames": [
+    "List"
+   ]
+  },
+  "storeinfobox": {
+   "symbol": "StoreInfoBox",
+   "class": "Widget.ScreenSpecific.StoreInfoBox",
+   "chain": [
+    "Widget.ScreenSpecific.StoreInfoBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Label",
+    "ShortDescr",
+    "Release",
+    "Price"
+   ]
+  },
+  "storeitemscreen": {
+   "symbol": "StoreItemScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "storescreen": {
+   "symbol": "StoreScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "storewaitfordata": {
+   "symbol": "StoreWaitForData",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "supporticonmanager": {
+   "symbol": "SupportIconManager",
+   "class": "Widget.Icon3D.TeamSupport.SupportIconManager",
+   "chain": [
+    "Widget.Icon3D.TeamSupport.SupportIconManager",
+    "Widget.Icon3D.Icon3DManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "tabbar": {
+   "symbol": "TabBar",
+   "class": "Widget.Button.TabBar",
+   "chain": [
+    "Widget.Button.TabBar",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "HideOnConsole": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Button.TabBar"
+    },
+    "HideOnPC": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Button.TabBar"
+    },
+    "Tabs": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Button.TabBar"
+    },
+    "DefaultSelected": {
+     "default": null,
+     "kind": "number",
+     "from": "Widget.Button.TabBar"
+    },
+    "TabSpacing": {
+     "default": null,
+     "kind": "number",
+     "from": "Widget.Button.TabBar"
+    },
+    "TextSize": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Button.TabBar"
+    }
+   },
+   "dataNames": [
+    "Setup",
+    "SelectedTab"
+   ]
+  },
+  "tablistenerscreen": {
+   "symbol": "TabListenerScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "tank3pcrosshair": {
+   "symbol": "Tank3PCrosshair",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "tank3pcrosshairgrade": {
+   "symbol": "Tank3PCrosshairGrade",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "textbox": {
+   "symbol": "TextBox",
+   "class": "Widget.Text.TextBox",
+   "chain": [
+    "Widget.Text.TextBox",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "UseEulaFont": {
+     "default": "true",
+     "kind": "bool",
+     "from": "Widget.Text.TextBox"
+    },
+    "UseStoreFont": {
+     "default": "false",
+     "kind": "bool",
+     "from": "Widget.Text.TextBox"
+    },
+    "StyleName": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Text.TextBox"
+    }
+   },
+   "dataNames": [
+    "Text",
+    "Visible",
+    "TextAccess",
+    "VisibleAccess"
+   ]
+  },
+  "textboxwithheader": {
+   "symbol": "TextBoxWithHeader",
+   "class": "Widget.Text.TextBoxWithHeader",
+   "chain": [
+    "Widget.Text.TextBoxWithHeader",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Header",
+    "Text",
+    "State"
+   ]
+  },
+  "textfield": {
+   "symbol": "mc_preview",
+   "class": "Widget.Text.TextField",
+   "chain": [
+    "Widget.Text.TextField",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TextAccess",
+    "VisibleAccess",
+    "Text",
+    "Visible"
+   ]
+  },
+  "textinput": {
+   "symbol": "TextInput",
+   "class": "Widget.Text.TextInput",
+   "chain": [
+    "Widget.Text.TextInput",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "KeyboardTitleData": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Text.TextInput"
+    },
+    "KeyboardDescriptionData": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Text.TextInput"
+    },
+    "KeyboardTypeData": {
+     "default": "0",
+     "kind": "string",
+     "from": "Widget.Text.TextInput"
+    },
+    "KeyboardMaxLengthData": {
+     "default": "\"\"",
+     "kind": "string",
+     "from": "Widget.Text.TextInput"
+    },
+    "ChatInput": {
+     "default": "0",
+     "kind": "flag",
+     "from": "Widget.Text.TextInput"
+    }
+   },
+   "dataNames": [
+    "Text",
+    "ChatDestination",
+    "Visible",
+    "TextAccess",
+    "VisibleAccess"
+   ]
+  },
+  "textures": {
+   "symbol": "GlowRect",
+   "class": "Graphics.GlowRect",
+   "chain": [
+    "Graphics.GlowRect"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "ticketcounter": {
+   "symbol": "TicketCounter",
+   "class": "Widget.TicketCounter.TicketCounter",
+   "chain": [
+    "Widget.TicketCounter.TicketCounter",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "GMKills",
+    "GMLevel",
+    "GMMaxLevel",
+    "FriendlyTickets",
+    "EnemyTickets",
+    "FriendlyTeamName",
+    "EnemyTeamName",
+    "FriendlyFlags",
+    "EnemyFlags",
+    "AttackerTickets",
+    "IsAttacker",
+    "Team1TDMKills",
+    "Team2TDMKills",
+    "FriendlyTDMTeamName",
+    "EnemyTDMTeamName",
+    "TDMTeam",
+    "Team1Kills",
+    "Team2Kills",
+    "Team3Kills",
+    "Team4Kills",
+    "SDMTeam",
+    "PlayerTeam",
+    "MaxTickets",
+    "VisibleAccess"
+   ]
+  },
+  "ticketcounterspawnscreen": {
+   "symbol": "TicketCounterSpawnScreen",
+   "class": "Widget.TicketCounter.TicketCounterSpawnScreen",
+   "chain": [
+    "Widget.TicketCounter.TicketCounterSpawnScreen",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Conquest_FriendlyTickets",
+    "Conquest_EnemyTickets",
+    "Conquest_FriendlyTeamName",
+    "Conquest_EnemyTeamName",
+    "CTF_FriendlyFlags",
+    "CTF_EnemyFlags",
+    "CTF_FriendlyTeamName",
+    "CTF_EnemyTeamName",
+    "Rush_AttackerTickets",
+    "Rush_DefenderInfo",
+    "Rush_IsAttacker",
+    "Rush",
+    "TDM_FriendlyTickets",
+    "TDM_EnemyTickets",
+    "TDM_FriendlyTeamName",
+    "TDM_EnemyTeamName",
+    "SDM_Team1Tickets",
+    "SDM_Team2Tickets",
+    "SDM_Team3Tickets",
+    "SDM_Team4Tickets",
+    "SDM_PlayerTeam"
+   ]
+  },
+  "tooltipmessage": {
+   "symbol": "TooltipMessage",
+   "class": "Widget.Message.TooltipMessage",
+   "chain": [
+    "Widget.Message.TooltipMessage",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Message",
+    "NumberOfRows"
+   ]
+  },
+  "trackingandlockingmanager": {
+   "symbol": "TrackingAndLockingManager",
+   "class": "Widget.Icon3D.TrackingAndLocking.TrackingAndLockingManager",
+   "chain": [
+    "Widget.Icon3D.TrackingAndLocking.TrackingAndLockingManager",
+    "Widget.Icon3D.Icon3DManager",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "traininginfo": {
+   "symbol": "TrainingInfo",
+   "class": "Widget.Info.TrainingInfo",
+   "chain": [
+    "Widget.Info.TrainingInfo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "trimball": {
+   "symbol": "TrimBall",
+   "class": "Widget.Hud.TrimBall",
+   "chain": [
+    "Widget.Hud.TrimBall",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "SkidSlip"
+   ]
+  },
+  "turretdisplay": {
+   "symbol": "TurretDisplay",
+   "class": "Widget.Hud.TurretDisplay",
+   "chain": [
+    "Widget.Hud.TurretDisplay",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "IsMainTurret": {
+     "default": "true",
+     "kind": "string",
+     "from": "Widget.Hud.TurretDisplay"
+    }
+   },
+   "dataNames": [
+    "VehicleRotation",
+    "TurretRotation",
+    "GunTowerRotation",
+    "VehicleRotationAccess",
+    "TurretRotationAccess",
+    "GunTowerRotationAccess",
+    "ReactiveArmorFrontEnabledAccess",
+    "ReactiveArmorBackEnabledAccess",
+    "ReactiveArmorLeftEnabledAccess",
+    "ReactiveArmorRightEnabledAccess"
+   ]
+  },
+  "vehiclecrosshair": {
+   "symbol": "VehicleCrosshair",
+   "class": "Widget.Crosshair.VehicleCrosshair",
+   "chain": [
+    "Widget.Crosshair.VehicleCrosshair",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "ZoomStateAlwaysActive": {
+     "default": "false",
+     "kind": "string",
+     "from": "Widget.Crosshair.VehicleCrosshair"
+    }
+   },
+   "dataNames": [
+    "WeaponName",
+    "ZoomEnabled",
+    "ZoomActive",
+    "Reloading",
+    "Ammo",
+    "Busy",
+    "BumpXAccess",
+    "BumpYAccess",
+    "IndicatorValue",
+    "PlayingSp"
+   ]
+  },
+  "vehiclecustomizationsscreen": {
+   "symbol": "VehicleCustomizationsScreen",
+   "class": "Screen.VehicleCustomizationsScreen",
+   "chain": [
+    "Screen.VehicleCustomizationsScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "vehicledetailsscreen": {
+   "symbol": "VehicleDetailsScreen",
+   "class": "Screen.VehicleDetailsScreen",
+   "chain": [
+    "Screen.VehicleDetailsScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "vehiclegunnerweaponelevation": {
+   "symbol": "VehicleGunnerWeaponElevation",
+   "class": "Widget.Hud.VehicleGunnerWeaponElevation",
+   "chain": [
+    "Widget.Hud.VehicleGunnerWeaponElevation",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "TurretElevation"
+   ]
+  },
+  "vehiclehealth": {
+   "symbol": "VehicleHealth",
+   "class": "Widget.Hud.VehicleHealth",
+   "chain": [
+    "Widget.Hud.VehicleHealth",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "HealthData": {
+     "default": null,
+     "kind": "string",
+     "from": "Widget.Hud.VehicleHealth"
+    }
+   },
+   "dataNames": [
+    "IsInVehicle",
+    "Health",
+    "Disabled"
+   ]
+  },
+  "vehiclehudtext": {
+   "symbol": "VehicleHudText",
+   "class": "Widget.Hud.VehicleHudText",
+   "chain": [
+    "Widget.Hud.VehicleHudText",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Reloading",
+    "Ammo",
+    "Locked",
+    "LaserLockedVehicleExistsOnMap",
+    "Heat",
+    "Busy",
+    "WeaponName",
+    "FlirEnabled",
+    "ZoomActive",
+    "GPSLat",
+    "GPSLng",
+    "Seeking",
+    "NormalLocked",
+    "LaserLocked"
+   ]
+  },
+  "vehiclehudwarnings": {
+   "symbol": "VehicleHudWarnings",
+   "class": "Widget.Hud.VehicleHudWarnings",
+   "chain": [
+    "Widget.Hud.VehicleHudWarnings",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Locking",
+    "Locked",
+    "Health",
+    "Disabled",
+    "Reloading",
+    "Heat",
+    "RadioAltitude",
+    "WarnLevel"
+   ]
+  },
+  "vehiclemissiledisplay": {
+   "symbol": "VehicleMissileDisplay",
+   "class": "Widget.Hud.VehicleMissileDisplay",
+   "chain": [
+    "Widget.Hud.VehicleMissileDisplay",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "MissileInfo",
+    "WeaponName"
+   ]
+  },
+  "vehiclesimplehitindicator": {
+   "symbol": "VehicleSimpleHitIndicator",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "vehiclestaticart": {
+   "symbol": "VehicleStaticArt",
+   "class": "Widget.Hud.VehicleStaticArt",
+   "chain": [
+    "Widget.Hud.VehicleStaticArt",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "vehicleweaponname": {
+   "symbol": "VehicleWeaponName",
+   "class": "Widget.Hud.VehicleWeaponName",
+   "chain": [
+    "Widget.Hud.VehicleWeaponName",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "WeaponNameAccess",
+    "WeaponName",
+    "Reloading",
+    "Heat",
+    "Ammo",
+    "Range"
+   ]
+  },
+  "vehicleweaponreload": {
+   "symbol": "VehicleWeaponReload",
+   "class": "Widget.Hud.VehicleWeaponReload",
+   "chain": [
+    "Widget.Hud.VehicleWeaponReload",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Reloading",
+    "Heat",
+    "WeaponName"
+   ]
+  },
+  "vehicleweaponunlockdisplay": {
+   "symbol": "VehicleWeaponUnlockDisplay",
+   "class": "Widget.Hud.VehicleWeaponUnlockDisplay",
+   "chain": [
+    "Widget.Hud.VehicleWeaponUnlockDisplay",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "isTank": {
+     "default": "false",
+     "kind": "string",
+     "from": "Widget.Hud.VehicleWeaponUnlockDisplay"
+    }
+   },
+   "dataNames": [
+    "SmokeActive",
+    "JammerActive",
+    "FlaresActive",
+    "FireExtinguisherActive",
+    "UnlockWeaponReloading"
+   ]
+  },
+  "vehiclezoomflir": {
+   "symbol": "VehicleZoomFlir",
+   "class": "Widget.Hud.VehicleZoomFlir",
+   "chain": [
+    "Widget.Hud.VehicleZoomFlir",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {
+    "ZoomStateAlwaysActive": {
+     "default": "false",
+     "kind": "string",
+     "from": "Widget.Hud.VehicleZoomFlir"
+    }
+   },
+   "dataNames": [
+    "ZoomEnabled",
+    "FlirEnabled",
+    "ZoomActive",
+    "FlirActive"
+   ]
+  },
+  "velocityvector": {
+   "symbol": "VelocityVector",
+   "class": "Widget.Hud.VelocityVector",
+   "chain": [
+    "Widget.Hud.VelocityVector",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "BumpXAccess",
+    "BumpYAccess"
+   ]
+  },
+  "waitingforfriendinfo": {
+   "symbol": "WaitingForFriendInfo",
+   "class": "Widget.Info.WaitingForFriendInfo",
+   "chain": [
+    "Widget.Info.WaitingForFriendInfo",
+    "fb.Base.UIWidget",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": [
+    "Visible"
+   ]
+  },
+  "waitleaveplaygroupscreen": {
+   "symbol": "WaitLeavePlaygroupScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "waitresetstatsscreen": {
+   "symbol": "WaitResetStatsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "waitretrievestatsscreen": {
+   "symbol": "WaitRetrieveStatsScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "waitsaveserversettings": {
+   "symbol": "WaitSaveServerSettings",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "weaponcommonscreen": {
+   "symbol": "WeaponCommonScreen",
+   "class": "Screen.Weapon.WeaponCommonScreen",
+   "chain": [
+    "Screen.Weapon.WeaponCommonScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "weapondetailsscreen": {
+   "symbol": "WeaponDetailsScreen",
+   "class": "Screen.WeaponDetailsScreen",
+   "chain": [
+    "Screen.WeaponDetailsScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "weaponsandgadgetsscreen": {
+   "symbol": "WeaponsAndGadgetsScreen",
+   "class": "Screen.WeaponsAndGadgetsScreen",
+   "chain": [
+    "Screen.WeaponsAndGadgetsScreen",
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  },
+  "webloadingscreen": {
+   "symbol": "WebLoadingScreen",
+   "class": "fb.Base.UIScreen",
+   "chain": [
+    "fb.Base.UIScreen",
+    "fb.Base.UIBase"
+   ],
+   "settings": {},
+   "dataNames": []
+  }
+ }
+}

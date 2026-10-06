@@ -182,7 +182,10 @@ public class HlslEmitter
         // born from a probe solution stores the shifted indices verbatim, and shifting them again reads
         // past the layout. Null TranslatedFamily = base numbering, the historical invariant.
         if (Contract != null)
+        {
             Contract.GraphSpeaksThisContract = p_Graph.TranslatedFamily == Contract.Family.ToString();
+            Contract.GraphFamily = p_Graph.TranslatedFamily;
+        }
 
         var s_Root = p_Graph.Root;
         if (s_Root == null)
@@ -215,7 +218,11 @@ public class HlslEmitter
         return m_Result;
     }
 
-    /// <summary>Every external-constant node in the graph, as (buffer, register, element, safe name).</summary>
+    /// <summary>
+    /// Every external constant the graph reads, as (buffer, register, element, safe name): the external-constant nodes, and the
+    /// layer constants of an emblem node (Palette.EmblemFields — the same list the bake adds to the shader's table), and the frame
+    /// constants of a projected slot (Palette.EmblemFrameFields).
+    /// </summary>
     private static List<(string Buffer, int Register, int Element, string Name)> ExternalNodes(ShaderGraph p_Graph) =>
         p_Graph.Nodes
             .Where(p_N => p_N.Kind == "ExternalConstant")
@@ -224,6 +231,14 @@ public class HlslEmitter
                 Register: int.TryParse(p_N.GetParam("Register"), out var s_R) ? s_R : 1,
                 Element: int.TryParse(p_N.GetParam("Element"), out var s_E) ? s_E : 0,
                 Name: Palette.SafeIdentifier(p_N.GetParam("Name"))))
+            .Concat(p_Graph.Nodes
+                .Where(p_N => p_N.Kind == "EmblemLayers")
+                .SelectMany(Palette.EmblemFields)
+                .Select(p_F => (Buffer: "externalConstants", Register: p_F.Buffer, Element: p_F.Element, Name: p_F.Name)))
+            .Concat(p_Graph.Nodes
+                .Where(p_N => p_N.Kind == "EmblemProjection")
+                .SelectMany(Palette.EmblemFrameFields)
+                .Select(p_F => (Buffer: "externalConstants", Register: p_F.Buffer, Element: p_F.Element, Name: p_F.Name)))
             .ToList();
 
     private static string BuildShell(ShaderGraph p_Graph, string p_Body, ShaderContract? p_Contract,
@@ -287,6 +302,11 @@ public class HlslEmitter
         // its own material through the next ones, so declaring only s0 would force every material fetch
         // through the engine's sampler — whose addressing does not tile.
         var s_Samplers = Math.Max(1, (p_Contract?.Resources.Count(p_R => p_R.IsSampler) ?? 1));
+
+        // ...and never fewer than a node PINNED to its own sampler reads through (see Palette.PinnedSampler).
+        foreach (var s_Node in p_Graph.Nodes)
+            if (Palette.PinnedSampler(s_Node) is { } s_Pinned && int.TryParse(s_Pinned["sampler".Length..], out var s_Index))
+                s_Samplers = Math.Max(s_Samplers, s_Index + 1);
         for (var s_S = 0; s_S < s_Samplers; s_S++)
             s_Builder.AppendLine($"SamplerState sampler{s_S}          : register(s{s_S});");
 
@@ -306,7 +326,7 @@ public class HlslEmitter
             var s_Type = s_Node.Kind switch
             {
                 "Texture" or "NormalMap" or "AlphaCoverage" or "UdkTextureSample"
-                    or "UdkAntialiasedTextureMask" => "Texture2D",
+                    or "UdkAntialiasedTextureMask" or "StickerCoordinates" or "EmblemLayers" => "Texture2D",
                 "TextureCube" => "TextureCube",
                 "Texture3D" => "Texture3D",
                 "TextureArray" => "Texture2DArray",
@@ -325,8 +345,15 @@ public class HlslEmitter
         // walking 1..n and declaring a material texture in every slot would have the shader SAMPLE THE
         // LIGHTMAP believing it is the albedo. Those registers are declared here under their real names, and
         // skipped below. Without a parsed contract there are none and the loop is exactly what it was.
+        // ⛔ …UNLESS A NODE OF THE GRAPH READS THAT REGISTER. Shaders outside the weapon presets sample what
+        // the contract calls an engine texture FROM THE GRAPH — the glow and the glass read the sky cubemap
+        // at t1 — and the nodes name their slots by the register convention (HlslNames.TextureVar). Declaring
+        // the engine name there and skipping the slot left the node's own name undeclared, so the material's
+        // graph would not compile at all ("undeclared identifier 'texture_Texture'", measured on red_glow,
+        // 2026-09-18) — and two names on one register is not legal either. The node wins: it is what the
+        // emitted code references, and its declaration carries the right TYPE (a cube fetch needs TextureCube).
         var s_EngineTextures = (p_Contract?.EngineTextures ?? new List<ResourceBinding>())
-            .Where(p_R => p_R.Register > 0)
+            .Where(p_R => p_R.Register > 0 && !s_SlotTypes.ContainsKey(p_R.Register))
             .ToList();
 
         foreach (var s_Engine in s_EngineTextures)

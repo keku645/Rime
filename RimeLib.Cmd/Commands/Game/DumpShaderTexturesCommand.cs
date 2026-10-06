@@ -149,12 +149,55 @@ namespace RimeLib.Cmd.Commands.Game
                                     var s_Key = $"{p_Tag}|{s_ShName}|{s_Mode}|{i}|{s_ItemName}";
                                     if (!s_Seen.Add(s_Key)) continue;
 
-                                    p_Writer.WriteLine($"  {p_Tag}: mode={s_Mode} slot={i} name={s_ItemName}");
+                                    // An external slot carries the REGISTER it is sampled from and the id the
+                                    // material parameter is matched by; both are what a surgery has to get right.
+                                    var s_Handle = s_Item?.GetType().GetProperty("Handle")?.GetValue(s_Item);
+                                    var s_Register = s_Item?.GetType().GetProperty("Index")?.GetValue(s_Item);
+                                    var s_Detail = s_Handle != null ? $" register=t{s_Register} handle={s_Handle}" : "";
+                                    p_Writer.WriteLine($"  {p_Tag}: mode={s_Mode} slot={i} name={s_ItemName}{s_Detail}");
                                 }
                             }
 
                             DumpList("Textures", "SHTEX-SLOT");
                             DumpList("ExternalTextures", "SHTEX-EXTSLOT");
+
+                            // ⛔ THE ADDRESS MODE IS NOT IN THE BYTECODE — it is API state, and this is where the
+                            // game keeps it. It decides what a fetch outside [0,1] returns, so a consumer that
+                            // assumes one mode draws a different picture with the same textures and the same
+                            // maths: the kit atlas shader samples its tile atlas at (u, v+1), which under CLAMP
+                            // lands on the atlas' last row (black, i.e. adds nothing) and under WRAP repeats the
+                            // tile band over every piece.
+                            if (s_PixelConstants.GetType().GetProperty("Samplers")?.GetValue(s_PixelConstants)
+                                is Array s_Samplers)
+                                foreach (var s_Sampler in s_Samplers)
+                                {
+                                    var s_SamplerIndex = s_Sampler?.GetType().GetProperty("Index")?.GetValue(s_Sampler);
+                                    var s_Desc = s_Sampler?.GetType().GetProperty("Desc")?.GetValue(s_Sampler);
+
+                                    // ⚠ SharpDX's SamplerStateDescription exposes FIELDS, not properties.
+                                    object? DescMember(string p_N) =>
+                                        s_Desc?.GetType().GetField(p_N)?.GetValue(s_Desc) ??
+                                        s_Desc?.GetType().GetProperty(p_N)?.GetValue(s_Desc);
+
+                                    var s_SamplerKey = $"sampler|{s_ShName}|{s_Mode}|{s_SamplerIndex}";
+                                    if (!s_Seen.Add(s_SamplerKey)) continue;
+
+                                    // The border colour is part of the answer, not a detail: an address mode of
+                                    // Border returns THIS for every fetch outside [0,1], so a consumer that
+                                    // assumes black where the game ships something else adds that something.
+                                    var s_Border = DescMember("BorderColor");
+                                    object? BorderChannel(string p_N) =>
+                                        s_Border?.GetType().GetField(p_N)?.GetValue(s_Border) ??
+                                        s_Border?.GetType().GetProperty(p_N)?.GetValue(s_Border);
+
+                                    p_Writer.WriteLine(string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                                        "  SHTEX-SAMPLER: mode={0} register=s{1} u={2} v={3} w={4} filter={5} " +
+                                        "maxAniso={6} border={7},{8},{9},{10}",
+                                        s_Mode, s_SamplerIndex, DescMember("AddressU"), DescMember("AddressV"),
+                                        DescMember("AddressW"), DescMember("Filter"),
+                                        DescMember("MaximumAnisotropy"), BorderChannel("R"), BorderChannel("G"),
+                                        BorderChannel("B"), BorderChannel("A")));
+                                }
 
                             // The engine's own DEFAULT for each external VALUE parameter. A consumer that has
                             // to fill a shader's constant buffer without a material instance naming the value

@@ -115,7 +115,11 @@ namespace RimeLib.Cmd.Contexts
 
             public int? GetAssetNameHash()
             {
-                return (int)Frostbite.Utils.HashQuick(m_AssetName);
+                // LOWERCASE, like the engine. This h32 is what associates the chunk with its texture
+                // resource at bundle load; built from the caller's capitalisation it points at nothing,
+                // so the texture is created with no pixels and takes its whole texture group down.
+                // Same bug, second place: the DxTexture header's ResourceNameHash had it too.
+                return (int)Frostbite.Utils.HashQuickLowerCase(m_AssetName);
             }
         }
 
@@ -133,6 +137,8 @@ namespace RimeLib.Cmd.Contexts
             m_Builder = BundleBuilder.Create(m_BundleName);
 
             RegisterCommand<AddChunkCommand>();
+            RegisterCommand<RimeLib.Cmd.Commands.Common.GfxStageListCommand>();
+            RegisterCommand<RimeLib.Cmd.Commands.Common.GfxStageEditCommand>();
             RegisterCommand<AddExistingChunkCommand>();
             RegisterCommand<Commands.BundleBuilding.AddCasChunkCommand>();
             RegisterCommand<RemoveChunkCommand>();
@@ -154,6 +160,8 @@ namespace RimeLib.Cmd.Contexts
             RegisterCommand<AddRawPartitionCommand>();
             RegisterCommand<RaiseWaterPhysicsCommand>();
             RegisterCommand<ClonePartitionFreshCommand>();
+            RegisterCommand<AccessoryCamoCloneCommand>();
+            RegisterCommand<VehiclePartCloneCommand>();
             RegisterCommand<MvdbAddEntryCommand>();
             RegisterCommand<MvdbKeepPrefixCommand>();
             RegisterCommand<MvdbAddAllCommand>();

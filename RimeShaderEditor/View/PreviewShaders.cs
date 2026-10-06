@@ -31,7 +31,24 @@ public static class PreviewShaders
                 {
                     "WorldPos" => "float4(s_World, 1.0)",
                     "Normal" => "float4(s_N, 1.0)",
-                    "UvPair" => "float4(i.TexCoord, i.TexCoord * 2.0)",
+                    // A shader classified UvPair reads BOTH halves, so both have to be real: the second one
+                    // used to be fed `i.TexCoord * 2.0`, an invented set that costs nothing while every
+                    // subject is a weapon (one UV) and lands the whole detail of a vehicle body elsewhere.
+                    //
+                    // ⛔ WHICH SET GOES IN WHICH HALF IS NOT DECIDED HERE, and that is the point: ONE vertex
+                    // shader serves the target AND every foreign section of the same object, and they do not
+                    // agree — measured by disassembling the game's own vertex shaders for the LAV-25's
+                    // declaration: `vehiclepreset_mud` does `mov o8.xyzw, v3.zwxy` (it SWAPS the pair, so its
+                    // .xy is the second set) while the lights, the slat cage and the kits do
+                    // `mov o.xy, v3.xyxx` (no swap). Feeding the swap from here fixed the hull and broke
+                    // those three. The swap therefore travels in the DATA, per section, at dump time.
+                    "UvPair" => "float4(i.TexCoord, i.TexCoord1)",
+
+                    // A SECOND uv interpolator, where the shader reads one: the jets' decal preset samples
+                    // its normal map with the set its vertex shader hands over on its own (set 0 of three,
+                    // measured 2026-09-22). The dump writes that set in the third slot, so the order it
+                    // travels in is the shader's own, exactly as the pair's.
+                    "UvExtra" => "float4(i.TexCoord2, 0.0, 0.0)",
                     "Uv" => "float4(i.TexCoord, i.TexCoord * 2.0)",
 
                     // The tangent-frame component rows, exactly as the rigid default feeds them.
@@ -114,6 +131,45 @@ float4 main(float4 p_Position : SV_Position) : SV_Target0
     return float4(0.35, 0.35, 0.37, 1.0);
 }";
 
+    /// <summary>
+    /// The gizmo overlay: coloured lines in the same space the mesh is drawn in, through the same
+    /// world/view-projection block, composited over the finished frame. Colour is premultiplied by the
+    /// vertex shader so the forward blend state (One, InvSrcAlpha) draws it right.
+    /// </summary>
+    public const string c_OverlayVertexShader = @"
+cbuffer PreviewVS : register(b0)
+{
+    float4x4 g_world;
+    float4x4 g_viewProj;
+};
+
+struct VsIn
+{
+    float3 Position : POSITION;
+    float4 Colour   : COLOR;
+};
+
+struct VsOut
+{
+    float4 Position : SV_Position;
+    float4 Colour   : COLOR;
+};
+
+VsOut main(VsIn i)
+{
+    VsOut o;
+    float3 s_World = mul(float4(i.Position, 1.0), g_world).xyz;
+    o.Position = mul(float4(s_World, 1.0), g_viewProj);
+    o.Colour = float4(i.Colour.rgb * i.Colour.a, i.Colour.a);
+    return o;
+}";
+
+    public const string c_OverlayPixelShader = @"
+float4 main(float4 p_Position : SV_Position, float4 p_Colour : COLOR) : SV_Target
+{
+    return p_Colour;
+}";
+
     private const string c_VertexShaderTemplate = @"
 cbuffer PreviewVS : register(b0)
 {
@@ -126,7 +182,16 @@ struct VsIn
     float3 Position : POSITION;
     float3 Normal   : NORMAL;
     float3 Tangent  : TANGENT;
+    float  Handedness : TANGENT1;
     float2 TexCoord : TEXCOORD;
+
+    /// The SECOND texture coordinate set. A mesh that has one carries it; a mesh that does not repeats the
+    /// first, so nothing that only ever read TexCoord changes.
+    float2 TexCoord1 : TEXCOORD1;
+
+    /// The THIRD slot of the dump — the set a second uv interpolator carries (the jets' declaration adds a
+    /// TexCoord2 after the bone indices). A dump without one repeats the first, as the second does.
+    float2 TexCoord2 : TEXCOORD2;
 };
 
 struct VsOut
@@ -153,7 +218,10 @@ VsOut main(VsIn i)
 
     float3 s_N = normalize(mul(float4(i.Normal,  0.0), g_world).xyz);
     float3 s_T = normalize(mul(float4(i.Tangent, 0.0), g_world).xyz);
-    float3 s_B = normalize(cross(s_N, s_T));
+    // The frame keeps its handedness under a mirrored world (the game's meshes are right-handed and the
+    // preview draws them through a mirror): a reflection flips a cross product, the sign puts it back.
+    // ... and a mirrored island of the unwrap flips it, as the game's per-vertex BinormalSign does (0 = +1).
+    float3 s_B = normalize(cross(s_N, s_T)) * sign(determinant((float3x3) g_world)) * (i.Handedness < 0.0 ? -1.0 : 1.0);
 
 __ASSIGN__
     return o;
@@ -171,6 +239,8 @@ cbuffer PreviewVS : register(b0)
 {
     float4x4 g_world;
     float4x4 g_viewProj;
+    // the mesh position's way back to the dump's own units: raw = position * w + xyz; w = 0 = off (ShaderPreview.MeshPositionInW)
+    float4 g_meshRaw;
 };
 
 struct VsIn
@@ -178,7 +248,16 @@ struct VsIn
     float3 Position : POSITION;
     float3 Normal   : NORMAL;
     float3 Tangent  : TANGENT;
+    float  Handedness : TANGENT1;
     float2 TexCoord : TEXCOORD;
+
+    /// The SECOND texture coordinate set. A mesh that has one carries it; a mesh that does not repeats the
+    /// first, so nothing that only ever read TexCoord changes.
+    float2 TexCoord1 : TEXCOORD1;
+
+    /// The THIRD slot of the dump — the set a second uv interpolator carries (the jets' declaration adds a
+    /// TexCoord2 after the bone indices). A dump without one repeats the first, as the second does.
+    float2 TexCoord2 : TEXCOORD2;
 };
 
 struct VsOut
@@ -200,19 +279,26 @@ VsOut main(VsIn i)
 
     float3 s_World = mul(float4(i.Position, 1.0), g_world).xyz;
     o.Position = mul(float4(s_World, 1.0), g_viewProj);
-    o.WorldPos = float4(s_World, 1.0);
+    // the mesh-space position in three .w, as an emblem clone's patched vertex shader hands it over in the game (off: the old values)
+    float3 s_Raw = i.Position * g_meshRaw.w + g_meshRaw.xyz;
+    bool s_MeshPos = g_meshRaw.w > 0.0;
+    o.WorldPos = float4(s_World, s_MeshPos ? s_Raw.x : 1.0);
 
     float3 s_N = normalize(mul(float4(i.Normal,  0.0), g_world).xyz);
     float3 s_T = normalize(mul(float4(i.Tangent, 0.0), g_world).xyz);
-    float3 s_B = normalize(cross(s_N, s_T));
+    // The frame keeps its handedness under a mirrored world (the game's meshes are right-handed and the
+    // preview draws them through a mirror): a reflection flips a cross product, the sign puts it back.
+    // ... and a mirrored island of the unwrap flips it, as the game's per-vertex BinormalSign does (0 = +1).
+    float3 s_B = normalize(cross(s_N, s_T)) * sign(determinant((float3x3) g_world)) * (i.Handedness < 0.0 ? -1.0 : 1.0);
 
     // ⛔ The fourth component is NOT spare padding. Left at 0 it silently degenerates every shader that reads it
     // - a particle fade, a vertex alpha, a blend weight - into a multiply by zero, which renders as a blank
     // object and makes the differential test vacuous rather than failed. Filled with something distinctive
     // and spatially varying, those shaders produce a picture that can actually be compared.
-    o.TangentRow0 = float4(s_T.x, s_B.x, s_N.x, 0.75);
-    o.TangentRow1 = float4(s_T.y, s_B.y, s_N.y, 0.60);
-    o.TangentRow2 = float4(s_T.z, s_B.z, s_N.z, 0.85);
+    o.TangentRow0 = float4(s_T.x, s_B.x, s_N.x, s_MeshPos ? s_Raw.y : 0.75);
+    o.TangentRow1 = float4(s_T.y, s_B.y, s_N.y, s_MeshPos ? s_Raw.z : 0.60);
+    // (with the mesh position: the orientation of mesh -> drawn, −1 through the preview's lateral mirror; the game's writes 0 = +1)
+    o.TangentRow2 = float4(s_T.z, s_B.z, s_N.z, s_MeshPos ? sign(determinant((float3x3) g_world)) : 0.85);
 
     // zw is a SECOND UV SET, which is what the game puts there - the Barrack packs two of them in TEXCOORD4 and
     // tiles them differently.

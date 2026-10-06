@@ -83,6 +83,31 @@ public enum ShaderFamily
     /// alpha. MEASURED on the glass preset's paired vertex shader (2026-08-21); its probe twin is the
     /// standard +4 layout and classifies as RigidMeshProbe, which is positionally exact for it too.</summary>
     Forward,
+
+    /// <summary>
+    /// Aftermath's characters (CharacterRoot_XP4, CharacterRoot_Skin_XP4 — told by the rim-light constants their shaders compile in),
+    /// the flavour for a declaration with no vertex colour: [WorldPos, ObjectPos, TangentRow0-2, TexCoord]. MEASURED 2026-09-28 on the
+    /// paired vertex shaders: o1 = the skinned world position, o2 = the RAW object-space position (`mov o2.xyz, v0.xyz`, which the GBuffer
+    /// pixel side never reads), o3-5 the component-collected frame rows, o6 = the uv. ⛔ Its SHAPE is the base Character's (six, a
+    /// three-component first row) and it used to classify as one — whose table puts the vertex colour at TC0 and the world position at TC1.
+    /// This is the BASE numbering of the four Aftermath families: a graph translated from it is shifted into the others.
+    /// </summary>
+    CharacterAftermath,
+
+    /// <summary>
+    /// Aftermath's flavour for a declaration WITH a vertex colour (the soldiers' torsos, 0x56576EBB): the vertex colour rides ahead —
+    /// [VertexColor, WorldPos, ObjectPos, TangentRow0-2, TexCoord], the uv interpolator carrying both sets. MEASURED 2026-09-28: o1 = v6
+    /// passthrough, o2 = the world position, o3 = v0, o4-6 the rows, o7 = (uv0, uv1). The pixel side weighs its dirt by the colour.
+    /// </summary>
+    CharacterAftermathColor,
+
+    /// <summary>Aftermath's no-colour probe twin: the four SH rows AHEAD (the generic "+4"), then the base six — [SH×4, WorldPos,
+    /// ObjectPos, TangentRow0-2, TexCoord]. MEASURED 2026-09-28: o1-4 = instance-buffer rows loaded from t0.</summary>
+    CharacterAftermathProbe,
+
+    /// <summary>Aftermath's colour probe twin: the colour KEEPS TC0 and the SH rows ride behind it, like the base character's twin —
+    /// [VertexColor, SH×4, WorldPos, ObjectPos, TangentRow0-2, TexCoord]. MEASURED 2026-09-28 (o1 = v3, o2-5 = t0 rows).</summary>
+    CharacterAftermathColorProbe,
 }
 
 /// <summary>How a pixel variant receives the light-probe SH coefficients, when it does at all.</summary>
@@ -334,9 +359,15 @@ public sealed class ShaderContract
     {
         InterpolatorMeanings.Clear();
 
-        // The measured families keep the measured layout - reclassifying them could only move the guardians.
-        if (SemanticsVerified)
-            return;
+        // ⛔ THE MEASURED FAMILIES USED TO SKIP THE SCAN ALTOGETHER ("reclassifying them could only move the
+        // guardians"). But a family is detected by SHAPE, and the jets' decal preset has the rigid family's
+        // shape — five interpolators, four targets — with NONE of its layout: its vertex shader hands over
+        // three frame rows at 0..2, the uv pair at 3 and a second uv set at 4 (measured 2026-09-22). Drawn
+        // through the measured layout its colour maps sampled a tangent row, and the game's insignia came
+        // out as BLACK patches. So the usage scan runs for every family, and a measured family switches to
+        // what its own bytecode says ONLY where the two DISAGREE; where they agree — every weapon preset,
+        // the kit atlases — the map stays empty, which is the byte-exact rigid vertex shader the guardians
+        // are pinned to (see the end of this method).
 
         // A probe twin's meanings come from its MEASURED table, not the usage scan: SH rows never appear
         // as sample coordinates or output packs, so the scan would hand them the neutral filler — and a
@@ -360,12 +391,74 @@ public sealed class ShaderContract
 
         var s_ByRegister = new Dictionary<int, string>();
 
+        // ⭐⭐ THE TANGENT FRAME, NAMED BY ITS OWN SHAPE (measured 2026-09-21 on BF3's own bytecode). A
+        // tangent-space normal is rotated into world space by THREE dp3s that write x, y and z of ONE
+        // register, all from ONE source register, each reading a DIFFERENT interpolator — those three
+        // interpolators ARE the frame's rows, in the order of the component they write.
+        //   vehicles/shaders/vehiclepreset_mud   dp3 r1.x,r0,v1 · r1.y,r0,v2 · r1.z,r0,v3   (+ v4 = the UVs)
+        //   weapons/shaders/weaponpresetshadowfp dp3 r1.x,r0,v2 · r1.y,r0,v3 · r1.z,r0,v4
+        // ⛔ WHY IT HAD TO BE MEASURED: without it the scan cannot name them, they fall to the neutral filler
+        // below, and the preview feeds a made-up mid-range value where the shader reads its frame — the body
+        // draws flat and dark and a tyre loses its tread. It never showed on WEAPONS because their layout
+        // happens to match the rigid default the preview was built around (worldpos, three rows, uv); a
+        // vehicle body has no world-position input, so every row sits one slot earlier.
+        var s_Rows = new Dictionary<(int Register, int Vector), SortedDictionary<int, int>>();
+
+        // ⭐ AND ITS SECOND SHAPE: a forward shader that only needs the WORLD NORMAL takes the .z of each row —
+        // `mov r1.x, v2.z · mov r1.y, v3.z · mov r1.z, v4.z` (the XPack01 glass, the F-35B's canopy, measured
+        // 2026-09-22). Left unnamed, the three rows got the neutral filler, the normal came out of nothing and
+        // the canopy drew opaque white. Same grouping: three components of ONE register from three inputs.
+        var s_MovRows = new Dictionary<int, SortedDictionary<int, int>>();
+
+        // ⭐ AND THE WORLD NORMAL OF A FORWARD SHADER, by what it is DOTTED with: the light direction (cb0[1]) or
+        // the view vector (cameraPos cb2[20] − the world position, normalized or not). Measured 2026-09-23 on the
+        // five shaders the census left with a made-up input: the LAV's cage (`lav25_decal`, N·L and the
+        // reflection), the Mi-28's canopy, the T-90's infrared panel and the F-35B's fuselage rim (N·V), the AH-6's
+        // blur disc (N·L). The temps holding the view vector are tracked through their normalize.
+        var s_ViewTemps = new HashSet<int>();
+        var s_NormalCandidates = new List<int>();
+
+        // The interpolators read as SAMPLE COORDINATES, with how often and whether their .zw half is read:
+        // a shader can read two of them (see below), and which is the pair is decided from this tally.
+        var s_UvSamples = new Dictionary<int, int>();
+        var s_UvReadsZw = new HashSet<int>();
+
         foreach (var s_Instruction in p_Instructions)
         {
+            if (s_Instruction.Opcode == "dp3" &&
+                s_Instruction.Destination is { Kind: Translate.OperandKind.Temp, WriteMask.Length: 1 } s_RowDest &&
+                s_RowDest.WriteMask[0] <= 2 &&
+                s_Instruction.Sources.FirstOrDefault(p_S => p_S.Kind == Translate.OperandKind.Input) is { } s_RowInput &&
+                s_Instruction.Sources.FirstOrDefault(p_S => p_S.Kind == Translate.OperandKind.Temp) is { } s_Vector)
+            {
+                var s_Key = (s_RowDest.Index, s_Vector.Index);
+                if (!s_Rows.TryGetValue(s_Key, out var s_Group))
+                    s_Rows[s_Key] = s_Group = new SortedDictionary<int, int>();
+
+                s_Group.TryAdd(s_RowDest.WriteMask[0], s_RowInput.Index);
+            }
+
+            if (MovRowsNameTheFrame && s_Instruction.Opcode == "mov" &&
+                s_Instruction.Destination is { Kind: Translate.OperandKind.Temp, WriteMask.Length: 1 } s_MovDest &&
+                s_MovDest.WriteMask[0] <= 2 &&
+                s_Instruction.Sources.ElementAtOrDefault(0) is
+                    { Kind: Translate.OperandKind.Input, Negate: false, Absolute: false } s_MovInput &&
+                s_MovInput.Swizzle.Length > 0 && s_MovInput.Swizzle.All(p_C => p_C == 2))
+            {
+                if (!s_MovRows.TryGetValue(s_MovDest.Index, out var s_MovGroup))
+                    s_MovRows[s_MovDest.Index] = s_MovGroup = new SortedDictionary<int, int>();
+
+                s_MovGroup.TryAdd(s_MovDest.WriteMask[0], s_MovInput.Index);
+            }
+
             // A sample's first operand is its coordinate: whatever interpolator it reads is a UV.
             if (s_Instruction.Opcode.StartsWith("sample", StringComparison.Ordinal) &&
                 s_Instruction.Sources.ElementAtOrDefault(0) is { Kind: Translate.OperandKind.Input } s_Coord)
-                s_ByRegister.TryAdd(s_Coord.Index, "UvPair");
+            {
+                s_UvSamples[s_Coord.Index] = s_UvSamples.GetValueOrDefault(s_Coord.Index) + 1;
+                if (s_Coord.Swizzle.Any(p_Component => p_Component >= 2))
+                    s_UvReadsZw.Add(s_Coord.Index);
+            }
 
             // The camera-relative subtract names the world position (cameraPos is cb2[20], measured).
             if (s_Instruction.Opcode == "add" &&
@@ -378,6 +471,103 @@ public sealed class ShaderContract
                 s_Instruction.Destination is { Kind: Translate.OperandKind.Output, Index: 0 } &&
                 s_Instruction.Sources.ElementAtOrDefault(0) is { Kind: Translate.OperandKind.Input } s_Normal)
                 s_ByRegister[s_Normal.Index] = "Normal";
+
+            if (ViewDotsNameTheNormal)
+            {
+                // Read BEFORE this instruction's own write updates the set: `dp3 r0.y, v2, r2` reads the r2 an
+                // earlier normalize left.
+                if (s_Instruction.Opcode == "dp3" &&
+                    s_Instruction.Sources.FirstOrDefault(p_S => p_S.Kind == Translate.OperandKind.Input) is { } s_DotInput &&
+                    s_Instruction.Sources.Any(p_S =>
+                        p_S is { Kind: Translate.OperandKind.ConstBuffer, Index: 0, Element: 1 } ||
+                        p_S.Kind == Translate.OperandKind.Temp && s_ViewTemps.Contains(p_S.Index)))
+                    s_NormalCandidates.Add(s_DotInput.Index);
+
+                if (s_Instruction.Destination is { Kind: Translate.OperandKind.Temp } s_Written)
+                {
+                    var s_IsView =
+                        s_Instruction.Opcode == "add" &&
+                        s_Instruction.Sources.Any(p_S => p_S is { Kind: Translate.OperandKind.ConstBuffer, Index: 2, Element: 20 }) &&
+                        s_Instruction.Sources.Any(p_S => p_S is { Kind: Translate.OperandKind.Input, Negate: true }) ||
+                        s_Instruction.Opcode == "mul" &&
+                        s_Instruction.Sources.Any(p_S => p_S.Kind == Translate.OperandKind.Temp &&
+                                                         p_S.Index == s_Written.Index && s_ViewTemps.Contains(p_S.Index));
+                    if (s_IsView)
+                        s_ViewTemps.Add(s_Written.Index);
+                    else
+                        s_ViewTemps.Remove(s_Written.Index);
+                }
+            }
+        }
+
+        // ⭐ ONE SAMPLED INTERPOLATOR IS THE PAIR, ANY OTHER IS EXTRA (measured 2026-09-22 on the jets' decal
+        // preset: its colour maps sample interpolator 3 — both halves — and its normal map samples
+        // interpolator 4.xy, which the game's vertex shader fills with a DIFFERENT uv set). The pair is the
+        // one read with its .zw half too, else the one sampled most, else the lowest; every other sampled
+        // interpolator is fed the dump's third slot (UvExtra). Fed the pair instead, that normal map would
+        // read the colour set. Named before the frame rows, so a coordinate never loses to a row.
+        var s_PairNamed = false;
+        foreach (var s_Register in s_UvSamples.Keys
+                     .OrderByDescending(s_UvReadsZw.Contains)
+                     .ThenByDescending(p_R => s_UvSamples[p_R])
+                     .ThenBy(p_R => p_R))
+        {
+            s_ByRegister.TryAdd(s_Register, s_PairNamed ? "UvExtra" : "UvPair");
+            s_PairNamed = true;
+        }
+
+        // Named only when ALL THREE rows come out of ONE rotation: two dot products could be anything. A row
+        // the stronger rules already named (a sample coordinate, the RT0 pack) keeps that name.
+        foreach (var s_Group in s_Rows.Values.Where(p_G => p_G.Count == 3))
+            foreach (var (s_Component, s_Input) in s_Group)
+                s_ByRegister.TryAdd(s_Input, $"TangentRow{s_Component}");
+
+        foreach (var s_Group in s_MovRows.Values.Where(p_G => p_G.Count == 3 && p_G.Values.Distinct().Count() == 3))
+            foreach (var (s_Component, s_Input) in s_Group)
+                s_ByRegister.TryAdd(s_Input, $"TangentRow{s_Component}");
+
+        // Last, so every stronger name (a coordinate, a row, the RT0 pack) keeps its own.
+        foreach (var s_Input in s_NormalCandidates)
+            s_ByRegister.TryAdd(s_Input, "Normal");
+
+        // The measured layout of a verified family, per interpolator index — what the rigid vertex shader
+        // feeds. A measured family keeps it unless the scan CONTRADICTS it somewhere (see the top).
+        string MeasuredMeaning(int p_Index) => FieldNameFor(p_Index) switch
+        {
+            "WorldPos" => "WorldPos",
+            "WorldNormal" => "Normal",
+            "TexCoord" => "UvPair",
+            "VertexColor" => "Neutral",
+            var s_Field => s_Field,
+        };
+
+        if (SemanticsVerified)
+        {
+            var s_Disagrees = s_ByRegister.Any(p_Named =>
+                Inputs.FirstOrDefault(p_I => p_I.Register == p_Named.Key &&
+                                             p_I.Semantic.Equals("TEXCOORD", StringComparison.OrdinalIgnoreCase)) is { } s_Element &&
+                !MeasuredMeaning(s_Element.Index).Equals(p_Named.Value, StringComparison.Ordinal));
+
+            // ⛔⛔ AND A NAME THAT AGREES IS NOT A VALUE THAT AGREES. The measured name of the rigid layout's uv
+            // interpolator is "UvPair", but the rigid vertex shader does NOT feed a pair: it feeds
+            // (uv, uv × 2) — an invented second half that costs nothing to a shader reading only .xy (every
+            // weapon preset). A shader that reads the .zw half — the Mi-28 pilot's cockpit interior
+            // (`mi28_cockpit1p`: diffuse from .xy, its baked AO map from .zw, 2026-09-22) — then sampled its
+            // AO at the DIFFUSE uv doubled: islands of switches and knobs strewn over every panel, which keku
+            // read, rightly, as "the whole instrument panel still has its UVs wrong" after the uv order itself
+            // had been fixed. Such a shader leaves the rigid layout, so its pair is fed the dump's real second
+            // set; one that reads only .xy keeps the byte-exact rigid shader.
+            // Only where the rigid shader's value IS that invented pair: TEXCOORD4 of the rigid families (the
+            // lightmapped flavour's .zw is its atlas offset, a different quantity with its own measured feed).
+            s_Disagrees |= RigidPairLeavesRigidLayout &&
+                           Family is ShaderFamily.RigidMesh or ShaderFamily.RigidMeshSubMaterial or ShaderFamily.Forward &&
+                           s_UvReadsZw.Any(p_Register =>
+                               Inputs.FirstOrDefault(p_I => p_I.Register == p_Register &&
+                                                            p_I.Semantic.Equals("TEXCOORD", StringComparison.OrdinalIgnoreCase)) is
+                               { Index: 4 });
+
+            if (!s_Disagrees)
+                return;
         }
 
         foreach (var (s_Register, s_Meaning) in s_ByRegister)
@@ -392,9 +582,10 @@ public sealed class ShaderContract
         // Whatever the usage scan could NOT name gets NEUTRAL WHITE rather than the rigid-mesh guesses: a
         // variant gate compared against 0 reads true, a particle fade reads fully visible, a vertex colour
         // multiplies without darkening. A tangent-frame row in any of those roles is just structured noise.
+        // A measured family that the scan contradicted keeps the measured name for what the scan left alone.
         foreach (var s_Element in Inputs.Where(p_I =>
                      p_I.Semantic.Equals("TEXCOORD", StringComparison.OrdinalIgnoreCase)))
-            InterpolatorMeanings.TryAdd(s_Element.Index, "Neutral");
+            InterpolatorMeanings.TryAdd(s_Element.Index, SemanticsVerified ? MeasuredMeaning(s_Element.Index) : "Neutral");
     }
 
     /// <summary>
@@ -485,6 +676,35 @@ public sealed class ShaderContract
         }
     }
 
+    /// <summary>
+    /// A rigid-family shader that reads the .zw half of its uv interpolator leaves the rigid layout (whose
+    /// TEXCOORD4 is uv and uv × 2, not a pair) so its pair is fed the dump's real second set — see
+    /// <see cref="ClassifyInterpolators"/>. The way back, and what a census flips to see the old answer.
+    /// </summary>
+    public static bool RigidPairLeavesRigidLayout { get; set; } =
+        Environment.GetEnvironmentVariable("CAMO_RIGID_PAIR_OLD") != "1";
+
+    /// <summary>
+    /// Whether Aftermath's character flavours classify as their own families (2026-09-28, see <see cref="ShaderFamily.CharacterAftermath"/>)
+    /// — the way back (CAMO_AFTERMATH_OLD=1: the no-colour flavour a base Character, the others Unknown), and the soldier bake's negative control.
+    /// </summary>
+    public static bool AftermathFamilies { get; set; } =
+        Environment.GetEnvironmentVariable("CAMO_AFTERMATH_OLD") != "1";
+
+    /// <summary>
+    /// Whether three MOVs of the rows' .z name the tangent frame (the forward glass shape) — see
+    /// <see cref="ClassifyInterpolators"/>. The way back, and what `--movrowscensus` flips.
+    /// </summary>
+    public static bool MovRowsNameTheFrame { get; set; } =
+        Environment.GetEnvironmentVariable("CAMO_MOV_ROWS_OLD") != "1";
+
+    /// <summary>
+    /// Whether an input dotted with the light direction or the view vector is named the world normal — see
+    /// <see cref="ClassifyInterpolators"/>. The way back, and what `--viewnormalcensus` flips.
+    /// </summary>
+    public static bool ViewDotsNameTheNormal { get; set; } =
+        Environment.GetEnvironmentVariable("CAMO_VIEW_NORMAL_OLD") != "1";
+
     /// <summary>True when the per-interpolator meaning is verified, not just the shape.</summary>
     public bool SemanticsVerified => Family == ShaderFamily.RigidMesh ||
                                      Family == ShaderFamily.RigidMeshSubMaterial ||
@@ -501,7 +721,7 @@ public sealed class ShaderContract
     public static bool IsProbeTwin(ShaderFamily p_Family) => p_Family is
         ShaderFamily.RigidMeshProbe or ShaderFamily.VegetationProbe or
         ShaderFamily.SimpleSurfaceProbe or ShaderFamily.NormalOnlyProbe or
-        ShaderFamily.CharacterProbe;
+        ShaderFamily.CharacterProbe or ShaderFamily.CharacterAftermathProbe or ShaderFamily.CharacterAftermathColorProbe;
 
     /// <summary>The flat-interpolated integer that selects a submaterial, if this shader has one.</summary>
     public SignatureElement? SubMaterialSelector =>
@@ -669,8 +889,42 @@ public sealed class ShaderContract
                 case 9: return "TexCoord";
             }
 
+        // Aftermath's characters (measured on their paired vertex shaders, 2026-09-28): the base six, then each twin as that base
+        // shifted — by the vertex colour ahead (+1), the SH rows ahead (+4), or both (+5, the colour keeping TC0).
+        if (Family is ShaderFamily.CharacterAftermath or ShaderFamily.CharacterAftermathColor or
+            ShaderFamily.CharacterAftermathProbe or ShaderFamily.CharacterAftermathColorProbe)
+        {
+            var s_Colour = Family is ShaderFamily.CharacterAftermathColor or ShaderFamily.CharacterAftermathColorProbe;
+            var s_Probe = Family is ShaderFamily.CharacterAftermathProbe or ShaderFamily.CharacterAftermathColorProbe;
+            if (s_Colour && p_TexCoordIndex == 0)
+                return "VertexColor";
+
+            var s_Rows = s_Colour ? 1 : 0;
+            if (s_Probe && p_TexCoordIndex >= s_Rows && p_TexCoordIndex < s_Rows + 4)
+                return (p_TexCoordIndex - s_Rows) switch { 0 => "ProbeShR", 1 => "ProbeShG", 2 => "ProbeShB", _ => "ProbeShO" };
+
+            switch (p_TexCoordIndex - AftermathOffset(Family))
+            {
+                case 0: return "WorldPos";
+                case 1: return "ObjectPos";
+                case 2: return "TangentRow0";
+                case 3: return "TangentRow1";
+                case 4: return "TangentRow2";
+                case 5: return "TexCoord";
+            }
+        }
+
         return "Interp" + p_TexCoordIndex;
     }
+
+    /// <summary>Where the base Aftermath six start in a flavour of that family: 0, +1 behind the colour, +4 behind the SH rows, +5 behind both.</summary>
+    private static int AftermathOffset(ShaderFamily p_Family) => p_Family switch
+    {
+        ShaderFamily.CharacterAftermathColor => 1,
+        ShaderFamily.CharacterAftermathProbe => 4,
+        ShaderFamily.CharacterAftermathColorProbe => 5,
+        _ => 0,
+    };
 
     /// <summary>
     /// Field for a GRAPH-stored interpolator index. Graphs are translated against the BASE layout; the
@@ -686,8 +940,28 @@ public sealed class ShaderContract
     /// </summary>
     public bool GraphSpeaksThisContract { get; set; }
 
+    /// <summary>The family the graph being emitted was translated under (ShaderGraph.TranslatedFamily), set by the emitter with
+    /// <see cref="GraphSpeaksThisContract"/>; null for a graph that never was.</summary>
+    public string? GraphFamily { get; set; }
+
+    /// <summary>Aftermath's four character families (see <see cref="ShaderFamily.CharacterAftermath"/>).</summary>
+    public static bool IsAftermath(ShaderFamily p_Family) => p_Family is ShaderFamily.CharacterAftermath or
+        ShaderFamily.CharacterAftermathColor or ShaderFamily.CharacterAftermathProbe or ShaderFamily.CharacterAftermathColorProbe;
+
     public string FieldNameForGraphIndex(int p_Index) => GraphSpeaksThisContract ? FieldNameFor(p_Index) : Family switch
     {
+        // ⭐ Aftermath's families name every interpolator by its MEASURED role, so a graph's index maps across them BY NAME: the role it
+        // has in the numbering the graph was translated in, which this flavour declares under the same name wherever it sits. A graph
+        // stamped "Character" (or nothing) on one of these shaders was translated before 2026-09-28, when the no-colour flavour classified
+        // as the base character: its numbering is the base six. (A role a flavour lacks — the colour, the SH rows — does not compile,
+        // which keeps that flavour's own bytes.)
+        ShaderFamily.CharacterAftermath or ShaderFamily.CharacterAftermathColor or
+        ShaderFamily.CharacterAftermathProbe or ShaderFamily.CharacterAftermathColorProbe =>
+            new ShaderContract
+            {
+                Family = Enum.TryParse<ShaderFamily>(GraphFamily, out var s_From) && IsAftermath(s_From) ? s_From : ShaderFamily.CharacterAftermath,
+            }.FieldNameFor(p_Index),
+
         ShaderFamily.RigidMeshProbe or ShaderFamily.VegetationProbe or
         ShaderFamily.SimpleSurfaceProbe or ShaderFamily.NormalOnlyProbe => FieldNameFor(p_Index + 4),
 
@@ -800,6 +1074,37 @@ public sealed class ShaderContract
         {
             p_Pass = "lightmapped, per-instance (TC0 = atlas transform; rigid five at TC1-5; TC6 = lightmap UV)";
             return ShaderFamily.RigidMeshLightmap;
+        }
+
+        // ⭐ AFTERMATH'S CHARACTERS, by the rim light their shaders compile in (external_RimLightDirection — in every flavour of
+        // CharacterRoot_XP4 and CharacterRoot_Skin_XP4, in none of the base characters', measured 2026-09-28) and then by shape. Named
+        // BEFORE the generic rules: the no-colour flavour has the base Character's shape exactly, and read with that table its world
+        // position is "the vertex colour" and its raw object position "the world position".
+        if (AftermathFamilies && Has(p_Dxbc, "RimLightDirection"))
+        {
+            if (p_Tc.Count == 6 && p_Tc[0].UsedComponents == 3)
+            {
+                p_Pass = "Aftermath character (TC0 = world position, TC1 = raw object position)";
+                return ShaderFamily.CharacterAftermath;
+            }
+
+            if (p_Tc.Count == 7 && p_Tc[0].UsedComponents == 3)
+            {
+                p_Pass = "Aftermath character with vertex colour (TC0 = colour; base shifted to TC1-6)";
+                return ShaderFamily.CharacterAftermathColor;
+            }
+
+            if (p_Tc.Count == 10 && p_Tc.Take(4).All(p_I => p_I.UsedComponents == 4))
+            {
+                p_Pass = "Aftermath probe-lit (TC0-3 = light-probe SH rows; base shifted to TC4-9)";
+                return ShaderFamily.CharacterAftermathProbe;
+            }
+
+            if (p_Tc.Count == 11 && p_Tc[0].UsedComponents == 3 && p_Tc.Skip(1).Take(4).All(p_I => p_I.UsedComponents == 4))
+            {
+                p_Pass = "Aftermath probe-lit with vertex colour (TC0 = colour, TC1-4 = SH rows; base shifted to TC5-10)";
+                return ShaderFamily.CharacterAftermathColorProbe;
+            }
         }
 
         // Shape, on the USED components - interpolators are always declared xyzw.

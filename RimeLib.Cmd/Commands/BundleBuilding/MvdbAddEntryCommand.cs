@@ -58,7 +58,18 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
         [CommandArgument(Description = "Optional: point the copied entry's MaterialVariation refs at YOUR " +
                                        "MeshMaterialVariation instances (the ObjectVariation partition added " +
                                        "via add_json_partition). Format: 'partGuid:instGuid1[,instGuid2...]' — " +
-                                       "instances are consumed in material order, filtered by VariationShaderFilter.",
+                                       "instances are consumed in material order, filtered by VariationShaderFilter. " +
+                                       "⛔ POSITIONAL, so on a multi-material weapon the first instance lands on " +
+                                       "whatever material is first (the M240's is its BULLET BELT, drawn white by " +
+                                       "the camo preset) and the body gets nothing. The game's own variations pair " +
+                                       "BY SHADER: give each instance its shaders — 'partGuid:inst1@shaderA|shaderB," +
+                                       "inst2@shaderC' — and every material whose surface shader is one of them gets " +
+                                       "that instance (full partition name or its last segment, case-insensitive); " +
+                                       "the other materials keep their copied refs, and SetTextureParams/" +
+                                       "AddTextureParams touch only the materials an instance was given to. The all-zero " +
+                                       "instance (00000000-0000-0000-0000-000000000000) KEEPS the material variation the " +
+                                       "material copied and only marks it as ours (it takes our textures; scope them to it " +
+                                       "with '@00000000-0000-0000-0000-000000000000').",
                          Optional = true)]
         public string? VariationRefs { get; set; }
 
@@ -102,6 +113,52 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                                        "copied ones. A parameter already present is left alone — use RetexMap " +
                                        "for those.", Optional = true)]
         public string? AddTextureParams { get; set; }
+
+        [CommandArgument(Description = "Optional (LAST arg): SET texture parameters on the NEW variation entry — " +
+                                       "same format as AddTextureParams ('Name>partGuid:instGuid[,...]'), but a " +
+                                       "parameter a material ALREADY binds is REPOINTED instead of left alone. One " +
+                                       "knob for both kinds of weapon: a mesh whose base entry binds no Camo gets " +
+                                       "the slot added; one whose base already binds a stock pattern (woodland, " +
+                                       "urban) gets it swapped — without the caller knowing the old texture's " +
+                                       "partition guid, which RetexMap needs and a material scan does not carry. " +
+                                       "Applies only to the entry carrying VariationHash; copied entries are " +
+                                       "untouched. 'Name>partGuid:instGuid@varInstGuid' scopes one to the materials " +
+                                       "given THAT VariationRefs instance (fails when none was).", Optional = true)]
+        public string? SetTextureParams { get; set; }
+
+        [CommandArgument(Description = "Optional (LAST arg): '1' = ADD to this bundle, as references, every " +
+                                       "texture partition the copied entries bind (the MVDB-TEX list) that the " +
+                                       "bundle does not hold yet — cas-refs in a CAS bundle, zero bytes of the " +
+                                       "game's. A texture with no catalog copy (content that lives only inside " +
+                                       "the levels using it) is left to those levels (MVDB-TEX-LEVEL), never copied. The copies bring their bindings along and a binding whose " +
+                                       "texture did not travel draws the mesh's OTHER skins white; listing the " +
+                                       "textures by hand from a scan misses the materials the scan was not " +
+                                       "asked about (a weapon's tape). Skips partitions already added and any " +
+                                       "that is not mounted (a generated texture the caller adds as JSON).",
+                         Optional = true)]
+        public string? ReferenceTextures { get; set; }
+
+        [CommandArgument(Description = "Optional (LAST arg): '1' = the partition ships ONLY the entry carrying " +
+                                       "VariationHash; the copied vanilla entries (and a synthesized base) are " +
+                                       "dropped. ⛔ Measured 2026-09-18 (fase E, 4 boots read wrong): two of OUR " +
+                                       "partitions carrying the same (mesh nameHash, hash) key -- a hash-0 entry " +
+                                       "authored in place in one, and the vanilla hash-0 copy that rides along " +
+                                       "in another that appends a NEW hash -- race for that key at registration, " +
+                                       "and the winner changed between builds (the ACOG 3P clone painted in " +
+                                       "three boots and went default in the fourth with no change to either " +
+                                       "partition). A key belongs to ONE partition of the mod: pass '1' on every " +
+                                       "call that appends a new hash when another call already owns the copied " +
+                                       "keys. Meaningless with an in-place takeover (nothing to drop).",
+                         Optional = true)]
+        public string? OnlyVariation { get; set; }
+
+        [CommandArgument(Description = "Optional (LAST arg): the VariationAssetNameHash of the source entry the NEW " +
+                                       "variation is copied from — a soldier's look: its part's variation (Desert, Ninja…) " +
+                                       "or its first-person arms' one, whose materials and textures the copy starts from. " +
+                                       "Default: the mesh's hash-0 entry, else its first. Use with mode 'all' so every " +
+                                       "entry of the mesh is read; fails when the mesh has no entry with that hash.",
+                         Optional = true)]
+        public string? SourceHash { get; set; }
 
         private bool RetexScopedToVariation =>
             RetexVariationOnly is "1" or "true" or "True" or "TRUE";
@@ -309,6 +366,31 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
             // (fresh partition guid, SAME instance guids). The engine keys the MVDB entry by the mesh's guid,
             // so a byte-cloned mesh (fresh partition) needs its OWN entry with Mesh (and its Materials) pointing
             // at the clone. Only the partition guid changes; instance guids are preserved by the byte-clone.
+            // 'auto' = the guid of the mesh's OWN partition, resolved here. A builder writing one entry per
+            // accessory clone would otherwise have to learn that guid from a dump before it can write the
+            // line; the command already has the mesh open, so it answers the question itself.
+            if (string.Equals(RepointFrom, "auto", StringComparison.OrdinalIgnoreCase))
+            {
+                RepointFrom = null;
+                if (s_EngineMounter.TryGetPartition(MeshName!, out var s_MeshMountedAuto))
+                {
+                    var s_MeshVariantAuto = s_MeshMountedAuto.Variants.FirstOrDefault(p_V => p_V.GetContainedBundle() != null)
+                                            ?? s_MeshMountedAuto.FirstVariant;
+                    if (s_MeshVariantAuto != null &&
+                        s_Converter.FromPartitionObject(MeshName!, s_MeshVariantAuto) is { } s_MeshPartitionAuto)
+                    {
+                        RepointFrom = s_MeshPartitionAuto.PartitionGuid.ToString();
+                        p_Writer.WriteLine($"Repoint source resolved from the mesh's own partition: {RepointFrom}");
+                    }
+                }
+
+                if (RepointFrom == null)
+                {
+                    p_Writer.WriteLine($"Could not resolve the partition guid of '{MeshName}' for repoint 'auto'.");
+                    return false;
+                }
+            }
+
             if (!string.IsNullOrWhiteSpace(RepointFrom) && !string.IsNullOrWhiteSpace(RepointTo))
             {
                 var s_From = new GUID(RepointFrom!);
@@ -415,6 +497,27 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                 // vanilla and the new variation is reachable by its hash. Callers pass mode 'all' for this.
                 var s_Base = s_Matches.FirstOrDefault(p_M => p_M.VariationAssetNameHash == 0) ?? s_Matches[0];
 
+                // (a named source entry: a soldier's look is one variation among many of the same mesh, not its base)
+                if (!string.IsNullOrWhiteSpace(SourceHash))
+                {
+                    if (!uint.TryParse(SourceHash, out var s_SourceHash))
+                    {
+                        p_Writer.WriteLine($"Invalid SourceHash '{SourceHash}' (expected a u32).");
+                        return false;
+                    }
+
+                    var s_Named = s_Matches.FirstOrDefault(p_M => p_M.VariationAssetNameHash == s_SourceHash);
+                    if (s_Named == null)
+                    {
+                        p_Writer.WriteLine($"No entry of '{MeshName}' with variation hash {s_SourceHash} in '{SourceName}' " +
+                                           $"({s_Matches.Count} entr(y/ies) of the mesh read{(s_All ? "" : " -- pass mode 'all'")}).");
+                        return false;
+                    }
+
+                    s_Base = s_Named;
+                    p_Writer.WriteLine($"MVDB-SOURCE-ENTRY: {MeshName} hash {s_SourceHash} ({s_Base.Materials.Count} material(s)) -> new hash {s_NewHash}");
+                }
+
                 // ⛔ A KEY THIS PARTITION ALREADY CARRIES MUST BE AUTHORED IN PLACE, NOT APPENDED TO.
                 // The runtime keys a variation by (mesh nameHash, variationAssetNameHash) and the FIRST
                 // entry to reach that key fills it — every later entry for the same key is dropped in
@@ -457,6 +560,183 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                         });
                 }
 
+                // --- VariationRefs by SHADER ('inst@shaderA|shaderB'): which material takes which instance ---
+                // Resolved BEFORE the texture parameters below, because those must land on the same materials:
+                // a Camo binding on the bullet belt is as wrong as a weapon preset on it. Null = positional
+                // mode (no '@' given), the original behaviour.
+                System.Collections.Generic.Dictionary<fb.MeshVariationDatabaseMaterial, GUID>? s_ByShader = null;
+                GUID s_ByShaderPartition = GUID.Empty;
+                var s_ByShaderCounts = new System.Collections.Generic.List<(GUID Inst, string Shaders, int Count)>();
+
+                if (!string.IsNullOrWhiteSpace(VariationRefs) && VariationRefs!.Contains('@'))
+                {
+                    var s_Sides = VariationRefs.Split(':', 2);
+                    if (s_Sides.Length != 2)
+                    {
+                        p_Writer.WriteLine("Invalid VariationRefs (expected 'partGuid:instGuid@shader[|shader...][,...]').");
+                        return false;
+                    }
+
+                    s_ByShaderPartition = new GUID(s_Sides[0]);
+                    var s_Specs = new System.Collections.Generic.List<(GUID Inst, string[] Shaders, int[] KeepOff, int[] Only)>();
+                    foreach (var s_Spec in s_Sides[1].Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var s_At = s_Spec.IndexOf('@');
+                        if (s_At <= 0)
+                        {
+                            p_Writer.WriteLine($"Invalid VariationRefs instance '{s_Spec}': every instance needs '@shader' when one has it.");
+                            return false;
+                        }
+
+                        // 'inst@shaderA|shaderB!3!5': the materials wearing those shaders take the instance
+                        // EXCEPT the ones whose material ID (the mesh's own index) is listed after '!' —
+                        // the user's per-material choice (an object carries several materials of one family).
+                        // 'inst@shaderA#3' is the inverse: ONLY material #3, for a material whose own shader
+                        // the package replaces (an edited glass, glow or HUD graph).
+                        var s_Body = s_Spec[(s_At + 1)..];
+                        var s_Parts = s_Body.Split('!', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        var s_KeepOff = new System.Collections.Generic.List<int>();
+                        foreach (var s_Id in s_Parts.Skip(1))
+                        {
+                            if (!int.TryParse(s_Id, out var s_Index) || s_Index < 0)
+                            {
+                                p_Writer.WriteLine($"Invalid VariationRefs instance '{s_Spec}': '!{s_Id}' is not a material ID.");
+                                return false;
+                            }
+
+                            s_KeepOff.Add(s_Index);
+                        }
+
+                        var s_OnlyParts = s_Parts[0].Split('#', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                        var s_Only = new System.Collections.Generic.List<int>();
+                        foreach (var s_Id in s_OnlyParts.Skip(1))
+                        {
+                            if (!int.TryParse(s_Id, out var s_Index) || s_Index < 0)
+                            {
+                                p_Writer.WriteLine($"Invalid VariationRefs instance '{s_Spec}': '#{s_Id}' is not a material ID.");
+                                return false;
+                            }
+
+                            s_Only.Add(s_Index);
+                        }
+
+                        s_Specs.Add((new GUID(s_Spec[..s_At].Trim()),
+                            s_OnlyParts[0].Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                            s_KeepOff.ToArray(), s_Only.ToArray()));
+                    }
+
+                    // Each material's surface shader comes from its MeshMaterial, which lives in the mesh
+                    // partition — same converter pattern as dump_shader_material_textures.
+                    RimeLib.Serialization.Frostbite2_0.Ebx.DatabasePartition? s_MeshConcrete = null;
+                    if (s_EngineMounter.TryGetPartition(MeshName!, out var s_MeshMountedS))
+                    {
+                        var s_MeshVariantS = s_MeshMountedS.Variants.FirstOrDefault(p_V => p_V.GetContainedBundle() != null)
+                                             ?? s_MeshMountedS.FirstVariant;
+                        if (s_MeshVariantS != null)
+                            try { s_MeshConcrete = s_Converter.FromPartitionObject(MeshName!, s_MeshVariantS) as RimeLib.Serialization.Frostbite2_0.Ebx.DatabasePartition; }
+                            catch { s_MeshConcrete = null; }
+                    }
+
+                    if (s_MeshConcrete == null)
+                    {
+                        p_Writer.WriteLine($"VARIATION FAILED: the mesh partition '{MeshName}' did not parse, so no material's shader can be resolved.");
+                        return false;
+                    }
+
+                    string? ShaderNameOf(fb.MeshVariationDatabaseMaterial p_Mat)
+                    {
+                        if ((p_Mat.Material.InstanceId as DataContainerId.Guid)?.Id is not { } s_MatGuid ||
+                            !s_MeshConcrete.InstanceMap.TryGetValue(s_MatGuid, out var s_MatInst) ||
+                            s_MatInst is not fb.MeshMaterial s_MeshMat ||
+                            !s_EngineMounter.TryGetPartitionByGuid(s_MeshMat.Shader.Shader.PartitionGuid, out var s_Name, out _))
+                            return null;
+
+                        return s_Name;
+                    }
+
+                    // ('*' = any shader: 'inst@*#3' is material #3 whatever it wears — a soldier's material, known by its id)
+                    static bool Matches(string p_ShaderName, string p_Wanted) =>
+                        p_Wanted == "*" ||
+                        p_ShaderName.Equals(p_Wanted, StringComparison.OrdinalIgnoreCase) ||
+                        p_ShaderName[(p_ShaderName.LastIndexOf('/') + 1)..].Equals(p_Wanted, StringComparison.OrdinalIgnoreCase);
+
+                    // A material's ID is its index in the MESH's own material list (what the studio shows the
+                    // user, what the dump's MESHDECL prints) — resolved through the MeshMaterial guid, never
+                    // assumed to be the entry's order.
+                    var s_MeshAssetS = s_MeshConcrete.InstanceMap.Values.OfType<fb.MeshAsset>().FirstOrDefault();
+                    int MaterialIdOf(fb.MeshVariationDatabaseMaterial p_Mat)
+                    {
+                        if (s_MeshAssetS == null || (p_Mat.Material.InstanceId as DataContainerId.Guid)?.Id is not { } s_MatGuid)
+                            return -1;
+
+                        for (var i = 0; i < s_MeshAssetS.Materials.Count; i++)
+                            if ((s_MeshAssetS.Materials[i].InstanceId as DataContainerId.Guid)?.Id == s_MatGuid)
+                                return i;
+
+                        return -1;
+                    }
+
+                    s_ByShader = new System.Collections.Generic.Dictionary<fb.MeshVariationDatabaseMaterial, GUID>();
+                    var s_PerSpec = new int[s_Specs.Count];
+                    var s_Unmatched = new System.Collections.Generic.List<string>();
+                    var s_KeptOff = new System.Collections.Generic.List<string>();
+                    foreach (var s_Mat in s_Ours.Materials)
+                    {
+                        var s_ShaderName = ShaderNameOf(s_Mat) ?? "?";
+                        var s_MaterialId = MaterialIdOf(s_Mat);
+
+                        // A spec naming material IDs ('#3') answers only for those; the rest match by shader.
+                        // Those come FIRST so an edited material takes its own shader's instance, not the
+                        // family's — both specs match its shader name.
+                        var s_Hit = s_Specs.FindIndex(p_S => p_S.Only.Contains(s_MaterialId) &&
+                                                             p_S.Shaders.Any(p_W => Matches(s_ShaderName, p_W)));
+                        if (s_Hit < 0)
+                            s_Hit = s_Specs.FindIndex(p_S => p_S.Only.Length == 0 &&
+                                                            p_S.Shaders.Any(p_W => Matches(s_ShaderName, p_W)));
+
+                        if (s_Hit < 0)
+                        {
+                            s_Unmatched.Add(s_ShaderName[(s_ShaderName.LastIndexOf('/') + 1)..]);
+                            continue;
+                        }
+
+                        if (s_Specs[s_Hit].KeepOff.Contains(s_MaterialId))
+                        {
+                            s_KeptOff.Add($"#{s_MaterialId} ({s_ShaderName[(s_ShaderName.LastIndexOf('/') + 1)..]})");
+                            continue;
+                        }
+
+                        s_ByShader[s_Mat] = s_Specs[s_Hit].Inst;
+                        s_PerSpec[s_Hit]++;
+                    }
+
+                    for (var i = 0; i < s_Specs.Count; i++)
+                        s_ByShaderCounts.Add((s_Specs[i].Inst,
+                            string.Join("|", s_Specs[i].Shaders.Select(p_S => p_S[(p_S.LastIndexOf('/') + 1)..])) +
+                            (s_Specs[i].Only.Length > 0 ? "#" + string.Join("#", s_Specs[i].Only) : ""),
+                            s_PerSpec[i]));
+
+                    p_Writer.WriteLine($"Variation materials by shader: " +
+                                       string.Join(", ", s_ByShaderCounts.Select((p_C, p_I) => $"inst#{p_I + 1}={p_C.Count} [{p_C.Shaders}]")) +
+                                       (s_Unmatched.Count > 0 ? $"; untouched: {string.Join(", ", s_Unmatched)}" : "; untouched: none") +
+                                       (s_KeptOff.Count > 0 ? $"; kept off by id: {string.Join(", ", s_KeptOff)}" : ""));
+
+                    // Every ID the caller named must exist on this mesh, or the choice was made on another
+                    // object's numbering — said loudly, not swallowed.
+                    var s_Ids = s_Ours.Materials.Select(MaterialIdOf).ToHashSet();
+                    foreach (var s_Spec in s_Specs)
+                    {
+                        foreach (var s_Id in s_Spec.KeepOff.Where(p_I => !s_Ids.Contains(p_I)))
+                            p_Writer.WriteLine($"VARIATION WARNING: material id #{s_Id} is not a material of '{MeshName}' — nothing kept off for it.");
+
+                        foreach (var s_Id in s_Spec.Only.Where(p_I => !s_Ids.Contains(p_I)))
+                            p_Writer.WriteLine($"VARIATION WARNING: material id #{s_Id} is not a material of '{MeshName}' — that instance lands on nothing.");
+                    }
+                }
+
+                bool TakesOurTextures(fb.MeshVariationDatabaseMaterial p_Mat) =>
+                    s_ByShader == null || s_ByShader.ContainsKey(p_Mat);
+
                 // Bindings the material does not have at all. A weapon whose entry never had a Camo slot
                 // cannot get one by repointing, and the shader that samples it then reads nothing and draws
                 // that layer white.
@@ -471,6 +751,9 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
 
                         foreach (var s_Mat in s_Ours.Materials)
                         {
+                            if (!TakesOurTextures(s_Mat))
+                                continue;
+
                             if (s_Mat.TextureParameters.Any(p_T => p_T?.ParameterName == s_Name))
                                 continue;
 
@@ -488,6 +771,71 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
 
                     if (s_Added == 0)
                         p_Writer.WriteLine("WARN: added none — every material already had those parameters.");
+                }
+
+                // Add-or-repoint, on the new entry only. The camo tooling ships one texture per camo and has to
+                // bind it on EVERY weapon it is offered on: the weapons whose base entry already binds a stock
+                // pattern need the existing parameter moved, the rest need it created. AddTextureParams covers
+                // the second case only, RetexMap the first only and by old guid — this covers both by name.
+                if (!string.IsNullOrWhiteSpace(SetTextureParams))
+                {
+                    var s_SetAdded = 0;
+                    var s_SetMoved = 0;
+                    foreach (var s_Pair in SetTextureParams!.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var s_Sides = s_Pair.Split('>');
+                        // 'Name>part:inst@varInst' = only on the materials given THAT VariationRefs instance (a picture of one material's own
+                        // graph goes on that material, never on the body sharing its entry); no '@' = every material given an instance
+                        var s_Scoped = s_Sides[1].Split('@');
+                        var s_Ref = s_Scoped[0].Split(':');
+                        var s_Name = s_Sides[0].Trim();
+                        var s_Partition = new GUID(s_Ref[0]);
+                        var s_Instance = new GUID(s_Ref[1]);
+                        GUID? s_Scope = s_Scoped.Length > 1 ? new GUID(s_Scoped[1].Trim()) : null;
+                        var s_Landed = 0;
+
+                        foreach (var s_Mat in s_Ours.Materials)
+                        {
+                            if (!TakesOurTextures(s_Mat))
+                                continue;
+
+                            // (⛔ 'is not null', never '!= null': GUID's own != dereferences both sides — it threw on the first scoped binding)
+                            if (s_Scope is not null && (s_ByShader == null || !s_ByShader.TryGetValue(s_Mat, out var s_Given) || !s_Given.Equals(s_Scope)))
+                                continue;
+
+                            s_Landed++;
+
+                            var s_Bound = s_Mat.TextureParameters.FirstOrDefault(p_T => p_T?.ParameterName == s_Name);
+                            if (s_Bound != null)
+                            {
+                                if (s_Bound.Value != null)
+                                    s_Bound.Value.SetValue(s_Partition, new DataContainerId.Guid(s_Instance));
+                                else
+                                    s_Bound.Value = new CtrRef<fb.TextureBaseAsset>(s_Partition, new DataContainerId.Guid(s_Instance));
+
+                                s_SetMoved++;
+                                continue;
+                            }
+
+                            s_Mat.TextureParameters.Add(new fb.TextureShaderParameter
+                            {
+                                ParameterName = s_Name,
+                                Value = new CtrRef<fb.TextureBaseAsset>(s_Partition, new DataContainerId.Guid(s_Instance)),
+                            });
+                            s_SetAdded++;
+                        }
+
+                        // a scoped binding that found no material names a material the caller expected here: said, never swallowed
+                        if (s_Scope is not null && s_Landed == 0)
+                        {
+                            p_Writer.WriteLine($"VARIATION FAILED: texture parameter '{s_Name}' is scoped to variation instance {s_Scope} and no " +
+                                               "material of this entry was given that instance.");
+                            return false;
+                        }
+                    }
+
+                    p_Writer.WriteLine($"Set {s_SetAdded + s_SetMoved} texture parameter(s) on the NEW variation " +
+                                       $"entry ({s_SetMoved} repointed, {s_SetAdded} added).");
                 }
 
                 // Scoped repoint: the new entry was cloned from an untouched base, so it still binds the old
@@ -555,7 +903,26 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                         new CtrRef<fb.MeshVariationDatabaseEntry>(s_SrcConcrete.PartitionGuid, s_Ours.InstanceId));
                 }
 
-                if (!string.IsNullOrWhiteSpace(VariationRefs))
+                if (s_ByShader != null)
+                {
+                    // By shader: every material an instance matched takes it; the rest keep what they copied. The all-zero instance
+                    // marks a material as OURS (it takes our textures) while it KEEPS the material variation it copied — a soldier's
+                    // cloth keeps its look's own numbers (its CamoTileFactor, its dirt) and only its pictures change.
+                    foreach (var (s_Mat, s_Inst) in s_ByShader)
+                        if (!s_Inst.Equals(GUID.Empty))
+                            s_Mat.MaterialVariation.SetValue(s_ByShaderPartition, new DataContainerId.Guid(s_Inst));
+
+                    p_Writer.WriteLine($"Variation: hash={s_NewHash}, {s_ByShader.Count}/{s_Ours.Materials.Count} " +
+                                       $"material(s) repointed at {s_ByShaderPartition} by shader (" +
+                                       string.Join(", ", s_ByShaderCounts.Select((p_C, p_I) => $"inst#{p_I + 1}={p_C.Count}")) + ")");
+
+                    if (s_ByShader.Count == 0)
+                    {
+                        p_Writer.WriteLine("VARIATION FAILED: no material wears any of the shaders named in VariationRefs.");
+                        return false;
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(VariationRefs))
                 {
                     var s_RefSides = VariationRefs!.Split(':');
                     if (s_RefSides.Length != 2)
@@ -721,6 +1088,40 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
                 p_Writer.WriteLine($"Repointed entry binds {s_Outside} texture(s) outside the target partition.");
             }
 
+            // ONE KEY, ONE PARTITION: with OnlyVariation the copied entries (and a synthesized base) leave, so
+            // this partition cannot race another of ours for the keys it merely copied.
+            var s_Dropped = 0;
+            if (OnlyVariation is "1" or "true" or "True" or "TRUE")
+            {
+                if (string.IsNullOrWhiteSpace(VariationHash))
+                {
+                    p_Writer.WriteLine("OnlyVariation needs VariationHash (nothing to keep otherwise).");
+                    return false;
+                }
+
+                var s_KeepHash = uint.Parse(VariationHash);
+                var s_Owned = s_SrcConcrete.InstanceMap.Values.OfType<fb.MeshVariationDatabaseEntry>()
+                    .Where(p_E => p_E.VariationAssetNameHash == s_KeepHash).ToList();
+                if (s_Owned.Count != 1)
+                {
+                    p_Writer.WriteLine($"OnlyVariation: expected exactly one entry with hash {s_KeepHash}, found {s_Owned.Count}.");
+                    return false;
+                }
+
+                var s_Victims = s_SrcConcrete.InstanceMap
+                    .Where(p_KV => p_KV.Value is fb.MeshVariationDatabaseEntry p_E && p_E.VariationAssetNameHash != s_KeepHash)
+                    .Select(p_KV => p_KV.Key).ToList();
+                foreach (var s_V in s_Victims)
+                    s_SrcConcrete.InstanceMap.Remove(s_V);
+                s_Dropped = s_Victims.Count;
+
+                s_SrcMvdb.Entries.Clear();
+                s_SrcMvdb.Entries.AddRef(new CtrRef<fb.MeshVariationDatabaseEntry>(s_SrcConcrete.PartitionGuid, s_Owned[0].InstanceId));
+                s_KeepIds.Clear();
+                s_KeepIds.Add((s_Owned[0], GUID.Empty));
+                p_Writer.WriteLine($"OnlyVariation: dropped {s_Dropped} copied entr(ies); the partition owns only hash {s_KeepHash}.");
+            }
+
             var s_Stream = new MemoryStream();
             using var s_ResWriter = new RimeWriter(s_Stream);   // function-scoped: keep stream alive
             s_Generator.Generate(s_SrcDb, s_ResWriter);
@@ -731,8 +1132,54 @@ namespace RimeLib.Cmd.Commands.BundleBuilding
             // emit_subworld_registry can put it in a SubWorld's AssetRegistry (AddRegistry delivery fallback).
             s_BundleContext.AddMvdbRegistryRef(s_SrcConcrete.PartitionGuid, s_PrimG);
 
-            var s_Hashes = string.Join(",", s_KeepIds.Select(p_E => p_E.Entry.VariationAssetNameHash));
-            p_Writer.WriteLine($"Built minimal MVDB '{TargetName}' with {s_KeepIds.Count} '{MeshName}' entr(ies) (variationAssetNameHash={s_Hashes}, {s_Bytes.Length} bytes).");
+            // Counted from the InstanceMap: the appended variation entry is one of them (the old count listed
+            // only the copies, which hid the second, racing hash-0 entry for a build).
+            var s_AllEntries = s_SrcConcrete.InstanceMap.Values.OfType<fb.MeshVariationDatabaseEntry>().ToList();
+            var s_Hashes = string.Join(",", s_AllEntries.Select(p_E => p_E.VariationAssetNameHash));
+            p_Writer.WriteLine($"Built minimal MVDB '{TargetName}' with {s_AllEntries.Count} '{MeshName}' entr(ies) (variationAssetNameHash={s_Hashes}, {s_Bytes.Length} bytes).");
+
+            // The MVDB-TEX list, brought in by construction rather than copied from the log by hand.
+            if (ReferenceTextures is "1" or "true" or "True" or "TRUE")
+            {
+                var s_Present = s_BundleContext.GetPartitions().Keys.ToList();
+                var s_Added = 0;
+                foreach (var s_TexName in s_TexNames)
+                {
+                    if (s_Present.Any(p_K => p_K.Equals(s_TexName, StringComparison.OrdinalIgnoreCase)))
+                        continue;
+
+                    if (!s_EngineMounter.TryGetPartition(s_TexName, out var s_TexPartition))
+                        continue;
+
+                    var s_TexVariant = s_TexPartition.FirstVariant;
+                    if (s_BundleContext.Cas())
+                    {
+                        s_TexVariant = s_TexPartition.Variants.FirstOrDefault(p_V => p_V.Cas && p_V.GetContainedBundle() != null);
+
+                        // ⛔ A texture with no catalog copy cannot be REFERENCED, only copied — and a copy is the game's
+                        // own bytes (measured 2026-09-24: the 12 textures of the two XP3 artillery trucks live only
+                        // inside the XP3 levels' superbundles; falling back to a level's variant shipped their EBX,
+                        // header and a tail slice of pixels bound to nothing, and the server hung at "creating level").
+                        // The levels that field that mesh bring the texture themselves: leave it to them.
+                        if (s_TexVariant == null)
+                        {
+                            p_Writer.WriteLine($"MVDB-TEX-LEVEL: {s_TexName} (no catalog copy in the game: only the levels that use it carry it; not shipped)");
+                            continue;
+                        }
+                    }
+
+                    if (s_TexVariant == null)
+                        continue;
+
+                    s_BundleContext.AddPartition(s_TexName, s_TexVariant);
+                    s_Present.Add(s_TexName);
+                    s_Added++;
+                    p_Writer.WriteLine($"MVDB-TEX-REF: {s_TexName}");
+                }
+
+                p_Writer.WriteLine($"Referenced {s_Added} bound texture partition(s) the bundle did not have.");
+            }
+
             return true;
         }
     }
